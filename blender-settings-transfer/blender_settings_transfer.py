@@ -283,7 +283,7 @@ def select_leaves(tree, include=None, exclude=None):
             if n.path:
                 by_id[n.path] = n
 
-    def resolve(ids):
+    def resolve(ids, strict=True):
         out = set()
         for i in ids:
             node = by_id.get(i)
@@ -292,6 +292,8 @@ def select_leaves(tree, include=None, exclude=None):
                 # instead of "scripts/addons/node_wrangler.py".
                 matches = [n for n in by_id.values() if not n.is_group and
                            (n.id.endswith("/" + i) or n.label == i)]
+                if not matches and not strict:
+                    continue  # excluding something that isn't there is fine
                 if not matches:
                     raise SystemExit("Unknown item: %r  (use the 'list' command to see ids)" % i)
                 for m in matches:
@@ -302,7 +304,7 @@ def select_leaves(tree, include=None, exclude=None):
 
     selected = resolve(include) if include else {l.path for r in tree for l in r.leaves()}
     if exclude:
-        selected -= resolve(exclude)
+        selected -= resolve(exclude, strict=False)
     return selected
 
 
