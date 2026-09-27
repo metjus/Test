@@ -1684,8 +1684,13 @@ def run_gui():
             bar = self._action_bar(f, self.imp_tree, self.imp_summary, "Import", self._do_import)
             self.imp_tree.pack(fill="both", expand=True)
             self.imp_backup = tk.BooleanVar(value=True)
-            ttk.Checkbutton(bar, text="Back up replaced files", variable=self.imp_backup).pack(
-                side="left", padx=(px(14), 0))
+            # Same drawn checkbox as the tree, so it scales on high-DPI screens.
+            tk.Checkbutton(bar, text="  Back up replaced files", variable=self.imp_backup,
+                           image=self.check_images[False], selectimage=self.check_images[True],
+                           compound="left", indicatoron=False, bd=0, relief="flat", offrelief="flat",
+                           overrelief="flat", highlightthickness=0, cursor="hand2",
+                           bg=C["bg"], activebackground=C["bg"], selectcolor=C["bg"], fg=C["text"],
+                           activeforeground=C["text"], font=self.font_body).pack(side="left", padx=(px(14), 0))
             self.imp_manifest = None
             self._import_target_changed()
 

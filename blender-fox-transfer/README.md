@@ -2,7 +2,7 @@
 
 # Blender Fox Transfer
 
-![Screenshot](screenshot.png)
+![Screenshot](media/banner_1920x1080.png)
 
 Move your whole Blender setup to another computer (or a fresh install) in one
 go — and **choose exactly what to take with you**.
