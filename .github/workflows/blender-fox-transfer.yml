@@ -1,4 +1,4 @@
-name: Build Blender Settings Transfer
+name: Build Blender Fox Transfer
 
 # Builds a standalone Windows .exe, macOS .app and Linux binary (no Python needed to run them).
 # - Every push that touches the tool: download the builds from the run's "Artifacts".
@@ -6,8 +6,8 @@ name: Build Blender Settings Transfer
 on:
   push:
     paths:
-      - "blender-settings-transfer/**"
-      - ".github/workflows/blender-settings-transfer.yml"
+      - "blender-fox-transfer/**"
+      - ".github/workflows/blender-fox-transfer.yml"
     tags:
       - "bst-v*"
   workflow_dispatch:
@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
     defaults:
       run:
-        working-directory: blender-settings-transfer
+        working-directory: blender-fox-transfer
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -28,19 +28,19 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install pyinstaller
       - name: Smoke test
-        run: python blender_settings_transfer.py --help
+        run: python blender_fox_transfer.py --help
       - name: Build .exe
-        run: pyinstaller --noconfirm --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py
+        run: pyinstaller --noconfirm --onefile --windowed --icon assets/icon.ico --name BlenderFoxTransfer blender_fox_transfer.py
       - uses: actions/upload-artifact@v4
         with:
-          name: BlenderSettingsTransfer-Windows
-          path: blender-settings-transfer/dist/BlenderSettingsTransfer.exe
+          name: BlenderFoxTransfer-Windows
+          path: blender-fox-transfer/dist/BlenderFoxTransfer.exe
 
   macos:
     runs-on: macos-latest
     defaults:
       run:
-        working-directory: blender-settings-transfer
+        working-directory: blender-fox-transfer
     env:
       # python.org builds are universal2 (Intel + Apple Silicon) and ship their own Tk.
       PY_VERSION: "3.12.10"
@@ -53,18 +53,18 @@ jobs:
           sudo installer -pkg python.pkg -target /
       - run: $PY -m pip install pyinstaller
       - name: Smoke test
-        run: $PY blender_settings_transfer.py --help
+        run: $PY blender_fox_transfer.py --help
       - name: Build .app
         run: |
           $PY -m PyInstaller --noconfirm --windowed --target-arch universal2 \
-            --name "Blender Settings Transfer" \
-            --osx-bundle-identifier io.github.blender-settings-transfer \
-            blender_settings_transfer.py
-          cd dist && ditto -c -k --keepParent "Blender Settings Transfer.app" BlenderSettingsTransfer-macOS.zip
+            --name "Blender Fox Transfer" --icon assets/icon.icns \
+            --osx-bundle-identifier io.github.blender-fox-transfer \
+            blender_fox_transfer.py
+          cd dist && ditto -c -k --keepParent "Blender Fox Transfer.app" BlenderFoxTransfer-macOS.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: BlenderSettingsTransfer-macOS
-          path: blender-settings-transfer/dist/BlenderSettingsTransfer-macOS.zip
+          name: BlenderFoxTransfer-macOS
+          path: blender-fox-transfer/dist/BlenderFoxTransfer-macOS.zip
 
   linux:
     runs-on: ubuntu-latest
@@ -72,20 +72,20 @@ jobs:
     container: python:3.12-bullseye
     defaults:
       run:
-        working-directory: blender-settings-transfer
+        working-directory: blender-fox-transfer
     steps:
       - uses: actions/checkout@v4
       - run: pip install --root-user-action=ignore pyinstaller
       - name: Smoke test
-        run: python blender_settings_transfer.py --help
+        run: python blender_fox_transfer.py --help
       - name: Build binary
         run: |
-          pyinstaller --noconfirm --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py
-          tar -czf dist/BlenderSettingsTransfer-Linux.tar.gz -C dist BlenderSettingsTransfer
+          pyinstaller --noconfirm --onefile --windowed --name BlenderFoxTransfer blender_fox_transfer.py
+          tar -czf dist/BlenderFoxTransfer-Linux.tar.gz -C dist BlenderFoxTransfer
       - uses: actions/upload-artifact@v4
         with:
-          name: BlenderSettingsTransfer-Linux
-          path: blender-settings-transfer/dist/BlenderSettingsTransfer-Linux.tar.gz
+          name: BlenderFoxTransfer-Linux
+          path: blender-fox-transfer/dist/BlenderFoxTransfer-Linux.tar.gz
 
   release:
     if: startsWith(github.ref, 'refs/tags/bst-v')
@@ -98,8 +98,8 @@ jobs:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
-          name: Blender Settings Transfer ${{ github.ref_name }}
+          name: Blender Fox Transfer ${{ github.ref_name }}
           files: |
-            dist/BlenderSettingsTransfer.exe
-            dist/BlenderSettingsTransfer-macOS.zip
-            dist/BlenderSettingsTransfer-Linux.tar.gz
+            dist/BlenderFoxTransfer.exe
+            dist/BlenderFoxTransfer-macOS.zip
+            dist/BlenderFoxTransfer-Linux.tar.gz

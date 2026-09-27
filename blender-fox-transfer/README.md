@@ -1,4 +1,6 @@
-# Blender Settings Transfer
+<p align="center"><img src="assets/logo.png" width="160" alt="Blender Fox Transfer logo"></p>
+
+# Blender Fox Transfer
 
 ![Screenshot](screenshot.png)
 
@@ -35,12 +37,12 @@ folders are skipped automatically (Blender recreates them).
 
 | System | File | How to start |
 |---|---|---|
-| **Windows** 10/11 | `BlenderSettingsTransfer.exe` | Double-click. |
-| **macOS** 11+ (Intel & Apple Silicon) | `BlenderSettingsTransfer-macOS.zip` | Unzip, move *Blender Settings Transfer* to Applications, open it. |
-| **Linux** (Ubuntu 20.04+, Debian 11+, Fedora, Mint …, x86-64) | `BlenderSettingsTransfer-Linux.tar.gz` | Extract, then double-click `BlenderSettingsTransfer` or run `./BlenderSettingsTransfer`. |
+| **Windows** 10/11 | `BlenderFoxTransfer.exe` | Double-click. |
+| **macOS** 11+ (Intel & Apple Silicon) | `BlenderFoxTransfer-macOS.zip` | Unzip, move *Blender Fox Transfer* to Applications, open it. |
+| **Linux** (Ubuntu 20.04+, Debian 11+, Fedora, Mint …, x86-64) | `BlenderFoxTransfer-Linux.tar.gz` | Extract, then double-click `BlenderFoxTransfer` or run `./BlenderFoxTransfer`. |
 
 Get them from the repository's **Releases** page, or from the latest
-**Actions › Build Blender Settings Transfer** run (section *Artifacts*).
+**Actions › Build Blender Fox Transfer** run (section *Artifacts*).
 
 The apps aren't code-signed (that needs paid developer certificates), so the
 first launch shows a warning:
@@ -48,20 +50,20 @@ first launch shows a warning:
 - **Windows** – "Windows protected your PC": click **More info › Run anyway**.
 - **macOS** – "can't be opened because Apple cannot check it": right-click the
   app › **Open** › **Open**. (Or in Terminal:
-  `xattr -dr com.apple.quarantine "/Applications/Blender Settings Transfer.app"`.)
+  `xattr -dr com.apple.quarantine "/Applications/Blender Fox Transfer.app"`.)
   You only need to do this once.
 
 ### Building the apps yourself
 
-The GitHub workflow `.github/workflows/blender-settings-transfer.yml` builds
+The GitHub workflow `.github/workflows/blender-fox-transfer.yml` builds
 both on every push. Push a tag such as `bst-v1.0.0` to publish a Release.
 Manual build (run it on the system you're building for):
 
 ```bash
 pip install pyinstaller
-pyinstaller --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py   # Windows
-pyinstaller --windowed --name "Blender Settings Transfer" blender_settings_transfer.py        # macOS
-pyinstaller --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py   # Linux
+pyinstaller --onefile --windowed --icon assets/icon.ico --name BlenderFoxTransfer blender_fox_transfer.py   # Windows
+pyinstaller --windowed --icon assets/icon.icns --name "Blender Fox Transfer" blender_fox_transfer.py   # macOS
+pyinstaller --onefile --windowed --name BlenderFoxTransfer blender_fox_transfer.py   # Linux
 ```
 
 On a Mac the easiest way is `bash build_mac.command`: it finds a suitable
@@ -73,7 +75,7 @@ that distro and newer ones.
 
 ### Running from source
 
-Python 3.8+ with the standard library only. `python3 blender_settings_transfer.py`
+Python 3.8+ with the standard library only. `python3 blender_fox_transfer.py`
 (on Windows `run_windows.bat`). On Linux the window needs `python3-tk`; the
 command line works without it.
 
@@ -101,19 +103,19 @@ would overwrite the imported ones.
 ## Command line
 
 ```bash
-python blender_settings_transfer.py installs                 # show Blender folders found
-python blender_settings_transfer.py list                     # show items + ids (newest Blender)
-python blender_settings_transfer.py list my_setup.zip        # show what's inside a package
+python blender_fox_transfer.py installs                 # show Blender folders found
+python blender_fox_transfer.py list                     # show items + ids (newest Blender)
+python blender_fox_transfer.py list my_setup.zip        # show what's inside a package
 
 # export everything / only some items (group ids, full ids or short names)
-python blender_settings_transfer.py export my_setup.zip
-python blender_settings_transfer.py export my_setup.zip --version 4.2 --include preferences startup addons
-python blender_settings_transfer.py export my_setup.zip --exclude recent_files node_wrangler
+python blender_fox_transfer.py export my_setup.zip
+python blender_fox_transfer.py export my_setup.zip --version 4.2 --include preferences startup addons
+python blender_fox_transfer.py export my_setup.zip --exclude recent_files node_wrangler
 
 # import (defaults to the package's Blender version)
-python blender_settings_transfer.py import my_setup.zip
-python blender_settings_transfer.py import my_setup.zip --version 4.3 --exclude recent_files -y
-python blender_settings_transfer.py import my_setup.zip --blender-dir "D:/Blender/portable"
+python blender_fox_transfer.py import my_setup.zip
+python blender_fox_transfer.py import my_setup.zip --version 4.3 --exclude recent_files -y
+python blender_fox_transfer.py import my_setup.zip --blender-dir "D:/Blender/portable"
 ```
 
 ## Where Blender keeps these files

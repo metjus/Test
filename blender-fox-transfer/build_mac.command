@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds "Blender Settings Transfer.app" on a Mac.
+# Builds "Blender Fox Transfer.app" on a Mac.
 # Run in Terminal:   bash build_mac.command
 set -e
 cd "$(dirname "$0")"
@@ -20,13 +20,13 @@ echo "Using $PY"
 
 "$PY" -m pip install --user --upgrade pyinstaller
 "$PY" -m PyInstaller --noconfirm --windowed \
-  --name "Blender Settings Transfer" \
-  --osx-bundle-identifier io.github.blender-settings-transfer \
-  blender_settings_transfer.py
+  --name "Blender Fox Transfer" --icon assets/icon.icns \
+  --osx-bundle-identifier io.github.blender-fox-transfer \
+  blender_fox_transfer.py
 
 cd dist
-ditto -c -k --keepParent "Blender Settings Transfer.app" BlenderSettingsTransfer-macOS.zip
+ditto -c -k --keepParent "Blender Fox Transfer.app" BlenderFoxTransfer-macOS.zip
 echo
-echo "Done:  $(pwd)/Blender Settings Transfer.app"
-echo "       $(pwd)/BlenderSettingsTransfer-macOS.zip  (send this one to others)"
+echo "Done:  $(pwd)/Blender Fox Transfer.app"
+echo "       $(pwd)/BlenderFoxTransfer-macOS.zip  (send this one to others)"
 open .
