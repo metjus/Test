@@ -564,41 +564,135 @@ def cli(argv):
 # GUI (tkinter)
 # ---------------------------------------------------------------------------
 
-CHECKED, UNCHECKED, PARTIAL = "☑", "☐", "▣"
+COLORS = {
+    "bg": "#f3f4f6",
+    "card": "#ffffff",
+    "border": "#dde0e5",
+    "text": "#1d2127",
+    "muted": "#6b7280",
+    "accent": "#e87d0d",
+    "accent_hover": "#f28d22",
+    "accent_press": "#c86a08",
+    "accent_soft": "#fdf1e4",
+    "accent_disabled": "#efc9a2",
+    "header": "#1e2126",
+    "header_text": "#ffffff",
+    "header_muted": "#9aa1ab",
+    "header_hover": "#2c3037",
+    "check_border": "#a9b0ba",
+}
+
+
+def _enable_windows_dpi_awareness():
+    """Without this Windows renders the window blurry on scaled displays."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except Exception:
+            ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
+
+
+def _make_checkbox_image(tk, size, state, bg):
+    """Draw a rounded checkbox (state True/False/None=partial) as a PhotoImage."""
+    c = COLORS
+    img = tk.PhotoImage(width=size, height=size)
+    radius = max(2.0, size / 5.0)
+    border = max(1.0, size / 12.0)
+    stroke = max(1.5, size / 9.0)
+
+    def inside(x, y, inset):
+        lo, hi = inset + radius, size - 1 - inset - radius
+        dx = max(lo - x, 0, x - hi)
+        dy = max(lo - y, 0, y - hi)
+        return dx * dx + dy * dy <= radius * radius
+
+    def near_segment(px, py, ax, ay, bx, by):
+        ax, ay, bx, by = ax * size, ay * size, bx * size, by * size
+        vx, vy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy)))
+        dx, dy = px - (ax + t * vx), py - (ay + t * vy)
+        return dx * dx + dy * dy <= (stroke / 2.0) ** 2
+
+    transparent = []
+    rows = []
+    for y in range(size):
+        row = []
+        for x in range(size):
+            px, py = x + 0.5, y + 0.5
+            if not inside(x, y, 0):
+                row.append(bg)
+                transparent.append((x, y))
+            elif state is False:
+                row.append(c["card"] if inside(x, y, border) else c["check_border"])
+            else:
+                mark = (near_segment(px, py, 0.26, 0.52, 0.43, 0.69) or
+                        near_segment(px, py, 0.43, 0.69, 0.75, 0.33)) if state else \
+                    (abs(py - size / 2.0) <= stroke / 2.0 and size * 0.27 <= px <= size * 0.73)
+                row.append("#ffffff" if mark else c["accent"])
+        rows.append("{" + " ".join(row) + "}")
+    img.put(" ".join(rows))
+    for x, y in transparent:
+        try:
+            img.tk.call(img.name, "transparency", "set", x, y, 1)
+        except Exception:
+            break
+    return img
 
 
 def run_gui():
     try:
         import tkinter as tk
-        from tkinter import ttk, filedialog, messagebox
+        from tkinter import ttk, filedialog, messagebox, font as tkfont
     except ImportError:
         print("tkinter is not available in this Python. Use the command line instead "
               "(run with --help to see the commands).")
         return 1
+    import queue
+    import threading
 
-    class CheckTree(ttk.Frame):
-        """A Treeview whose rows can be ticked on/off by clicking."""
+    _enable_windows_dpi_awareness()
+    C = COLORS
 
-        def __init__(self, master, on_change=None):
-            super().__init__(master)
-            self.on_change = on_change
+    class CheckTree(tk.Frame):
+        """A card with a Treeview whose rows can be ticked on/off by clicking."""
+
+        def __init__(self, master, app, empty_text, on_change=None):
+            super().__init__(master, bg=C["card"], highlightthickness=1,
+                             highlightbackground=C["border"], highlightcolor=C["border"])
+            self.app = app
+            self.on_change = None
             self.tv = ttk.Treeview(self, columns=("size",), selectmode="browse")
-            self.tv.heading("#0", text="Item")
-            self.tv.heading("size", text="Size")
-            self.tv.column("#0", width=420, stretch=True)
-            self.tv.column("size", width=90, anchor="e", stretch=False)
+            self.tv.heading("#0", text="ITEM", anchor="w")
+            self.tv.heading("size", text="SIZE", anchor="e")
+            self.tv.column("#0", width=app.px(460), stretch=True)
+            self.tv.column("size", width=app.px(100), anchor="e", stretch=False)
+            self.tv.tag_configure("group", font=app.font_bold)
+            self.tv.tag_configure("leaf", foreground=C["text"])
             sb = ttk.Scrollbar(self, orient="vertical", command=self.tv.yview)
             self.tv.configure(yscrollcommand=sb.set)
-            self.tv.grid(row=0, column=0, sticky="nsew")
+            self.tv.grid(row=0, column=0, sticky="nsew", padx=(1, 0), pady=(1, 0))
             sb.grid(row=0, column=1, sticky="ns")
+            tk.Frame(self, bg=C["border"], height=1).grid(row=1, column=0, columnspan=2, sticky="ew")
+            self.desc_var = tk.StringVar()
+            tk.Label(self, textvariable=self.desc_var, bg=C["card"], fg=C["muted"], font=app.font_small,
+                     anchor="w", justify="left", wraplength=app.px(760), padx=app.px(14), pady=app.px(10)
+                     ).grid(row=2, column=0, columnspan=2, sticky="ew")
             self.rowconfigure(0, weight=1)
             self.columnconfigure(0, weight=1)
+            self.empty = tk.Label(self, text=empty_text, bg=C["card"], fg=C["muted"], font=app.font_body,
+                                  justify="center")
             self.tv.bind("<Button-1>", self._click)
             self.tv.bind("<space>", self._key_toggle)
             self.tv.bind("<<TreeviewSelect>>", self._select)
             self.nodes = {}
             self.state = {}
-            self.desc_var = tk.StringVar()
+            self.load([])
+            self.on_change = on_change
 
         def load(self, tree, checked=True):
             self.tv.delete(*self.tv.get_children())
@@ -607,7 +701,7 @@ def run_gui():
 
             def add(parent, n):
                 iid = self.tv.insert(parent, "end", text="", values=(human_size(n.total_size()),),
-                                     open=False)
+                                     tags=("group" if n.is_group else "leaf",))
                 self.nodes[iid] = n
                 self.state[iid] = checked
                 for c in n.children:
@@ -615,6 +709,13 @@ def run_gui():
 
             for n in tree:
                 add("", n)
+            if tree:
+                self.empty.place_forget()
+                self.desc_var.set("Click a row to tick or untick it. Expand groups with the arrow "
+                                  "to pick single add-ons.")
+            else:
+                self.empty.place(relx=0.5, rely=0.42, anchor="center")
+                self.desc_var.set("")
             self._refresh_all()
 
         def _refresh_all(self):
@@ -628,16 +729,14 @@ def run_gui():
             if kids:
                 states = [self._refresh(k) for k in kids]
                 if all(s is True for s in states):
-                    st = True
+                    self.state[iid] = True
                 elif all(s is False for s in states):
-                    st = False
+                    self.state[iid] = False
                 else:
-                    st = None
-                self.state[iid] = st
-            st = self.state[iid]
-            mark = CHECKED if st is True else UNCHECKED if st is False else PARTIAL
-            self.tv.item(iid, text="%s  %s" % (mark, self.nodes[iid].label))
-            return st
+                    self.state[iid] = None
+            self.tv.item(iid, image=self.app.check_images[self.state[iid]],
+                         text="  " + self.nodes[iid].label)
+            return self.state[iid]
 
         def _set(self, iid, value):
             self.state[iid] = value
@@ -652,6 +751,9 @@ def run_gui():
             for iid in self.tv.get_children():
                 self._set(iid, value)
             self._refresh_all()
+
+        def roots(self):
+            return [self.nodes[i] for i in self.tv.get_children()]
 
         def _click(self, event):
             if self.tv.identify_region(event.x, event.y) != "tree":
@@ -670,7 +772,8 @@ def run_gui():
         def _select(self, _event):
             sel = self.tv.selection()
             n = self.nodes.get(sel[0]) if sel else None
-            self.desc_var.set((n.desc or (n.path or "")) if n else "")
+            if n:
+                self.desc_var.set(n.desc or n.path or "")
 
         def selected_paths(self):
             return {n.path for iid, n in self.nodes.items() if not n.is_group and self.state[iid]}
@@ -682,28 +785,158 @@ def run_gui():
         def __init__(self):
             super().__init__()
             self.title(TOOL_NAME)
-            self.geometry("760x620")
-            self.minsize(600, 480)
-            nb = ttk.Notebook(self)
-            nb.pack(fill="both", expand=True, padx=8, pady=8)
-            self.exp = ttk.Frame(nb, padding=8)
-            self.imp = ttk.Frame(nb, padding=8)
-            nb.add(self.exp, text="  Export  ")
-            nb.add(self.imp, text="  Import  ")
-            self.status = tk.StringVar(value="Ready.")
-            ttk.Label(self, textvariable=self.status, anchor="w", padding=(10, 0, 10, 6)).pack(fill="x")
-            self.progress = ttk.Progressbar(self, mode="determinate")
-            self.progress.pack(fill="x", padx=10, pady=(0, 8))
-            self.installs = find_installations()
-            self._build_export()
-            self._build_import()
+            self.configure(bg=C["bg"])
+            self.scale = max(1.0, self.winfo_fpixels("1i") / 96.0)
+            self._setup_fonts()
+            self._setup_style()
+            size = self.px(20)
+            self.check_images = {s: _make_checkbox_image(tk, size, s, C["card"]) for s in (True, False, None)}
+            self.iconphoto(True, _make_checkbox_image(tk, 64, True, C["bg"]))
+            self.geometry("%dx%d" % (self.px(900), self.px(760)))
+            self.minsize(self.px(680), self.px(560))
 
-        # ---- shared widgets ----------------------------------------------
+            self.installs = find_installations()
+            self.busy = False
+            self.action_buttons = []
+            self._build_header()
+            self._build_footer()
+            self.body = tk.Frame(self, bg=C["bg"])
+            self.body.pack(fill="both", expand=True, padx=self.px(22), pady=(self.px(16), 0))
+            self.pages = {"export": tk.Frame(self.body, bg=C["bg"]), "import": tk.Frame(self.body, bg=C["bg"])}
+            self._build_export(self.pages["export"])
+            self._build_import(self.pages["import"])
+            self.show_page("export")
+
+        # ---- look & feel ---------------------------------------------------
+        def px(self, v):
+            return int(round(v * self.scale))
+
+        def _setup_fonts(self):
+            base = tkfont.nametofont("TkDefaultFont")
+            if sys.platform == "win32":
+                base.configure(family="Segoe UI", size=10)
+            elif sys.platform != "darwin":
+                base.configure(size=10)
+            for name in ("TkTextFont", "TkMenuFont", "TkHeadingFont"):
+                try:
+                    tkfont.nametofont(name).configure(family=base.cget("family"), size=base.cget("size"))
+                except tk.TclError:
+                    pass
+            fam, sz = base.cget("family"), base.cget("size")
+            self.font_body = tkfont.Font(family=fam, size=sz)
+            self.font_bold = tkfont.Font(family=fam, size=sz, weight="bold")
+            self.font_small = tkfont.Font(family=fam, size=max(sz - 1, 8))
+            self.font_step = tkfont.Font(family=fam, size=max(sz - 1, 8), weight="bold")
+            self.font_title = tkfont.Font(family=fam, size=sz + 6, weight="bold")
+            self.font_big = tkfont.Font(family=fam, size=sz + 1, weight="bold")
+
+        def _setup_style(self):
+            s = ttk.Style(self)
+            s.theme_use("clam")
+            px = self.px
+            s.configure(".", background=C["bg"], foreground=C["text"], bordercolor=C["border"],
+                        lightcolor=C["border"], darkcolor=C["border"], focuscolor=C["accent"],
+                        troughcolor=C["bg"], font=self.font_body)
+            s.configure("Treeview", background=C["card"], fieldbackground=C["card"], foreground=C["text"],
+                        rowheight=px(32), borderwidth=0, relief="flat", indent=px(24))
+            s.map("Treeview", background=[("selected", C["accent_soft"])],
+                  foreground=[("selected", C["text"])])
+            s.layout("Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
+            s.configure("Treeview.Heading", background=C["card"], foreground=C["muted"], relief="flat",
+                        borderwidth=0, font=self.font_step, padding=(px(10), px(8)))
+            s.map("Treeview.Heading", background=[("active", C["card"])])
+            s.configure("TButton", background=C["card"], foreground=C["text"], bordercolor=C["border"],
+                        lightcolor=C["card"], darkcolor=C["card"], relief="flat", padding=(px(14), px(7)))
+            s.map("TButton", background=[("disabled", C["bg"]), ("pressed", "#e6e8ec"), ("active", "#eef0f3")],
+                  foreground=[("disabled", C["muted"])])
+            s.configure("Accent.TButton", background=C["accent"], foreground="#ffffff", bordercolor=C["accent"],
+                        lightcolor=C["accent"], darkcolor=C["accent"], font=self.font_big,
+                        padding=(px(26), px(10)))
+            s.map("Accent.TButton",
+                  background=[("disabled", C["accent_disabled"]), ("pressed", C["accent_press"]),
+                              ("active", C["accent_hover"])],
+                  bordercolor=[("disabled", C["accent_disabled"]), ("pressed", C["accent_press"]),
+                               ("active", C["accent_hover"])],
+                  lightcolor=[("disabled", C["accent_disabled"]), ("active", C["accent_hover"])],
+                  darkcolor=[("disabled", C["accent_disabled"]), ("active", C["accent_hover"])],
+                  foreground=[("disabled", "#ffffff")])
+            s.configure("TCombobox", fieldbackground=C["card"], background=C["card"], arrowcolor=C["muted"],
+                        bordercolor=C["border"], lightcolor=C["card"], darkcolor=C["card"],
+                        padding=(px(8), px(6)), arrowsize=px(14))
+            s.map("TCombobox", fieldbackground=[("readonly", C["card"])],
+                  bordercolor=[("focus", C["accent"])], selectbackground=[("readonly", C["card"])],
+                  selectforeground=[("readonly", C["text"])])
+            s.configure("TEntry", fieldbackground=C["card"], bordercolor=C["border"], lightcolor=C["card"],
+                        darkcolor=C["card"], padding=(px(8), px(6)))
+            s.configure("TCheckbutton", background=C["bg"], indicatorbackground=C["card"],
+                        indicatorforeground=C["accent"], focuscolor=C["bg"])
+            s.map("TCheckbutton", background=[("active", C["bg"])],
+                  indicatorbackground=[("selected", C["card"])])
+            s.configure("Vertical.TScrollbar", background=C["bg"], troughcolor=C["card"], bordercolor=C["card"],
+                        lightcolor=C["bg"], darkcolor=C["bg"], arrowcolor=C["muted"], gripcount=0)
+            s.configure("Horizontal.TProgressbar", background=C["accent"], troughcolor=C["border"],
+                        bordercolor=C["border"], lightcolor=C["accent"], darkcolor=C["accent"],
+                        thickness=px(4))
+            self.option_add("*TCombobox*Listbox.font", self.font_body)
+            self.option_add("*TCombobox*Listbox.selectBackground", C["accent_soft"])
+            self.option_add("*TCombobox*Listbox.selectForeground", C["text"])
+
+        # ---- layout pieces -------------------------------------------------
+        def _build_header(self):
+            px = self.px
+            h = tk.Frame(self, bg=C["header"], padx=px(22), pady=px(14))
+            h.pack(fill="x")
+            titles = tk.Frame(h, bg=C["header"])
+            titles.pack(side="left")
+            tk.Label(titles, text=TOOL_NAME, bg=C["header"], fg=C["header_text"],
+                     font=self.font_title).pack(anchor="w")
+            tk.Label(titles, text="Move preferences, layout and add-ons to another computer",
+                     bg=C["header"], fg=C["header_muted"], font=self.font_small).pack(anchor="w")
+            seg = tk.Frame(h, bg=C["header_hover"], padx=px(3), pady=px(3))
+            seg.pack(side="right")
+            self.seg_buttons = {}
+            for key, text in (("export", "Export"), ("import", "Import")):
+                b = tk.Label(seg, text=text, font=self.font_bold, padx=px(22), pady=px(6), cursor="hand2")
+                b.pack(side="left")
+                b.bind("<Button-1>", lambda e, k=key: self.show_page(k))
+                self.seg_buttons[key] = b
+
+        def _build_footer(self):
+            px = self.px
+            f = tk.Frame(self, bg=C["bg"])
+            f.pack(side="bottom", fill="x", padx=px(22), pady=(px(6), px(12)))
+            self.status = tk.StringVar(value="Ready.")
+            tk.Label(f, textvariable=self.status, bg=C["bg"], fg=C["muted"], font=self.font_small,
+                     anchor="w").pack(side="bottom", fill="x")
+            self.footer = f
+            self.progress = ttk.Progressbar(f, mode="determinate")  # shown only while working
+
+        def show_page(self, key):
+            if self.busy:
+                return
+            for k, page in self.pages.items():
+                page.pack_forget()
+                on = k == key
+                self.seg_buttons[k].configure(bg=C["accent"] if on else C["header_hover"],
+                                              fg="#ffffff" if on else C["header_muted"])
+            self.pages[key].pack(fill="both", expand=True)
+
+        def _step(self, parent, number, title, hint=None):
+            px = self.px
+            row = tk.Frame(parent, bg=C["bg"])
+            row.pack(fill="x", pady=(px(10), px(6)))
+            tk.Label(row, text=str(number), bg=C["accent"], fg="#ffffff", font=self.font_step,
+                     width=2, pady=px(1)).pack(side="left")
+            tk.Label(row, text=title, bg=C["bg"], fg=C["text"], font=self.font_bold,
+                     padx=px(10)).pack(side="left")
+            if hint:
+                tk.Label(row, text=hint, bg=C["bg"], fg=C["muted"], font=self.font_small).pack(side="left")
+            return row
+
         def _folder_picker(self, parent, var, on_change, allow_new):
-            row = ttk.Frame(parent)
-            values = [l for l, _ in self.installs]
-            cb = ttk.Combobox(row, textvariable=var, values=values,
-                              state="normal" if allow_new else "readonly")
+            row = tk.Frame(parent, bg=C["bg"])
+            cb = ttk.Combobox(row, textvariable=var, values=[l for l, _ in self.installs],
+                              state="normal" if allow_new else "readonly", font=self.font_body)
             cb.pack(side="left", fill="x", expand=True)
             cb.bind("<<ComboboxSelected>>", lambda e: on_change())
             if allow_new:
@@ -715,7 +948,7 @@ def run_gui():
                 if d:
                     var.set(d)
                     on_change()
-            ttk.Button(row, text="Browse...", command=browse).pack(side="left", padx=(6, 0))
+            ttk.Button(row, text="Browse…", command=browse).pack(side="left", padx=(self.px(8), 0))
             return row
 
         def _path_from(self, text):
@@ -727,34 +960,85 @@ def run_gui():
                 return os.path.join(default_root(), text)
             return text
 
-        def _tree_block(self, parent, tree_widget):
-            tree_widget.pack(fill="both", expand=True, pady=(6, 4))
-            btns = ttk.Frame(parent)
-            btns.pack(fill="x")
-            ttk.Button(btns, text="Select all", command=lambda: tree_widget.set_all(True)).pack(side="left")
-            ttk.Button(btns, text="Select none", command=lambda: tree_widget.set_all(False)).pack(side="left", padx=6)
-            ttk.Label(parent, textvariable=tree_widget.desc_var, wraplength=700, foreground="#555",
-                      justify="left").pack(fill="x", pady=(6, 0))
-            return btns
+        def _action_bar(self, parent, tree, summary_var, button_text, command):
+            px = self.px
+            bar = tk.Frame(parent, bg=C["bg"])
+            bar.pack(side="bottom", fill="x", pady=(px(12), 0))  # reserve room before the tree
+            ttk.Button(bar, text="Select all", command=lambda: tree.set_all(True)).pack(side="left")
+            ttk.Button(bar, text="Select none", command=lambda: tree.set_all(False)).pack(
+                side="left", padx=(px(6), 0))
+            btn = ttk.Button(bar, text=button_text, style="Accent.TButton", command=command)
+            btn.pack(side="right")
+            tk.Label(bar, textvariable=summary_var, bg=C["bg"], fg=C["muted"], font=self.font_small,
+                     padx=px(14)).pack(side="right")
+            self.action_buttons.append(btn)
+            return bar
 
-        def _set_progress(self, i, total, name):
-            self.progress["maximum"] = total
+        # ---- background work -----------------------------------------------
+        def _run_task(self, work, done):
+            """Run ``work(progress)`` in a thread so the window stays responsive."""
+            self._set_busy(True)
+            q = queue.Queue()
+
+            def progress(i, total, name):
+                q.put(("progress", i, total, name))
+
+            def runner():
+                try:
+                    q.put(("ok", work(progress)))
+                except Exception as e:  # reported in the UI thread
+                    q.put(("error", e))
+
+            threading.Thread(target=runner, daemon=True).start()
+
+            def poll():
+                last = None
+                try:
+                    while True:
+                        msg = q.get_nowait()
+                        if msg[0] == "progress":
+                            last = msg
+                        else:
+                            if last:
+                                self._show_progress(*last[1:])
+                            self._set_busy(False)
+                            done(msg[0] == "ok", msg[1])
+                            return
+                except queue.Empty:
+                    pass
+                if last:
+                    self._show_progress(*last[1:])
+                self.after(40, poll)
+            poll()
+
+        def _show_progress(self, i, total, name):
+            self.progress["maximum"] = max(total, 1)
             self.progress["value"] = i
-            self.status.set("%d/%d  %s" % (i, total, name))
-            self.update_idletasks()
+            self.status.set("%d / %d   %s" % (i, total, name))
 
-        # ---- export tab ----------------------------------------------------
-        def _build_export(self):
-            f = self.exp
-            ttk.Label(f, text="1. Blender installation to export from:").pack(anchor="w")
+        def _set_busy(self, busy):
+            self.busy = busy
+            if busy:
+                self.progress["value"] = 0
+                self.progress.pack(fill="x", pady=(0, self.px(6)))
+            else:
+                self.progress.pack_forget()
+            for b in self.action_buttons:
+                b.state(["disabled"] if busy else ["!disabled"])
+            self.configure(cursor="watch" if busy else "")
+
+        # ---- export page ---------------------------------------------------
+        def _build_export(self, f):
+            self._step(f, 1, "Blender installation to export from")
             self.exp_src = tk.StringVar(value=self.installs[0][0] if self.installs else "")
-            self._folder_picker(f, self.exp_src, self._load_export, allow_new=False).pack(fill="x", pady=(2, 8))
-            ttk.Label(f, text="2. Tick what you want to export (click a row to toggle):").pack(anchor="w")
-            self.exp_tree = CheckTree(f, on_change=self._export_summary)
-            btns = self._tree_block(f, self.exp_tree)
+            self._folder_picker(f, self.exp_src, self._load_export, allow_new=False).pack(fill="x")
+            self._step(f, 2, "Choose what to export", "Click a row to tick or untick it")
+            self.exp_tree = CheckTree(f, self, "No Blender settings found.\n\n"
+                                      "Pick an installation above, or use Browse… for a portable Blender.",
+                                      on_change=self._export_summary)
             self.exp_summary = tk.StringVar()
-            ttk.Label(btns, textvariable=self.exp_summary).pack(side="left", padx=12)
-            ttk.Button(btns, text="Export...", command=self._do_export).pack(side="right")
+            self._action_bar(f, self.exp_tree, self.exp_summary, "Export…", self._do_export)
+            self.exp_tree.pack(fill="both", expand=True)
             self._load_export()
 
         def _load_export(self):
@@ -765,12 +1049,13 @@ def run_gui():
                 self.status.set("Loaded %s" % base)
             else:
                 self.exp_tree.load([])
-                self.status.set("No Blender user folder found - use Browse... to pick one."
+                self.status.set("No Blender user folder found – use Browse… to pick one."
                                 if not base else "Folder not found: %s" % base)
 
         def _export_summary(self):
             n = len(self.exp_tree.selected_paths())
-            self.exp_summary.set("%d items, %s" % (n, human_size(self.exp_tree.selected_size())))
+            self.exp_summary.set("%d item%s selected · %s" % (n, "" if n == 1 else "s",
+                                                             human_size(self.exp_tree.selected_size())))
 
         def _do_export(self):
             sel = self.exp_tree.selected_paths()
@@ -784,44 +1069,54 @@ def run_gui():
                 filetypes=[("Zip package", "*.zip")])
             if not out:
                 return
-            try:
-                tree = [self.exp_tree.nodes[i] for i in self.exp_tree.tv.get_children()]
-                n = export_package(self.exp_base, tree, sel, out, self._set_progress)
-            except Exception as e:  # show any failure to the user
-                messagebox.showerror(TOOL_NAME, "Export failed:\n%s" % e)
-                self.status.set("Export failed.")
-                return
-            self.status.set("Exported %d files to %s" % (n, out))
-            messagebox.showinfo(TOOL_NAME, "Exported %d files to:\n%s" % (n, out))
+            base, tree = self.exp_base, self.exp_tree.roots()
 
-        # ---- import tab ----------------------------------------------------
-        def _build_import(self):
-            f = self.imp
-            ttk.Label(f, text="1. Settings package (.zip):").pack(anchor="w")
-            row = ttk.Frame(f)
-            row.pack(fill="x", pady=(2, 8))
+            def done(ok, result):
+                if not ok:
+                    self.status.set("Export failed.")
+                    messagebox.showerror(TOOL_NAME, "Export failed:\n%s" % result)
+                    return
+                self.status.set("Exported %d files to %s" % (result, out))
+                messagebox.showinfo(TOOL_NAME, "Exported %d files to:\n%s" % (result, out))
+
+            self._run_task(lambda progress: export_package(base, tree, sel, out, progress), done)
+
+        # ---- import page ---------------------------------------------------
+        def _build_import(self, f):
+            px = self.px
+            self._step(f, 1, "Settings package")
+            row = tk.Frame(f, bg=C["bg"])
+            row.pack(fill="x")
             self.imp_pkg = tk.StringVar()
-            ttk.Entry(row, textvariable=self.imp_pkg, state="readonly").pack(side="left", fill="x", expand=True)
-            ttk.Button(row, text="Open...", command=self._open_pkg).pack(side="left", padx=(6, 0))
-            self.imp_info = tk.StringVar(value="No package loaded.")
-            ttk.Label(f, textvariable=self.imp_info, foreground="#555").pack(anchor="w")
+            ttk.Entry(row, textvariable=self.imp_pkg, state="readonly", font=self.font_body).pack(
+                side="left", fill="x", expand=True)
+            ttk.Button(row, text="Open package…", command=self._open_pkg).pack(side="left", padx=(px(8), 0))
+            self.imp_info = tk.StringVar()
+            tk.Label(f, textvariable=self.imp_info, bg=C["bg"], fg=C["muted"], font=self.font_small,
+                     anchor="w").pack(fill="x", pady=(px(4), 0))
 
-            ttk.Label(f, text="2. Import into (pick an installation, type a version like 4.2, or Browse):"
-                      ).pack(anchor="w", pady=(8, 0))
+            self._step(f, 2, "Import into", "Pick an installation, type a version like 4.3, or Browse…")
             self.imp_dst = tk.StringVar(value=self.installs[0][0] if self.installs else "")
-            self._folder_picker(f, self.imp_dst, self._import_target_changed, allow_new=True).pack(fill="x", pady=(2, 0))
+            self._folder_picker(f, self.imp_dst, self._import_target_changed, allow_new=True).pack(fill="x")
             self.imp_dst_info = tk.StringVar()
-            ttk.Label(f, textvariable=self.imp_dst_info, foreground="#555").pack(anchor="w")
+            tk.Label(f, textvariable=self.imp_dst_info, bg=C["bg"], fg=C["muted"], font=self.font_small,
+                     anchor="w").pack(fill="x", pady=(px(4), 0))
 
-            ttk.Label(f, text="3. Tick what you want to import:").pack(anchor="w", pady=(8, 0))
-            self.imp_tree = CheckTree(f)
-            btns = self._tree_block(f, self.imp_tree)
+            self._step(f, 3, "Choose what to import")
+            self.imp_tree = CheckTree(f, self, "Open a settings package (.zip) to see what's inside.",
+                                      on_change=self._import_summary)
+            self.imp_summary = tk.StringVar()
+            bar = self._action_bar(f, self.imp_tree, self.imp_summary, "Import", self._do_import)
+            self.imp_tree.pack(fill="both", expand=True)
             self.imp_backup = tk.BooleanVar(value=True)
-            ttk.Checkbutton(btns, text="Back up files that get replaced", variable=self.imp_backup
-                            ).pack(side="left", padx=12)
-            ttk.Button(btns, text="Import", command=self._do_import).pack(side="right")
+            ttk.Checkbutton(bar, text="Back up replaced files", variable=self.imp_backup).pack(
+                side="left", padx=(px(14), 0))
             self.imp_manifest = None
             self._import_target_changed()
+
+        def _import_summary(self):
+            n = len(self.imp_tree.selected_paths())
+            self.imp_summary.set("%d item%s selected" % (n, "" if n == 1 else "s") if self.imp_tree.nodes else "")
 
         def _open_pkg(self):
             path = filedialog.askopenfilename(title="Open settings package",
@@ -835,10 +1130,11 @@ def run_gui():
                 return
             self.imp_manifest = m
             self.imp_pkg.set(path)
-            self.imp_info.set("Exported from Blender %s on %s, %s" % (
-                m.get("blender_version") or "?", m.get("source_platform", "?"), m.get("created", "?")))
+            self.imp_info.set("Exported from Blender %s on %s · %s" % (
+                m.get("blender_version") or "?", m.get("source_platform", "?"),
+                (m.get("created") or "?").replace("T", " ")))
             self.imp_tree.load(tree_from_manifest(m))
-            # Default target: same version as the package, if nothing matches yet.
+            # Default target: same version as the package.
             pv = m.get("blender_version")
             if pv:
                 match = [l for l, p in self.installs if guess_version(p) == pv]
@@ -850,9 +1146,9 @@ def run_gui():
             if not base:
                 self.imp_dst_info.set("")
             elif os.path.isdir(base):
-                self.imp_dst_info.set("Target: %s" % base)
+                self.imp_dst_info.set("→ %s" % base)
             else:
-                self.imp_dst_info.set("Target: %s  (will be created)" % base)
+                self.imp_dst_info.set("→ %s   (new folder, will be created)" % base)
 
         def _do_import(self):
             if not self.imp_manifest:
@@ -867,30 +1163,42 @@ def run_gui():
                 messagebox.showwarning(TOOL_NAME, "Choose where to import to.")
                 return
             pv, tv = self.imp_manifest.get("blender_version"), guess_version(base)
-            msg = "Import %d items into:\n%s\n\nMake sure Blender is CLOSED - it overwrites " \
+            msg = "Import %d items into:\n%s\n\nMake sure Blender is CLOSED – it overwrites " \
                   "preferences when it quits." % (len(sel), base)
             if pv and tv and pv != tv:
                 msg += "\n\nNote: package is from Blender %s, target is %s." % (pv, tv)
             if not messagebox.askokcancel(TOOL_NAME, msg):
                 return
-            try:
+            pkg, backup = self.imp_pkg.get(), self.imp_backup.get()
+
+            def work(progress):
                 os.makedirs(base, exist_ok=True)
-                n, bk = import_package(self.imp_pkg.get(), base, sel,
-                                       backup=self.imp_backup.get(), progress=self._set_progress)
-            except Exception as e:
-                messagebox.showerror(TOOL_NAME, "Import failed:\n%s" % e)
-                self.status.set("Import failed.")
-                return
-            text = "Imported %d files into:\n%s" % (n, base)
-            if bk:
-                text += "\n\nPrevious files backed up to:\n%s" % bk
-            self.status.set("Imported %d files." % n)
-            self.installs = find_installations()
-            messagebox.showinfo(TOOL_NAME, text + "\n\nYou can start Blender now.")
+                return import_package(pkg, base, sel, backup=backup, progress=progress)
+
+            def done(ok, result):
+                if not ok:
+                    self.status.set("Import failed.")
+                    messagebox.showerror(TOOL_NAME, "Import failed:\n%s" % result)
+                    return
+                n, bk = result
+                text = "Imported %d files into:\n%s" % (n, base)
+                if bk:
+                    text += "\n\nPrevious files backed up to:\n%s" % bk
+                self.status.set("Imported %d files into %s" % (n, base))
+                self.installs = find_installations()
+                messagebox.showinfo(TOOL_NAME, text + "\n\nYou can start Blender now.")
+
+            self._run_task(work, done)
 
     App().mainloop()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(cli(sys.argv[1:]) or 0)
+    # A windowed .exe/.app has no console: give print() somewhere to go.
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w")
+    # Older macOS passes a "-psn_..." process id when an .app is double-clicked.
+    sys.exit(cli([a for a in sys.argv[1:] if not a.startswith("-psn_")]) or 0)

@@ -1,5 +1,7 @@
 # Blender Settings Transfer
 
+![Screenshot](screenshot.png)
+
 Move your whole Blender setup to another computer (or a fresh install) in one
 go — and **choose exactly what to take with you**.
 
@@ -29,15 +31,42 @@ folders are skipped automatically (Blender recreates them).
 > **Tip:** installed add-ons/extensions only show up as *enabled* if you also
 > transfer **Preferences** — that is where Blender remembers which ones are on.
 
-## Requirements
+## Download (no Python needed)
 
-Python 3.8+ — standard library only, nothing to `pip install`.
+| System | File | How to start |
+|---|---|---|
+| **Windows** 10/11 | `BlenderSettingsTransfer.exe` | Double-click. |
+| **macOS** 11+ (Intel & Apple Silicon) | `BlenderSettingsTransfer-macOS.zip` | Unzip, move *Blender Settings Transfer* to Applications, open it. |
 
-- **Windows:** install Python from [python.org](https://www.python.org/downloads/)
-  (it includes the GUI toolkit). Then double-click `run_windows.bat`.
-- **macOS:** `python3 blender_settings_transfer.py`
-- **Linux:** `python3 blender_settings_transfer.py` (GUI needs `python3-tk`,
-  e.g. `sudo apt install python3-tk`; the command line works without it).
+Get them from the repository's **Releases** page, or from the latest
+**Actions › Build Blender Settings Transfer** run (section *Artifacts*).
+
+The apps aren't code-signed (that needs paid developer certificates), so the
+first launch shows a warning:
+
+- **Windows** – "Windows protected your PC": click **More info › Run anyway**.
+- **macOS** – "can't be opened because Apple cannot check it": right-click the
+  app › **Open** › **Open**. (Or in Terminal:
+  `xattr -dr com.apple.quarantine "/Applications/Blender Settings Transfer.app"`.)
+  You only need to do this once.
+
+### Building the apps yourself
+
+The GitHub workflow `.github/workflows/blender-settings-transfer.yml` builds
+both on every push. Push a tag such as `bst-v1.0.0` to publish a Release.
+Manual build (run it on the system you're building for):
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py   # Windows
+pyinstaller --windowed --name "Blender Settings Transfer" blender_settings_transfer.py        # macOS
+```
+
+### Running from source
+
+Python 3.8+ with the standard library only. `python3 blender_settings_transfer.py`
+(on Windows `run_windows.bat`). On Linux the window needs `python3-tk`; the
+command line works without it.
 
 ## Using the GUI
 

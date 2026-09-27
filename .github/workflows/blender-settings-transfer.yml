@@ -1,0 +1,83 @@
+name: Build Blender Settings Transfer
+
+# Builds a standalone Windows .exe and macOS .app (no Python needed to run them).
+# - Every push that touches the tool: download the builds from the run's "Artifacts".
+# - Pushing a tag like "bst-v1.0.0": also publishes them as a GitHub Release.
+on:
+  push:
+    paths:
+      - "blender-settings-transfer/**"
+      - ".github/workflows/blender-settings-transfer.yml"
+    tags:
+      - "bst-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: blender-settings-transfer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install pyinstaller
+      - name: Smoke test
+        run: python blender_settings_transfer.py --help
+      - name: Build .exe
+        run: pyinstaller --noconfirm --onefile --windowed --name BlenderSettingsTransfer blender_settings_transfer.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlenderSettingsTransfer-Windows
+          path: blender-settings-transfer/dist/BlenderSettingsTransfer.exe
+
+  macos:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: blender-settings-transfer
+    env:
+      # python.org builds are universal2 (Intel + Apple Silicon) and ship their own Tk.
+      PY_VERSION: "3.12.10"
+      PY: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install python.org Python (universal2)
+        run: |
+          curl -fsSL -o python.pkg "https://www.python.org/ftp/python/${PY_VERSION}/python-${PY_VERSION}-macos11.pkg"
+          sudo installer -pkg python.pkg -target /
+      - run: $PY -m pip install pyinstaller
+      - name: Smoke test
+        run: $PY blender_settings_transfer.py --help
+      - name: Build .app
+        run: |
+          $PY -m PyInstaller --noconfirm --windowed --target-arch universal2 \
+            --name "Blender Settings Transfer" \
+            --osx-bundle-identifier io.github.blender-settings-transfer \
+            blender_settings_transfer.py
+          cd dist && ditto -c -k --keepParent "Blender Settings Transfer.app" BlenderSettingsTransfer-macOS.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlenderSettingsTransfer-macOS
+          path: blender-settings-transfer/dist/BlenderSettingsTransfer-macOS.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/bst-v')
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Blender Settings Transfer ${{ github.ref_name }}
+          files: |
+            dist/BlenderSettingsTransfer.exe
+            dist/BlenderSettingsTransfer-macOS.zip
