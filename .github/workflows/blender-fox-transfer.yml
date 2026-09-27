@@ -1,6 +1,6 @@
 name: Build Blender Fox Transfer
 
-# Builds a standalone Windows .exe, macOS .app and Linux binary (no Python needed to run them).
+# Builds a standalone Windows .exe and Linux binary (no Python needed to run them).
 # - Every push that touches the tool: download the builds from the run's "Artifacts".
 # - Pushing a tag like "bst-v1.0.0": also publishes them as a GitHub Release.
 on:
@@ -36,36 +36,6 @@ jobs:
           name: BlenderFoxTransfer-Windows
           path: blender-fox-transfer/dist/BlenderFoxTransfer.exe
 
-  macos:
-    runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: blender-fox-transfer
-    env:
-      # python.org builds are universal2 (Intel + Apple Silicon) and ship their own Tk.
-      PY_VERSION: "3.12.10"
-      PY: /Library/Frameworks/Python.framework/Versions/3.12/bin/python3
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install python.org Python (universal2)
-        run: |
-          curl -fsSL -o python.pkg "https://www.python.org/ftp/python/${PY_VERSION}/python-${PY_VERSION}-macos11.pkg"
-          sudo installer -pkg python.pkg -target /
-      - run: $PY -m pip install pyinstaller
-      - name: Smoke test
-        run: $PY blender_fox_transfer.py --help
-      - name: Build .app
-        run: |
-          $PY -m PyInstaller --noconfirm --windowed --target-arch universal2 \
-            --name "Blender Fox Transfer" --icon assets/icon.icns \
-            --osx-bundle-identifier io.github.blender-fox-transfer \
-            blender_fox_transfer.py
-          cd dist && ditto -c -k --keepParent "Blender Fox Transfer.app" BlenderFoxTransfer-macOS.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: BlenderFoxTransfer-macOS
-          path: blender-fox-transfer/dist/BlenderFoxTransfer-macOS.zip
-
   linux:
     runs-on: ubuntu-latest
     # Build on an older glibc (Debian 11) so the binary runs on Ubuntu 20.04+ and similar.
@@ -89,7 +59,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/bst-v')
-    needs: [windows, macos, linux]
+    needs: [windows, linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -101,5 +71,4 @@ jobs:
           name: Blender Fox Transfer ${{ github.ref_name }}
           files: |
             dist/BlenderFoxTransfer.exe
-            dist/BlenderFoxTransfer-macOS.zip
             dist/BlenderFoxTransfer-Linux.tar.gz

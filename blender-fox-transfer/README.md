@@ -38,7 +38,6 @@ folders are skipped automatically (Blender recreates them).
 | System | File | How to start |
 |---|---|---|
 | **Windows** 10/11 | `BlenderFoxTransfer.exe` | Double-click. |
-| **macOS** 11+ (Intel & Apple Silicon) | `BlenderFoxTransfer-macOS.zip` | Unzip, move *Blender Fox Transfer* to Applications, open it. |
 | **Linux** (Ubuntu 20.04+, Debian 11+, Fedora, Mint …, x86-64) | `BlenderFoxTransfer-Linux.tar.gz` | Extract, then double-click `BlenderFoxTransfer` or run `./BlenderFoxTransfer`. |
 
 Get them from the repository's **Releases** page, or from the latest
@@ -48,9 +47,6 @@ The apps aren't code-signed (that needs paid developer certificates), so the
 first launch shows a warning:
 
 - **Windows** – "Windows protected your PC": click **More info › Run anyway**.
-- **macOS** – "can't be opened because Apple cannot check it": right-click the
-  app › **Open** › **Open**. (Or in Terminal:
-  `xattr -dr com.apple.quarantine "/Applications/Blender Fox Transfer.app"`.)
   You only need to do this once.
 
 ### Building the apps yourself
@@ -62,13 +58,8 @@ Manual build (run it on the system you're building for):
 ```bash
 pip install pyinstaller
 pyinstaller --onefile --windowed --icon assets/icon.ico --name BlenderFoxTransfer blender_fox_transfer.py   # Windows
-pyinstaller --windowed --icon assets/icon.icns --name "Blender Fox Transfer" blender_fox_transfer.py   # macOS
 pyinstaller --onefile --windowed --name BlenderFoxTransfer blender_fox_transfer.py   # Linux
 ```
-
-On a Mac the easiest way is `bash build_mac.command`: it finds a suitable
-Python, builds the app and zips it into `dist/`. Use Python from python.org
-(Apple's built-in and Homebrew's Python lack a modern Tk for the window).
 
 On Linux, build on the oldest distro you want to support: the binary runs on
 that distro and newer ones.
@@ -123,7 +114,6 @@ python blender_fox_transfer.py import my_setup.zip --blender-dir "D:/Blender/por
 | OS | Folder |
 |---|---|
 | Windows | `%APPDATA%\Blender Foundation\Blender\<version>\` |
-| macOS | `~/Library/Application Support/Blender/<version>/` |
 | Linux | `~/.config/blender/<version>/` (Flatpak: `~/.var/app/org.blender.Blender/config/blender/`) |
 
 `BLENDER_USER_RESOURCES` is respected if set. For a portable Blender, use
