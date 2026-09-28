@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""History Timeline - a Fusion 360 style, persistent history for Blender.
+"""History Timeline - a visual, persistent history for Blender.
 
 Every change is written as a .blend snapshot next to your file, shown as a
 clickable icon strip, and can be restored even after Blender was closed.
@@ -8,10 +8,10 @@ clickable icon strip, and can be restored even after Blender was closed.
 bl_info = {
     "name": "History Timeline",
     "author": "History Timeline contributors",
-    "version": (1, 2, 0),
+    "version": (1, 3, 0),
     "blender": (4, 2, 0),
     "location": "Status Bar / 3D View > Sidebar > History / Edit > History Timeline",
-    "description": "Fusion-style visual history timeline with undo that survives closing Blender",
+    "description": "Visual history timeline with undo that survives closing Blender",
     "category": "System",
 }
 

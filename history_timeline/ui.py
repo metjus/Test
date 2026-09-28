@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Fusion-style timeline strip, sidebar panel and preferences."""
+"""Timeline strip, sidebar panel and preferences."""
 
 import time
 
@@ -10,7 +10,7 @@ from . import core, operators
 
 
 # ------------------------------------------------------------ preferences
-class FH_AddonPreferences(bpy.types.AddonPreferences):
+class HT_AddonPreferences(bpy.types.AddonPreferences):
     bl_idname = core.ADDON_ID
 
     auto_capture: BoolProperty(
@@ -39,7 +39,7 @@ class FH_AddonPreferences(bpy.types.AddonPreferences):
     strip_location: EnumProperty(
         name="Timeline Strip", default='STATUSBAR',
         items=(
-            ('STATUSBAR', "Status Bar", "Bottom of the window, like Fusion's timeline"),
+            ('STATUSBAR', "Status Bar", "Bottom of the window, always visible"),
             ('VIEW3D_HEADER', "3D View Header", "Header of every 3D Viewport"),
             ('NONE', "Sidebar Only", "Only in the 3D View sidebar (N panel) History tab"),
         ),
@@ -78,11 +78,11 @@ def draw_strip(layout, show_count=True):
     row = layout.row(align=True)
     nav = row.row(align=True)
     nav.enabled = bool(steps)
-    nav.operator("fh.step", text="", icon='REW').direction = 'FIRST'
-    nav.operator("fh.step", text="", icon='PLAY_REVERSE').direction = 'PREV'
+    nav.operator("ht.step", text="", icon='REW').direction = 'FIRST'
+    nav.operator("ht.step", text="", icon='PLAY_REVERSE').direction = 'PREV'
 
     if start > 0:
-        row.operator("fh.scroll", text="", icon='TRIA_LEFT', emboss=False).delta = count // 2
+        row.operator("ht.scroll", text="", icon='TRIA_LEFT', emboss=False).delta = count // 2
 
     strip = row.row(align=True)
     if not steps:
@@ -93,18 +93,18 @@ def draw_strip(layout, show_count=True):
             strip.separator(factor=0.6)  # new branch after a rollback
         cell = strip.row(align=True)
         cell.active = not store.is_rolled_back(step)
-        op = cell.operator("fh.restore", text="", icon=core.category_icon(step.get("category")),
+        op = cell.operator("ht.restore", text="", icon=core.category_icon(step.get("category")),
                            depress=step["id"] == store.current)
         op.step_id = step["id"]
         prev = step
 
     if end < len(steps):
-        row.operator("fh.scroll", text="", icon='TRIA_RIGHT', emboss=False).delta = -(count // 2)
+        row.operator("ht.scroll", text="", icon='TRIA_RIGHT', emboss=False).delta = -(count // 2)
 
     nav = row.row(align=True)
     nav.enabled = bool(steps)
-    nav.operator("fh.step", text="", icon='PLAY').direction = 'NEXT'
-    nav.operator("fh.step", text="", icon='FF').direction = 'LAST'
+    nav.operator("ht.step", text="", icon='PLAY').direction = 'NEXT'
+    nav.operator("ht.step", text="", icon='FF').direction = 'LAST'
 
     if show_count and steps:
         idx = store.current_index()
@@ -130,14 +130,14 @@ PAGE_SIZE = 12
 def _filtered_steps(context):
     """Steps newest first, narrowed by the search field."""
     steps = core.get_store().steps
-    needle = context.window_manager.fh_filter.lower()
+    needle = context.window_manager.ht_filter.lower()
     if needle:
         return [s for s in reversed(steps)
                 if needle in ("%s %s" % (s["label"], s.get("detail", ""))).lower()]
     return steps[::-1]
 
 
-class FH_PT_history(bpy.types.Panel):
+class HT_PT_history(bpy.types.Panel):
     bl_label = "History Timeline"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
@@ -157,15 +157,15 @@ class FH_PT_history(bpy.types.Panel):
         draw_strip(box.column())
 
         row = layout.row(align=True)
-        row.operator("fh.capture", text="Checkpoint", icon='BOOKMARKS')
-        row.operator("fh.open_folder", text="", icon='FILE_FOLDER')
-        row.operator("fh.clear", text="", icon='TRASH')
+        row.operator("ht.capture", text="Checkpoint", icon='BOOKMARKS')
+        row.operator("ht.open_folder", text="", icon='FILE_FOLDER')
+        row.operator("ht.clear", text="", icon='TRASH')
 
         # Paged list: drawing cost does not grow with the number of steps.
-        layout.prop(wm, "fh_filter", text="", icon='VIEWZOOM')
+        layout.prop(wm, "ht_filter", text="", icon='VIEWZOOM')
         steps = _filtered_steps(context)
         pages = max(1, (len(steps) + PAGE_SIZE - 1) // PAGE_SIZE)
-        page = min(wm.fh_page, pages - 1)
+        page = min(wm.ht_page, pages - 1)
         col = layout.column(align=True)
         saved = store.data.get("saved_step")
         for step in steps[page * PAGE_SIZE:(page + 1) * PAGE_SIZE]:
@@ -174,7 +174,7 @@ class FH_PT_history(bpy.types.Panel):
             text = "#%d  %s" % (step["id"], step["label"])
             if step.get("detail"):
                 text += "  (%s)" % step["detail"]
-            op = row.operator("fh.select_step", text=text, emboss=step["id"] == wm.fh_selected,
+            op = row.operator("ht.select_step", text=text, emboss=step["id"] == wm.ht_selected,
                               icon=core.category_icon(step.get("category")))
             op.step_id = step["id"]
             if step["id"] == saved:
@@ -188,20 +188,20 @@ class FH_PT_history(bpy.types.Panel):
             for delta, icon in ((-1, 'TRIA_LEFT'), (1, 'TRIA_RIGHT')):
                 if delta > 0:
                     row.label(text="Page %d / %d" % (page + 1, pages))
-                op = row.operator("fh.page", text="", icon=icon)
+                op = row.operator("ht.page", text="", icon=icon)
                 op.delta, op.pages = delta, pages
 
-        step = store.get(wm.fh_selected)
+        step = store.get(wm.ht_selected)
         if step is not None:
             col = layout.column(align=True)
             col.label(text=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(step["time"])),
                       icon='TIME')
             row = col.row(align=True)
-            row.operator("fh.restore", text="Restore", icon='RECOVER_LAST').step_id = step["id"]
-            row.operator("fh.rename_step", text="", icon='GREASEPENCIL').step_id = step["id"]
-            row.operator("fh.pin_step", text="",
+            row.operator("ht.restore", text="Restore", icon='RECOVER_LAST').step_id = step["id"]
+            row.operator("ht.rename_step", text="", icon='GREASEPENCIL').step_id = step["id"]
+            row.operator("ht.pin_step", text="",
                          icon='PINNED' if step.get("pinned") else 'UNPINNED').step_id = step["id"]
-            row.operator("fh.delete_step", text="", icon='X').step_id = step["id"]
+            row.operator("ht.delete_step", text="", icon='X').step_id = step["id"]
 
         col = layout.column(align=True)
         col.scale_y = 0.8
@@ -210,28 +210,28 @@ class FH_PT_history(bpy.types.Panel):
         col.label(text="%d steps, %s on disk" % (len(store.steps), operators._fmt_size(store.disk_bytes)))
 
 
-class TOPBAR_MT_fh_history(bpy.types.Menu):
+class TOPBAR_MT_ht_history(bpy.types.Menu):
     bl_label = "History Timeline"
 
     def draw(self, context):
         layout = self.layout
-        layout.operator("fh.step", text="Roll Back", icon='PLAY_REVERSE').direction = 'PREV'
-        layout.operator("fh.step", text="Roll Forward", icon='PLAY').direction = 'NEXT'
+        layout.operator("ht.step", text="Roll Back", icon='PLAY_REVERSE').direction = 'PREV'
+        layout.operator("ht.step", text="Roll Forward", icon='PLAY').direction = 'NEXT'
         layout.separator()
-        layout.operator("fh.capture", icon='BOOKMARKS')
-        layout.operator("fh.open_folder", icon='FILE_FOLDER')
-        layout.operator("fh.clear", icon='TRASH')
+        layout.operator("ht.capture", icon='BOOKMARKS')
+        layout.operator("ht.open_folder", icon='FILE_FOLDER')
+        layout.operator("ht.clear", icon='TRASH')
 
 
 def draw_edit_menu(self, context):
     self.layout.separator()
-    self.layout.menu("TOPBAR_MT_fh_history", icon='TIME')
+    self.layout.menu("TOPBAR_MT_ht_history", icon='TIME')
 
 
 classes = (
-    FH_AddonPreferences,
-    FH_PT_history,
-    TOPBAR_MT_fh_history,
+    HT_AddonPreferences,
+    HT_PT_history,
+    TOPBAR_MT_ht_history,
 )
 
 _addon_keymaps = []
@@ -239,10 +239,10 @@ _addon_keymaps = []
 
 def register():
     wm = bpy.types.WindowManager
-    wm.fh_filter = StringProperty(name="Search", description="Filter steps by name or object",
-                                  update=lambda self, ctx: setattr(self, "fh_page", 0))
-    wm.fh_page = IntProperty(min=0)
-    wm.fh_selected = IntProperty(name="Selected Step")
+    wm.ht_filter = StringProperty(name="Search", description="Filter steps by name or object",
+                                  update=lambda self, ctx: setattr(self, "ht_page", 0))
+    wm.ht_page = IntProperty(min=0)
+    wm.ht_selected = IntProperty(name="Selected Step")
     bpy.types.STATUSBAR_HT_header.append(draw_statusbar)
     bpy.types.VIEW3D_HT_header.append(draw_view3d_header)
     bpy.types.TOPBAR_MT_edit.append(draw_edit_menu)
@@ -250,10 +250,10 @@ def register():
     kc = bpy.context.window_manager.keyconfigs.addon
     if kc:
         km = kc.keymaps.new(name="Window", space_type='EMPTY')
-        kmi = km.keymap_items.new("fh.step", 'Z', 'PRESS', ctrl=True, alt=True)
+        kmi = km.keymap_items.new("ht.step", 'Z', 'PRESS', ctrl=True, alt=True)
         kmi.properties.direction = 'PREV'
         _addon_keymaps.append((km, kmi))
-        kmi = km.keymap_items.new("fh.step", 'Z', 'PRESS', ctrl=True, alt=True, shift=True)
+        kmi = km.keymap_items.new("ht.step", 'Z', 'PRESS', ctrl=True, alt=True, shift=True)
         kmi.properties.direction = 'NEXT'
         _addon_keymaps.append((km, kmi))
 
@@ -265,6 +265,6 @@ def unregister():
     bpy.types.TOPBAR_MT_edit.remove(draw_edit_menu)
     bpy.types.VIEW3D_HT_header.remove(draw_view3d_header)
     bpy.types.STATUSBAR_HT_header.remove(draw_statusbar)
-    del bpy.types.WindowManager.fh_selected
-    del bpy.types.WindowManager.fh_page
-    del bpy.types.WindowManager.fh_filter
+    del bpy.types.WindowManager.ht_selected
+    del bpy.types.WindowManager.ht_page
+    del bpy.types.WindowManager.ht_filter

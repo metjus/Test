@@ -13,7 +13,7 @@ blocks that really changed, even for very large files.
 Layout of ``<name>_history/``::
 
     history.json            step list, timeline marker, bookkeeping
-    manifests/step_00012.fhm
+    manifests/step_00012.step
     chunks/ab/cdef0123...   content-addressed, shared by all steps
 
 This module does not import ``bpy``; the heavy work (hashing, compressing)
@@ -37,8 +37,8 @@ FORMAT_VERSION = 2
 PIECE = 256 * 1024       # max bytes per chunk
 SMALL_BLOCK = 64 * 1024  # smaller blocks are bundled together
 BUNDLE_MAX = 256 * 1024
-MANIFEST_MAGIC = b"FHM1"     # records inline (1.1.0)
-MANIFEST_MAGIC_V2 = b"FHM2"  # records stored as deduplicated pieces
+MANIFEST_MAGIC = b"HTL1"     # records inline (1.1.0)
+MANIFEST_MAGIC_V2 = b"HTL2"  # records stored as deduplicated pieces
 ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 GZIP_MAGIC = b"\x1f\x8b"
 
@@ -362,7 +362,7 @@ class ChunkStore:
         if os.path.isdir(self.manifests_dir):
             for name in os.listdir(self.manifests_dir):
                 path = os.path.join(self.manifests_dir, name)
-                if not name.endswith(".fhm"):
+                if not name.endswith(".step"):
                     continue
                 try:
                     for key in self._referenced(path):
@@ -485,7 +485,7 @@ class HistoryStore:
     """A linear list of snapshot steps with a movable "current" marker.
 
     Restoring an older step never deletes anything: the marker moves back and
-    later steps are shown as *rolled back* (like Fusion's timeline marker).
+    later steps are shown as *rolled back* behind the timeline marker.
     New work after a rollback is appended with ``parent`` pointing at the step
     it branched from, so every state ever captured stays reachable.
     """
@@ -628,7 +628,7 @@ class HistoryStore:
         self.data["next_id"] = step_id + 1
         return {
             "id": step_id,
-            "manifest": "step_%05d.fhm" % step_id,
+            "manifest": "step_%05d.step" % step_id,
             "label": label,
             "idname": idname,
             "category": category,

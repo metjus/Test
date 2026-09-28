@@ -41,9 +41,9 @@ def _step_tooltip(step, store):
     return "\n".join(lines)
 
 
-class FH_OT_restore(bpy.types.Operator):
+class HT_OT_restore(bpy.types.Operator):
     """Restore the file to this history step"""
-    bl_idname = "fh.restore"
+    bl_idname = "ht.restore"
     bl_label = "Restore History Step"
     bl_options = {'INTERNAL'}
 
@@ -67,9 +67,9 @@ class FH_OT_restore(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_step(bpy.types.Operator):
+class HT_OT_step(bpy.types.Operator):
     """Move the timeline marker and restore that state"""
-    bl_idname = "fh.step"
+    bl_idname = "ht.step"
     bl_label = "Step Through History"
     bl_options = {'INTERNAL'}
 
@@ -109,9 +109,9 @@ class FH_OT_step(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_capture(bpy.types.Operator):
+class HT_OT_capture(bpy.types.Operator):
     """Add a named snapshot of the current state to the timeline"""
-    bl_idname = "fh.capture"
+    bl_idname = "ht.capture"
     bl_label = "Capture History Step"
     bl_options = {'REGISTER'}
 
@@ -138,9 +138,9 @@ class _StepOp:
         return core.get_store().get(self.step_id)
 
 
-class FH_OT_delete_step(_StepOp, bpy.types.Operator):
+class HT_OT_delete_step(_StepOp, bpy.types.Operator):
     """Delete this snapshot from disk"""
-    bl_idname = "fh.delete_step"
+    bl_idname = "ht.delete_step"
     bl_label = "Delete History Step"
     bl_options = {'INTERNAL'}
 
@@ -154,9 +154,9 @@ class FH_OT_delete_step(_StepOp, bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_pin_step(_StepOp, bpy.types.Operator):
+class HT_OT_pin_step(_StepOp, bpy.types.Operator):
     """Pin this step so it is never pruned by the step limit"""
-    bl_idname = "fh.pin_step"
+    bl_idname = "ht.pin_step"
     bl_label = "Pin History Step"
     bl_options = {'INTERNAL'}
 
@@ -170,9 +170,9 @@ class FH_OT_pin_step(_StepOp, bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_rename_step(_StepOp, bpy.types.Operator):
+class HT_OT_rename_step(_StepOp, bpy.types.Operator):
     """Rename this history step"""
-    bl_idname = "fh.rename_step"
+    bl_idname = "ht.rename_step"
     bl_label = "Rename History Step"
     bl_options = {'INTERNAL'}
 
@@ -195,9 +195,9 @@ class FH_OT_rename_step(_StepOp, bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_clear(bpy.types.Operator):
+class HT_OT_clear(bpy.types.Operator):
     """Delete every snapshot of this file's history"""
-    bl_idname = "fh.clear"
+    bl_idname = "ht.clear"
     bl_label = "Clear History"
     bl_options = {'INTERNAL'}
 
@@ -210,9 +210,9 @@ class FH_OT_clear(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_open_folder(bpy.types.Operator):
+class HT_OT_open_folder(bpy.types.Operator):
     """Open the folder containing the history snapshots"""
-    bl_idname = "fh.open_folder"
+    bl_idname = "ht.open_folder"
     bl_label = "Open History Folder"
     bl_options = {'INTERNAL'}
 
@@ -223,9 +223,9 @@ class FH_OT_open_folder(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_scroll(bpy.types.Operator):
+class HT_OT_scroll(bpy.types.Operator):
     """Scroll the timeline strip"""
-    bl_idname = "fh.scroll"
+    bl_idname = "ht.scroll"
     bl_label = "Scroll Timeline"
     bl_options = {'INTERNAL'}
 
@@ -240,9 +240,9 @@ class FH_OT_scroll(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class FH_OT_select_step(bpy.types.Operator):
+class HT_OT_select_step(bpy.types.Operator):
     """Select this step (double-check it, then Restore)"""
-    bl_idname = "fh.select_step"
+    bl_idname = "ht.select_step"
     bl_label = "Select History Step"
     bl_options = {'INTERNAL'}
 
@@ -255,13 +255,13 @@ class FH_OT_select_step(bpy.types.Operator):
         return _step_tooltip(step, store).replace("Click to restore", "Select") if step else ""
 
     def execute(self, context):
-        context.window_manager.fh_selected = self.step_id
+        context.window_manager.ht_selected = self.step_id
         return {'FINISHED'}
 
 
-class FH_OT_page(bpy.types.Operator):
+class HT_OT_page(bpy.types.Operator):
     """Show the previous / next page of steps"""
-    bl_idname = "fh.page"
+    bl_idname = "ht.page"
     bl_label = "Change History Page"
     bl_options = {'INTERNAL'}
 
@@ -270,20 +270,20 @@ class FH_OT_page(bpy.types.Operator):
 
     def execute(self, context):
         wm = context.window_manager
-        wm.fh_page = min(max(0, wm.fh_page + self.delta), max(0, self.pages - 1))
+        wm.ht_page = min(max(0, wm.ht_page + self.delta), max(0, self.pages - 1))
         return {'FINISHED'}
 
 
 classes = (
-    FH_OT_select_step,
-    FH_OT_page,
-    FH_OT_restore,
-    FH_OT_step,
-    FH_OT_capture,
-    FH_OT_delete_step,
-    FH_OT_pin_step,
-    FH_OT_rename_step,
-    FH_OT_clear,
-    FH_OT_open_folder,
-    FH_OT_scroll,
+    HT_OT_select_step,
+    HT_OT_page,
+    HT_OT_restore,
+    HT_OT_step,
+    HT_OT_capture,
+    HT_OT_delete_step,
+    HT_OT_pin_step,
+    HT_OT_rename_step,
+    HT_OT_clear,
+    HT_OT_open_folder,
+    HT_OT_scroll,
 )

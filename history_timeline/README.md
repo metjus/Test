@@ -1,6 +1,6 @@
 # History Timeline for Blender
 
-A Fusion 360 style **visual history timeline** for Blender. Every change you make
+A **visual history timeline** for Blender. Every change you make
 becomes an icon on a timeline strip, and any icon can be clicked to go back
 (or forward) to that state, **even after Blender was closed and the file
 reopened**.
@@ -15,8 +15,8 @@ each step only stores what changed (see *Disk usage* below).
 Requires Blender 4.2 or newer.
 
 1. Build the extension zip. With Blender on your PATH, run
-   `blender --command extension build --source-dir fusion_history_timeline`,
-   which gives you `fusion_history_timeline-<version>.zip`.
+   `blender --command extension build --source-dir history_timeline`,
+   which gives you `history_timeline-<version>.zip`.
    You can also zip the *contents* of the folder yourself, with
    `blender_manifest.toml` at the top level of the zip.
 2. In Blender, go to *Edit > Preferences > Get Extensions*, open the ▾ menu, and choose
@@ -36,7 +36,7 @@ Timeline icons show what kind of step it was: ➕ add, 🗑 delete, move/rotate/
 modifier, edit mode, sculpt, material/nodes, property edit, 🔖 manual checkpoint,
 and file opened.
 
-### Rolling back, like Fusion's timeline marker
+### Rolling back with the timeline marker
 
 * Restoring an older step **doesn't delete anything**. The marker moves back
   and later steps turn grey ("rolled back"), and you can click one to roll forward.
@@ -95,7 +95,7 @@ Measured on a 317 MB file with 6 high-poly meshes:
 | Edit one vertex | 0.19 MB |
 | Add a cube | 0.03 MB |
 
-Folder layout: `<name>_history/history.json`, `manifests/step_#####.fhm`,
+Folder layout: `<name>_history/history.json`, `manifests/step_#####.step`,
 `chunks/xx/<hash>`. A step's manifest is itself stored as deduplicated
 pieces, so it's only a few hundred bytes, even for a 300 MB file.
 

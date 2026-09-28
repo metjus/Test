@@ -54,7 +54,7 @@ DEFAULT_IGNORE = (
     "screen.*", "wm.*", "ed.*", "file.*", "anim.change_frame", "outliner.item_activate",
     "outliner.*select*", "object.mode_set", "sculpt.sculptmode_toggle",
     "view2d.*", "image.view*", "node.view*", "node.select*", "ui.*",
-    "fh.*",
+    "ht.*",
 )
 
 # Matched before DEFAULT_IGNORE (``wm.*`` would otherwise swallow them).
