@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+
+id = "fusion_history_timeline"
+version = "1.0.0"
+name = "History Timeline"
+tagline = "Fusion-style visual history with undo that survives closing Blender"
+maintainer = "History Timeline contributors"
+type = "add-on"
+
+tags = ["System", "User Interface"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Write .blend snapshots of every history step next to the working file"

@@ -1,0 +1,84 @@
+# History Timeline for Blender
+
+A Fusion 360 style **visual history timeline** for Blender. Every change you make
+becomes an icon on a timeline strip, and any icon can be clicked to go back
+(or forward) to that state, **even after Blender was closed and the file
+reopened**.
+
+Blender's own undo stack lives only in memory and is gone once you close the
+file. This add-on writes a `.blend` snapshot of each step to disk, so the
+history is permanent.
+
+## Install
+
+Requires Blender 4.2 or newer.
+
+1. Zip the `fusion_history_timeline` folder (the zip must contain the folder).
+2. In Blender, go to *Edit > Preferences > Get Extensions*, open the ▾ menu, and choose
+   *Install from Disk…*. Pick the zip. You can also drag the zip onto Blender.
+   (On *Add-ons > Install from Disk…* the legacy `bl_info` path works too.)
+
+## Using it
+
+| Where | What |
+|---|---|
+| **Status bar** (bottom of the window) | The timeline strip. Each icon is one step, and hovering it shows the name, active object and time. Click an icon to restore that state. ⏮ ◀ ▶ ⏭ move the marker. |
+| **3D View > Sidebar (N) > History** | The strip, a searchable list of all steps, and Restore / Rename / Pin / Delete for the selected step, plus *Checkpoint*, *Open Folder* and *Clear*. |
+| **Edit > History Timeline** | Roll Back / Roll Forward / Checkpoint. |
+| `Ctrl Alt Z` / `Ctrl Alt Shift Z` | Roll back / roll forward one step. |
+
+Timeline icons show what kind of step it was: ➕ add, 🗑 delete, move/rotate/scale,
+modifier, edit mode, sculpt, material/nodes, property edit, 🔖 manual checkpoint,
+and file opened.
+
+### Rolling back, like Fusion's timeline marker
+
+* Restoring an older step **doesn't delete anything**. The marker moves back
+  and later steps turn grey ("rolled back"), and you can click one to roll forward.
+* If you keep working after a rollback, the new steps are appended after a
+  small gap (a branch). The rolled-back states are still there and still clickable.
+* Any change that hasn't been recorded yet is captured before a restore, so
+  a restore can always be undone from the timeline.
+
+### After closing Blender
+
+History is stored next to the file in `<name>_history/`, one
+`step_#####.blend` per step plus `history.json`. When you reopen the file:
+
+* The marker sits on the step that matches the saved file.
+* Steps made **after the last save** (work you closed without saving) show
+  as rolled back. Click one to get that work back.
+* If the file was changed outside the add-on, an *Opened* step is added
+  first so the current state is never lost.
+
+Unsaved (untitled) files are recorded in a temp folder. The history moves next to
+the file on its first save. *Save As* copies the history to the new name.
+
+## Preferences
+
+*Edit > Preferences > Add-ons > History Timeline*
+
+* **Record History**: turn automatic recording on or off. The checkbox is also in the panel header.
+* **Idle Delay**: how long after the last change a snapshot is written.
+* **Also Ignore**: extra operator patterns that should never create a step
+  (selection, view navigation, mode switches etc. are ignored already).
+* **Max Steps**: the oldest unpinned steps are deleted beyond this count. Pinned steps
+  and checkpoints are always kept.
+* **Compress Snapshots**, **History Folder** (store all histories in one place).
+* **Timeline Strip**: show it in the Status Bar, the 3D View header, or the sidebar only.
+* **Visible Steps**: how many icons the strip shows before scrolling.
+
+## How it works / limits
+
+* A snapshot is a full `.blend` copy (`wm.save_as_mainfile(copy=True)`),
+  written after the scene has been idle for *Idle Delay* seconds. It is never
+  written in the middle of an interactive tool or during playback. For very
+  large scenes, raise *Idle Delay* and lower *Max Steps*, because disk use is
+  about file size × steps.
+* A restore opens the snapshot (keeping your current UI layout) and saves it
+  over the working file, so the file on disk matches the marker.
+* A restore needs the file to be saved at least once.
+* Blender's normal `Ctrl Z` still works as usual. The timeline doesn't
+  replace it; it adds a history that persists.
+* Packed/external resources follow Blender's usual rules. Relative paths are
+  remapped when snapshots are written and restored.
