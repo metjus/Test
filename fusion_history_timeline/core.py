@@ -132,7 +132,7 @@ def _submit(fn, *args, on_done=None):
     worker.threaded = not bpy.app.background
     worker.submit(fn, *args, on_done=on_done)
     if worker.threaded and not bpy.app.timers.is_registered(_poll_worker):
-        bpy.app.timers.register(_poll_worker, first_interval=0.1)
+        bpy.app.timers.register(_poll_worker, first_interval=0.1, persistent=True)
 
 
 def get_store():
@@ -145,6 +145,8 @@ def get_store():
         worker.wait()  # pending jobs belong to the previous store
         _State.store = storage.HistoryStore.open(directory, path)
         _scan(_State.store)
+        if _State.obj_count is None:
+            _State.obj_count = len(bpy.data.objects)
     return _State.store
 
 
@@ -245,8 +247,10 @@ def _call_with_window(op, **kwargs):
 def _write_snapshot(path):
     """Write a copy of the open file without changing its path or dirty state."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
+    # Uncompressed (chunks dedupe raw data) and without remapping relative
+    # paths, so a snapshot is valid when rebuilt at the working file's path.
     kwargs = dict(filepath=path, copy=True, check_existing=False,
-                  compress=False, relative_remap=True)  # chunks dedupe raw data only
+                  compress=False, relative_remap=False)
     _State.saving_copy = True
     try:
         _call_with_window(bpy.ops.wm.save_as_mainfile, **kwargs)
@@ -378,8 +382,12 @@ def _tick():
         _State.timer_running = False
         _reset_pending()
         return None
-    wait = prefs().debounce
-    if time.monotonic() - _State.last_change < wait or _modal_running() or _is_playing():
+    idle = time.monotonic() - _State.last_change
+    if idle < prefs().debounce or _is_playing():
+        return 0.2
+    # Wait for interactive tools to finish, but not for add-ons that keep a
+    # modal operator running all the time.
+    if _modal_running() and idle < MODAL_WAIT_LIMIT:
         return 0.2
     _State.timer_running = False
     try:
@@ -389,10 +397,14 @@ def _tick():
     return None
 
 
+MODAL_WAIT_LIMIT = 20.0  # seconds
+
+
 def _ensure_timer():
-    if not _State.timer_running:
-        _State.timer_running = True
-        bpy.app.timers.register(_tick, first_interval=0.2)
+    # Checked via is_registered: a stale flag would stop recording for good.
+    _State.timer_running = True
+    if not bpy.app.timers.is_registered(_tick):
+        bpy.app.timers.register(_tick, first_interval=0.2, persistent=True)
 
 
 # --------------------------------------------------------------- handlers
@@ -504,10 +516,10 @@ class RestoreError(Exception):
 def restore(step_id, deferred=True):
     """Bring the file back to ``step_id``.
 
-    The snapshot is opened and immediately saved over the working file, so the
-    rest of Blender (file path, relative paths, recent files) is unaffected.
-    The state being left is captured first, so a restore can always be undone
-    from the timeline itself.
+    The step is rebuilt in place of the working file (the previous file is
+    kept as ``<name>.blend1``, like Blender's own save versions) and opened
+    with the current UI kept. The state being left is captured first, so a
+    restore can always be undone from the timeline itself.
     """
     store = get_store()
     step = store.get(step_id)
@@ -526,20 +538,26 @@ def restore(step_id, deferred=True):
             raise RestoreError("Step %d no longer exists" % step_id)
 
     worker.wait()
-    snapshot = store.snapshot_path()
+    rebuilt = target + ".restoring"
     try:
-        store.chunks.materialize(store.path(step), snapshot)
+        store.chunks.materialize(store.path(step), rebuilt)
     except (storage.CorruptHistory, OSError) as ex:
         raise RestoreError("Cannot rebuild step %d: %s" % (step_id, ex))
 
-    info = {"target": target, "step": step_id, "snapshot": snapshot,
+    info = {"target": target, "step": step_id,
             "compress": storage.is_compressed_blend(target)}
 
     def _do():
+        try:
+            if os.path.exists(target):
+                os.replace(target, target + "1")
+            os.replace(rebuilt, target)
+        except OSError as ex:
+            print("History Timeline: restore failed: %s" % ex)
+            return None
         _State.restoring = info
         try:
-            _call_with_window(bpy.ops.wm.open_mainfile,
-                              filepath=info["snapshot"], load_ui=False)
+            _call_with_window(bpy.ops.wm.open_mainfile, filepath=target, load_ui=False)
         except RuntimeError as ex:
             _State.restoring = None
             print("History Timeline: restore failed: %s" % ex)
@@ -554,20 +572,17 @@ def restore(step_id, deferred=True):
 
 
 def _finish_restore(info):
+    _State.restoring = None
     target = info["target"]
-    try:
-        _State.saving_copy = True
-        bpy.ops.wm.save_as_mainfile(filepath=target, check_existing=False,
-                                    compress=info["compress"], relative_remap=True)
-    except RuntimeError as ex:
-        print("History Timeline: could not save restored state to %s: %s" % (target, ex))
-    finally:
-        _State.saving_copy = False
-        _State.restoring = None
+    if info["compress"]:
+        # Snapshots are uncompressed; keep the file's compression setting.
         try:
-            os.remove(info["snapshot"])
-        except OSError:
-            pass
+            _State.saving_copy = True
+            bpy.ops.wm.save_mainfile(compress=True)
+        except RuntimeError as ex:
+            print("History Timeline: could not re-compress %s: %s" % (target, ex))
+        finally:
+            _State.saving_copy = False
 
     store = get_store()
     if store.get(info["step"]) is not None:

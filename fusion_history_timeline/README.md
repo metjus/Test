@@ -14,10 +14,14 @@ each step only stores what changed (see *Disk usage* below).
 
 Requires Blender 4.2 or newer.
 
-1. Zip the `fusion_history_timeline` folder (the zip must contain the folder).
+1. Build the extension zip. With Blender on your PATH, run
+   `blender --command extension build --source-dir fusion_history_timeline`,
+   which gives you `fusion_history_timeline-<version>.zip`.
+   You can also zip the *contents* of the folder yourself, with
+   `blender_manifest.toml` at the top level of the zip.
 2. In Blender, go to *Edit > Preferences > Get Extensions*, open the ▾ menu, and choose
    *Install from Disk…*. Pick the zip. You can also drag the zip onto Blender.
-   (On *Add-ons > Install from Disk…* the legacy `bl_info` path works too.)
+3. It appears under *Add-ons* as **History Timeline**, enabled.
 
 ## Using it
 
@@ -133,9 +137,13 @@ vertices, with moves, rotations, scales and vertex edits in rotation), with no l
   seconds, never mid-tool or during playback. For very large scenes the write
   is the part you notice (about 2 s for 300 MB), so raise *Idle Delay* if needed.
 * A restore rebuilds the step's `.blend` from its chunks and checks each
-  chunk's hash. It then opens the rebuilt file (keeping your current UI
-  layout) and saves it over the working file with that file's original
-  compression, so the file on disk matches the marker.
+  chunk's hash. It then puts the rebuilt file in place of the working file and
+  opens it, keeping your current UI layout. The previous file is kept as
+  `<name>.blend1`, like Blender's own save versions, and a compressed file stays
+  compressed. Relative paths (textures, libraries) keep working, because
+  snapshots are written with the paths as they are in the working file.
+* If a snapshot is running into another add-on's always-on tool, recording
+  waits at most 20 s for tools to finish.
 * A restore needs the file to be saved at least once.
 * Blender's normal `Ctrl Z` still works as usual. The timeline doesn't
   replace it; it adds a history that persists.

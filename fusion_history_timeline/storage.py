@@ -335,13 +335,20 @@ class ChunkStore:
     def materialize(self, manifest_path, out_path):
         """Rebuild the .blend of a manifest, verifying every chunk."""
         tmp = out_path + ".partial"
-        with open(tmp, "wb") as out:
-            for record in self.read_manifest(manifest_path):
-                if record[0] == "I":
-                    out.write(record[1])
-                else:
-                    out.write(self._load_chunk(record[1], record[2]))
-        os.replace(tmp, out_path)
+        try:
+            with open(tmp, "wb") as out:
+                for record in self.read_manifest(manifest_path):
+                    if record[0] == "I":
+                        out.write(record[1])
+                    else:
+                        out.write(self._load_chunk(record[1], record[2]))
+            os.replace(tmp, out_path)
+        except BaseException:
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+            raise
 
     # ----------------------------------------------------------- cleanup
     def scan(self):
@@ -578,11 +585,7 @@ class HistoryStore:
         return os.path.join(self.dir, "manifests", step["manifest"])
 
     def snapshot_path(self):
-        """Where snapshots are written to and rebuilt at.
-
-        Always the same path, so relative paths (textures, libraries) that
-        Blender remaps on writing still resolve when a step is restored.
-        """
+        """Where a snapshot is written before being chunked."""
         return os.path.join(self.dir, ".snapshot.blend")
 
     def ingest_path(self, step):
