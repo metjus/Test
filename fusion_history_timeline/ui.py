@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Fusion-style timeline strip, sidebar panel and preferences."""
 
+import time
+
 import bpy
-from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty,
-                       IntProperty, StringProperty)
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
 
 from . import core, operators
 
@@ -123,41 +124,17 @@ def draw_view3d_header(self, context):
 
 
 # ------------------------------------------------------------------- list
-class FH_StepItem(bpy.types.PropertyGroup):
-    step_id: IntProperty()
-    label: StringProperty()
-    category: StringProperty()
-    detail: StringProperty()
-    stamp: StringProperty()
-    pinned: BoolProperty()
-    is_current: BoolProperty()
-    rolled_back: BoolProperty()
-    is_saved: BoolProperty()
+PAGE_SIZE = 12
 
 
-class FH_UL_steps(bpy.types.UIList):
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index=0):
-        row = layout.row(align=True)
-        row.active = not item.rolled_back
-        text = "#%d  %s" % (item.step_id, item.label)
-        if item.detail:
-            text += "  (%s)" % item.detail
-        row.label(text=text, icon=core.category_icon(item.category))
-        if item.is_saved:
-            row.label(text="", icon='FILE_TICK')
-        if item.pinned:
-            row.label(text="", icon='PINNED')
-        if item.is_current:
-            row.label(text="", icon='TRIA_LEFT')
-
-    def filter_items(self, context, data, propname):
-        items = getattr(data, propname)
-        flags = [self.bitflag_filter_item] * len(items)
-        if self.filter_name:
-            needle = self.filter_name.lower()
-            flags = [self.bitflag_filter_item if needle in (i.label + " " + i.detail).lower() else 0
-                     for i in items]
-        return flags, []
+def _filtered_steps(context):
+    """Steps newest first, narrowed by the search field."""
+    steps = core.get_store().steps
+    needle = context.window_manager.fh_filter.lower()
+    if needle:
+        return [s for s in reversed(steps)
+                if needle in ("%s %s" % (s["label"], s.get("detail", ""))).lower()]
+    return steps[::-1]
 
 
 class FH_PT_history(bpy.types.Panel):
@@ -184,19 +161,47 @@ class FH_PT_history(bpy.types.Panel):
         row.operator("fh.open_folder", text="", icon='FILE_FOLDER')
         row.operator("fh.clear", text="", icon='TRASH')
 
-        layout.template_list("FH_UL_steps", "", wm, "fh_steps", wm, "fh_index", rows=8)
-
-        if 0 <= wm.fh_index < len(wm.fh_steps):
-            item = wm.fh_steps[wm.fh_index]
-            col = layout.column(align=True)
-            col.label(text=item.stamp, icon='TIME')
+        # Paged list: drawing cost does not grow with the number of steps.
+        layout.prop(wm, "fh_filter", text="", icon='VIEWZOOM')
+        steps = _filtered_steps(context)
+        pages = max(1, (len(steps) + PAGE_SIZE - 1) // PAGE_SIZE)
+        page = min(wm.fh_page, pages - 1)
+        col = layout.column(align=True)
+        saved = store.data.get("saved_step")
+        for step in steps[page * PAGE_SIZE:(page + 1) * PAGE_SIZE]:
             row = col.row(align=True)
-            op = row.operator("fh.restore", text="Restore", icon='RECOVER_LAST')
-            op.step_id = item.step_id
-            row.operator("fh.rename_step", text="", icon='GREASEPENCIL').step_id = item.step_id
+            row.active = not store.is_rolled_back(step)
+            text = "#%d  %s" % (step["id"], step["label"])
+            if step.get("detail"):
+                text += "  (%s)" % step["detail"]
+            op = row.operator("fh.select_step", text=text, emboss=step["id"] == wm.fh_selected,
+                              icon=core.category_icon(step.get("category")))
+            op.step_id = step["id"]
+            if step["id"] == saved:
+                row.label(text="", icon='FILE_TICK')
+            if step.get("pinned"):
+                row.label(text="", icon='PINNED')
+            if step["id"] == store.current:
+                row.label(text="", icon='TRIA_LEFT')
+        if pages > 1:
+            row = layout.row(align=True)
+            for delta, icon in ((-1, 'TRIA_LEFT'), (1, 'TRIA_RIGHT')):
+                if delta > 0:
+                    row.label(text="Page %d / %d" % (page + 1, pages))
+                op = row.operator("fh.page", text="", icon=icon)
+                op.delta, op.pages = delta, pages
+
+        step = store.get(wm.fh_selected)
+        if step is not None:
+            col = layout.column(align=True)
+            col.label(text=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(step["time"])),
+                      icon='TIME')
+            row = col.row(align=True)
+            row.operator("fh.restore", text="Restore", icon='RECOVER_LAST').step_id = step["id"]
+            row.operator("fh.rename_step", text="", icon='GREASEPENCIL').step_id = step["id"]
             row.operator("fh.pin_step", text="",
-                         icon='PINNED' if item.pinned else 'UNPINNED').step_id = item.step_id
-            row.operator("fh.delete_step", text="", icon='X').step_id = item.step_id
+                         icon='PINNED' if step.get("pinned") else 'UNPINNED').step_id = step["id"]
+            row.operator("fh.delete_step", text="", icon='X').step_id = step["id"]
 
         col = layout.column(align=True)
         col.scale_y = 0.8
@@ -225,8 +230,6 @@ def draw_edit_menu(self, context):
 
 classes = (
     FH_AddonPreferences,
-    FH_StepItem,
-    FH_UL_steps,
     FH_PT_history,
     TOPBAR_MT_fh_history,
 )
@@ -236,8 +239,10 @@ _addon_keymaps = []
 
 def register():
     wm = bpy.types.WindowManager
-    wm.fh_steps = CollectionProperty(type=FH_StepItem)
-    wm.fh_index = IntProperty(name="Active Step")
+    wm.fh_filter = StringProperty(name="Search", description="Filter steps by name or object",
+                                  update=lambda self, ctx: setattr(self, "fh_page", 0))
+    wm.fh_page = IntProperty(min=0)
+    wm.fh_selected = IntProperty(name="Selected Step")
     bpy.types.STATUSBAR_HT_header.append(draw_statusbar)
     bpy.types.VIEW3D_HT_header.append(draw_view3d_header)
     bpy.types.TOPBAR_MT_edit.append(draw_edit_menu)
@@ -260,5 +265,6 @@ def unregister():
     bpy.types.TOPBAR_MT_edit.remove(draw_edit_menu)
     bpy.types.VIEW3D_HT_header.remove(draw_view3d_header)
     bpy.types.STATUSBAR_HT_header.remove(draw_statusbar)
-    del bpy.types.WindowManager.fh_index
-    del bpy.types.WindowManager.fh_steps
+    del bpy.types.WindowManager.fh_selected
+    del bpy.types.WindowManager.fh_page
+    del bpy.types.WindowManager.fh_filter

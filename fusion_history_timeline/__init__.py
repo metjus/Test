@@ -8,7 +8,7 @@ clickable icon strip, and can be restored even after Blender was closed.
 bl_info = {
     "name": "History Timeline",
     "author": "History Timeline contributors",
-    "version": (1, 1, 0),
+    "version": (1, 2, 0),
     "blender": (4, 2, 0),
     "location": "Status Bar / 3D View > Sidebar > History / Edit > History Timeline",
     "description": "Fusion-style visual history timeline with undo that survives closing Blender",
@@ -28,7 +28,6 @@ def _startup():
         return 0.2
     core.get_store()
     core._sync_operator_marker()
-    core.sync_ui()
     core.tag_redraw()
     return None
 

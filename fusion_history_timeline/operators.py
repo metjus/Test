@@ -127,7 +127,7 @@ class FH_OT_capture(bpy.types.Operator):
             return {'CANCELLED'}
         step["pinned"] = True
         core.get_store().save()
-        core.sync_ui()
+        core.tag_redraw()
         return {'FINISHED'}
 
 
@@ -150,7 +150,6 @@ class FH_OT_delete_step(_StepOp, bpy.types.Operator):
     def execute(self, context):
         if not core.delete_step(self.step_id):
             return {'CANCELLED'}
-        core.sync_ui()
         core.tag_redraw()
         return {'FINISHED'}
 
@@ -167,7 +166,7 @@ class FH_OT_pin_step(_StepOp, bpy.types.Operator):
             return {'CANCELLED'}
         step["pinned"] = not step.get("pinned", False)
         core.get_store().save()
-        core.sync_ui()
+        core.tag_redraw()
         return {'FINISHED'}
 
 
@@ -192,7 +191,6 @@ class FH_OT_rename_step(_StepOp, bpy.types.Operator):
             return {'CANCELLED'}
         step["label"] = self.label
         core.get_store().save()
-        core.sync_ui()
         core.tag_redraw()
         return {'FINISHED'}
 
@@ -208,7 +206,6 @@ class FH_OT_clear(bpy.types.Operator):
 
     def execute(self, context):
         core.clear_history()
-        core.sync_ui()
         core.tag_redraw()
         return {'FINISHED'}
 
@@ -243,7 +240,43 @@ class FH_OT_scroll(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class FH_OT_select_step(bpy.types.Operator):
+    """Select this step (double-check it, then Restore)"""
+    bl_idname = "fh.select_step"
+    bl_label = "Select History Step"
+    bl_options = {'INTERNAL'}
+
+    step_id: IntProperty()
+
+    @classmethod
+    def description(cls, context, properties):
+        store = core.get_store()
+        step = store.get(properties.step_id)
+        return _step_tooltip(step, store).replace("Click to restore", "Select") if step else ""
+
+    def execute(self, context):
+        context.window_manager.fh_selected = self.step_id
+        return {'FINISHED'}
+
+
+class FH_OT_page(bpy.types.Operator):
+    """Show the previous / next page of steps"""
+    bl_idname = "fh.page"
+    bl_label = "Change History Page"
+    bl_options = {'INTERNAL'}
+
+    delta: IntProperty()
+    pages: IntProperty(default=1)
+
+    def execute(self, context):
+        wm = context.window_manager
+        wm.fh_page = min(max(0, wm.fh_page + self.delta), max(0, self.pages - 1))
+        return {'FINISHED'}
+
+
 classes = (
+    FH_OT_select_step,
+    FH_OT_page,
     FH_OT_restore,
     FH_OT_step,
     FH_OT_capture,

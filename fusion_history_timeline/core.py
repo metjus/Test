@@ -144,23 +144,40 @@ def get_store():
     if st is None or os.path.abspath(st.dir) != os.path.abspath(directory):
         worker.wait()  # pending jobs belong to the previous store
         _State.store = storage.HistoryStore.open(directory, path)
+        _scan(_State.store)
     return _State.store
 
 
-def _collect_garbage(store):
-    """Free chunks of removed steps, then enforce the disk quota."""
+def _over_quota(store):
+    quota = prefs().max_disk_mb * 1024 * 1024
+    return quota and store.disk_bytes > quota
+
+
+def release_removed(store):
+    """Delete the files of removed steps in the background, then keep
+    dropping the oldest steps while the history is over its disk quota."""
     def done(used, error):
         if error is not None:
             print("History Timeline: cleanup failed: %s" % error)
             return
         store.data["disk_bytes"] = used
-        quota = prefs().max_disk_mb * 1024 * 1024
-        if quota and used > quota and store.drop_oldest():
-            _collect_garbage(store)  # repeat until under the quota
+        if not worker.outstanding and _over_quota(store) and store.drop_oldest():
+            release_removed(store)
         store.save()
-        sync_ui()
         tag_redraw()
-    _submit(store.chunks.gc, on_done=done)
+    for path in store.take_released():
+        _submit(store.chunks.release, path, on_done=done)
+
+
+def _scan(store):
+    """Once per opened history: exact disk use, orphan cleanup, ref counts."""
+    def done(used, error):
+        if error is None:
+            store.data["disk_bytes"] = used
+            if _over_quota(store) and store.drop_oldest():
+                release_removed(store)
+            tag_redraw()
+    _submit(store.chunks.scan, on_done=done)
 
 
 def delete_step(step_id):
@@ -168,7 +185,7 @@ def delete_step(step_id):
     store = get_store()
     if not store.delete(step_id):
         return False
-    _collect_garbage(store)
+    release_removed(store)
     return True
 
 
@@ -176,7 +193,7 @@ def clear_history():
     worker.wait()
     store = get_store()
     store.clear()
-    _collect_garbage(store)
+    release_removed(store)
 
 
 def _newest_operator():
@@ -259,7 +276,6 @@ def capture(label, idname="", category=None, detail=None):
     _State.strip_offset = 0
     _reset_pending()
     _sync_operator_marker()
-    sync_ui()
     tag_redraw()
     return step
 
@@ -282,18 +298,18 @@ def _ingested(store, step_id, result, error):
     if error is not None:
         print("History Timeline: storing step %d failed: %s" % (step_id, error))
         idx = store.index_of(step_id)
-        store.steps.remove(step)
+        store._remove(step)
         if store.current == step_id:
             store.current = store.steps[idx - 1]["id"] if idx > 0 and store.steps else 0
     else:
         step.pop("pending", None)
         step["raw_size"], step["added"] = result
-        store.data["disk_bytes"] = store.disk_bytes + step["added"]
-    quota = prefs().max_disk_mb * 1024 * 1024
-    if store.prune(prefs().max_steps) or (quota and store.disk_bytes > quota):
-        _collect_garbage(store)
+        store.data["disk_bytes"] = store.chunks.used
+    store.prune(prefs().max_steps)
+    if _over_quota(store):
+        store.drop_oldest()
+    release_removed(store)
     store.save()
-    sync_ui()
     tag_redraw()
 
 
@@ -426,6 +442,7 @@ def on_save_post(*_args):
         worker.wait()
         # First save of an untitled file moves the history, "Save As" copies it.
         store.relocate(new_dir, path, move=storage.is_temp_dir(store.dir))
+        _scan(store)  # chunk store moved: rebuild its reference counts
     store = get_store()
     pending = _State.any_change and _State.timer_running
     store.data["saved_step"] = 0 if pending else store.current
@@ -434,7 +451,7 @@ def on_save_post(*_args):
     except OSError:
         store.data["saved_mtime"] = 0.0
     store.save()
-    sync_ui()
+    tag_redraw()
 
 
 @persistent
@@ -453,7 +470,6 @@ def on_load_post(*_args):
         _finish_restore(info)
         return
 
-    _State.store = None
     store = get_store()
     _sync_operator_marker()
 
@@ -477,7 +493,6 @@ def on_load_post(*_args):
     elif store.steps and storage.is_temp_dir(store.dir):
         # New untitled file: history of the previous untitled session is stale.
         clear_history()
-    sync_ui()
     tag_redraw()
 
 
@@ -554,7 +569,6 @@ def _finish_restore(info):
         except OSError:
             pass
 
-    _State.store = None
     store = get_store()
     if store.get(info["step"]) is not None:
         store.current = info["step"]
@@ -565,32 +579,7 @@ def _finish_restore(info):
         pass
     store.save()
     _sync_operator_marker()
-    sync_ui()
     tag_redraw()
-
-
-# --------------------------------------------------------------- UI mirror
-def sync_ui():
-    """Mirror the store into WindowManager properties used by the UI list."""
-    wm = bpy.context.window_manager
-    if wm is None or not hasattr(wm, "fh_steps"):
-        return
-    store = _State.store
-    wm.fh_steps.clear()
-    if store is None:
-        return
-    for step in reversed(store.steps):  # newest first in the list
-        item = wm.fh_steps.add()
-        item.step_id = step["id"]
-        item.label = step["label"]
-        item.category = step.get("category", "other")
-        item.detail = step.get("detail", "")
-        item.stamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(step["time"]))
-        item.pinned = step.get("pinned", False)
-        item.is_current = step["id"] == store.current
-        item.rolled_back = store.is_rolled_back(step)
-        item.is_saved = step["id"] == store.data.get("saved_step")
-    wm.fh_index = min(max(wm.fh_index, 0), max(len(wm.fh_steps) - 1, 0))
 
 
 HANDLERS = (

@@ -92,7 +92,37 @@ Measured on a 317 MB file with 6 high-poly meshes:
 | Add a cube | 0.03 MB |
 
 Folder layout: `<name>_history/history.json`, `manifests/step_#####.fhm`,
-`chunks/xx/<hash>`.
+`chunks/xx/<hash>`. A step's manifest is itself stored as deduplicated
+pieces, so it's only a few hundred bytes, even for a 300 MB file.
+
+### Long histories (10,000 steps)
+
+Simulated with 10,000 real captures on a 10.6 MB file (three meshes of 130k
+vertices, with moves, rotations, scales and vertex edits in rotation), with no limits:
+
+| Steps | History on disk | Time per step (main thread) |
+|---|---|---|
+| 1 | 3.7 MB | ~35 ms |
+| 1,000 | 33 MB | ~40 ms |
+| 10,000 | 305 MB (≈30 KB per step) | ~80 ms |
+
+* Every one of the 10,000 steps can be restored, and a step rebuilds in about 0.1 s.
+  Reference counts were checked against a full rescan at every 1,000 steps and
+  never drifted.
+* Disk use grows linearly with how much each step changes, not with file size.
+  Edits touching a large part of a big mesh (sculpting, applying a modifier,
+  remeshing) cost more, up to the compressed size of the changed data.
+* With a limit set (for example *Max Steps* 2,000), the oldest step is
+  released as each new one arrives, so disk use levels off. It stayed at about 60 MB in
+  the same test. Only chunks that no remaining step uses are deleted.
+* The per-step cost that grows with history length is rewriting
+  `history.json` (about 2 MB at 10,000 steps, about 30 ms). The sidebar list is
+  paged and the strip shows only the visible steps, so the UI does not slow down.
+* When a history is opened, the add-on scans it once in the background
+  (about 3 s for 10,000 steps) to rebuild reference counts and remove leftovers
+  from a crash.
+* The defaults (200 steps, 2 GB) are conservative. For 10,000 steps, set *Max Steps*
+  to 10000 (or 0 for unlimited) and pick a *Disk Quota* that suits your drive.
 
 ## How it works / limits
 

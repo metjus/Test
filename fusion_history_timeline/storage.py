@@ -37,7 +37,8 @@ FORMAT_VERSION = 2
 PIECE = 256 * 1024       # max bytes per chunk
 SMALL_BLOCK = 64 * 1024  # smaller blocks are bundled together
 BUNDLE_MAX = 256 * 1024
-MANIFEST_MAGIC = b"FHM1"
+MANIFEST_MAGIC = b"FHM1"     # records inline (1.1.0)
+MANIFEST_MAGIC_V2 = b"FHM2"  # records stored as deduplicated pieces
 ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 GZIP_MAGIC = b"\x1f\x8b"
 
@@ -180,9 +181,40 @@ def split_blend(fh):
 
 
 # ------------------------------------------------------------- chunk store
+def _parse_records(data, pos, origin):
+    """Yield ``("I", bytes)`` and ``("C", digest, size)`` manifest records."""
+    end = len(data)
+    while pos < end:
+        kind = data[pos:pos + 1]
+        if kind == b"I":
+            (size,) = struct.unpack_from("<I", data, pos + 1)
+            yield "I", data[pos + 5:pos + 5 + size]
+            pos += 5 + size
+        elif kind == b"C":
+            digest = data[pos + 1:pos + 21]
+            (size,) = struct.unpack_from("<I", data, pos + 21)
+            yield "C", digest, size
+            pos += 25
+        else:
+            raise CorruptHistory("Bad record in %s" % origin)
+
+
 class ChunkStore:
+    """Content-addressed chunk files plus per-step manifests.
+
+    A manifest's record list is itself cut into content-defined pieces that
+    are stored as chunks, so consecutive steps share almost all of it; the
+    manifest file only lists those pieces (a few hundred bytes).
+
+    Chunks are reference counted in memory (built by one :meth:`scan` per
+    session), so deleting a step costs one manifest read, not a scan of the
+    whole history. Only the worker thread may call the mutating methods.
+    """
+
     def __init__(self, root):
         self.root = root
+        self._refs = None   # hex digest -> number of manifests using it
+        self.used = 0       # bytes of manifests + referenced chunks
 
     @property
     def chunks_dir(self):
@@ -195,56 +227,110 @@ class ChunkStore:
     def chunk_path(self, hexdigest):
         return os.path.join(self.chunks_dir, hexdigest[:2], hexdigest[2:])
 
+    # ------------------------------------------------------------ writing
+    def _put(self, data, level):
+        """Store ``data`` once. Returns (digest, bytes newly written)."""
+        digest = hashlib.sha1(data).digest()
+        path = self.chunk_path(digest.hex())
+        if os.path.exists(path):
+            return digest, 0
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        packed = zlib.compress(data, level)
+        _atomic_write(path, packed)
+        return digest, len(packed)
+
     def ingest(self, src, manifest_path, level=1):
         """Store ``src`` (an uncompressed .blend) as chunks + manifest.
 
         Returns ``(raw_size, bytes_added_to_disk)``.
         """
-        out = bytearray(MANIFEST_MAGIC)
+        records = bytearray()
+        pieces = []
+        referenced = set()
         raw_size = added = 0
+
+        def cut():
+            nonlocal added
+            digest, new = self._put(bytes(records), 6)
+            added += new
+            pieces.append(digest + struct.pack("<I", len(records)))
+            referenced.add(digest)
+            records.clear()
+
         with open(src, "rb") as fh:
             for kind, data in split_blend(fh):
                 raw_size += len(data)
                 if kind == "I":
-                    out += b"I" + struct.pack("<I", len(data)) + data
+                    records += b"I" + struct.pack("<I", len(data)) + data
                     continue
-                digest = hashlib.sha1(data).digest()
-                path = self.chunk_path(digest.hex())
-                if not os.path.exists(path):
-                    os.makedirs(os.path.dirname(path), exist_ok=True)
-                    packed = zlib.compress(data, level)
-                    _atomic_write(path, packed)
-                    added += len(packed)
-                out += b"C" + digest + struct.pack("<I", len(data))
-        packed = zlib.compress(bytes(out), 6)
+                digest, new = self._put(data, level)
+                added += new
+                referenced.add(digest)
+                records += b"C" + digest + struct.pack("<I", len(data))
+                # Content-defined cut (~1 in 64 chunk records) keeps the
+                # pieces of consecutive manifests aligned.
+                if digest[0] < 4 or len(records) >= 64 * 1024:
+                    cut()
+        if records:
+            cut()
+
+        packed = zlib.compress(MANIFEST_MAGIC_V2 + b"".join(pieces), 6)
         os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
         _atomic_write(manifest_path, packed)
-        return raw_size, added + len(packed)
+        added += len(packed)
+        if self._refs is not None:
+            for digest in referenced:
+                key = digest.hex()
+                self._refs[key] = self._refs.get(key, 0) + 1
+            self.used += added
+        return raw_size, added
 
-    @staticmethod
-    def read_manifest(manifest_path):
-        """Yield ``("I", bytes)`` and ``("C", digest, size)`` records."""
+    # ------------------------------------------------------------ reading
+    def _load_chunk(self, digest, size):
+        path = self.chunk_path(digest.hex())
+        try:
+            with open(path, "rb") as fh:
+                data = zlib.decompress(fh.read())
+        except (OSError, zlib.error) as ex:
+            raise CorruptHistory("Missing or damaged chunk %s (%s)" % (path, ex))
+        if len(data) != size or hashlib.sha1(data).digest() != digest:
+            raise CorruptHistory("Chunk %s does not match its hash" % path)
+        return data
+
+    def _manifest_pieces(self, manifest_path):
+        """Return (format, payload): v2 piece list or v1 inline records."""
         try:
             with open(manifest_path, "rb") as fh:
                 data = zlib.decompress(fh.read())
         except (OSError, zlib.error) as ex:
             raise CorruptHistory("Cannot read %s: %s" % (manifest_path, ex))
-        if not data.startswith(MANIFEST_MAGIC):
-            raise CorruptHistory("%s is not a history manifest" % manifest_path)
-        pos, end = len(MANIFEST_MAGIC), len(data)
-        while pos < end:
-            kind = data[pos:pos + 1]
-            if kind == b"I":
-                (size,) = struct.unpack_from("<I", data, pos + 1)
-                yield "I", data[pos + 5:pos + 5 + size]
-                pos += 5 + size
-            elif kind == b"C":
-                digest = data[pos + 1:pos + 21]
-                (size,) = struct.unpack_from("<I", data, pos + 21)
-                yield "C", digest, size
-                pos += 25
-            else:
-                raise CorruptHistory("Bad record in %s" % manifest_path)
+        if data.startswith(MANIFEST_MAGIC_V2):
+            body = data[len(MANIFEST_MAGIC_V2):]
+            return 2, [(body[i:i + 20], struct.unpack_from("<I", body, i + 20)[0])
+                       for i in range(0, len(body), 24)]
+        if data.startswith(MANIFEST_MAGIC):
+            return 1, data
+        raise CorruptHistory("%s is not a history manifest" % manifest_path)
+
+    def read_manifest(self, manifest_path):
+        """Yield ``("I", bytes)`` and ``("C", digest, size)`` records."""
+        version, payload = self._manifest_pieces(manifest_path)
+        if version == 1:
+            yield from _parse_records(payload, len(MANIFEST_MAGIC), manifest_path)
+            return
+        for digest, size in payload:
+            yield from _parse_records(self._load_chunk(digest, size), 0, manifest_path)
+
+    def _referenced(self, manifest_path):
+        """Hex digests of every chunk a manifest needs (pieces included)."""
+        version, payload = self._manifest_pieces(manifest_path)
+        refs = set()
+        if version == 2:
+            refs.update(digest.hex() for digest, _ in payload)
+        for record in self.read_manifest(manifest_path):
+            if record[0] == "C":
+                refs.add(record[1].hex())
+        return refs
 
     def materialize(self, manifest_path, out_path):
         """Rebuild the .blend of a manifest, verifying every chunk."""
@@ -253,22 +339,18 @@ class ChunkStore:
             for record in self.read_manifest(manifest_path):
                 if record[0] == "I":
                     out.write(record[1])
-                    continue
-                _, digest, size = record
-                path = self.chunk_path(digest.hex())
-                try:
-                    with open(path, "rb") as fh:
-                        data = zlib.decompress(fh.read())
-                except (OSError, zlib.error) as ex:
-                    raise CorruptHistory("Missing or damaged chunk %s (%s)" % (path, ex))
-                if len(data) != size or hashlib.sha1(data).digest() != digest:
-                    raise CorruptHistory("Chunk %s does not match its hash" % path)
-                out.write(data)
+                else:
+                    out.write(self._load_chunk(record[1], record[2]))
         os.replace(tmp, out_path)
 
-    def gc(self):
-        """Delete chunks no manifest refers to. Returns bytes used on disk."""
-        referenced = set()
+    # ----------------------------------------------------------- cleanup
+    def scan(self):
+        """Rebuild reference counts, delete orphaned chunks, return disk use.
+
+        Runs once per session; afterwards :meth:`ingest` and :meth:`release`
+        keep the counts up to date incrementally.
+        """
+        refs = {}
         used = 0
         if os.path.isdir(self.manifests_dir):
             for name in os.listdir(self.manifests_dir):
@@ -276,9 +358,8 @@ class ChunkStore:
                 if not name.endswith(".fhm"):
                     continue
                 try:
-                    for record in self.read_manifest(path):
-                        if record[0] == "C":
-                            referenced.add(record[1].hex())
+                    for key in self._referenced(path):
+                        refs[key] = refs.get(key, 0) + 1
                     used += os.path.getsize(path)
                 except CorruptHistory as ex:
                     print("History Timeline: %s" % ex)
@@ -287,13 +368,47 @@ class ChunkStore:
                 subdir = os.path.join(self.chunks_dir, sub)
                 for name in os.listdir(subdir):
                     path = os.path.join(subdir, name)
-                    if sub + name in referenced:
+                    if sub + name in refs:
                         used += os.path.getsize(path)
                     else:
-                        os.remove(path)
+                        os.remove(path)  # orphan (or an interrupted write)
                 if not os.listdir(subdir):
                     os.rmdir(subdir)
+        self._refs = refs
+        self.used = used
         return used
+
+    def release(self, manifest_path):
+        """Delete a step's manifest and every chunk only it used.
+
+        Returns the bytes still in use afterwards.
+        """
+        if self._refs is None:
+            self.scan()
+        try:
+            keys = self._referenced(manifest_path)
+            size = os.path.getsize(manifest_path)
+        except (CorruptHistory, OSError) as ex:
+            print("History Timeline: %s" % ex)
+            keys, size = set(), 0
+        try:
+            os.remove(manifest_path)
+            self.used -= size
+        except OSError:
+            pass
+        for key in keys:
+            count = self._refs.get(key, 0) - 1
+            if count > 0:
+                self._refs[key] = count
+                continue
+            self._refs.pop(key, None)
+            path = self.chunk_path(key)
+            try:
+                self.used -= os.path.getsize(path)
+                os.remove(path)
+            except OSError:
+                pass
+        return self.used
 
 
 # ------------------------------------------------------------------ worker
@@ -370,6 +485,9 @@ class HistoryStore:
 
     def __init__(self, directory, blend_path=""):
         self.dir = directory
+        self._chunks = None
+        self._released = []
+        self._positions = None  # step id -> index, rebuilt after list changes
         self.data = {
             "version": FORMAT_VERSION,
             "blend": blend_path,
@@ -388,7 +506,14 @@ class HistoryStore:
 
     @property
     def chunks(self):
-        return ChunkStore(self.dir)
+        if self._chunks is None or self._chunks.root != self.dir:
+            self._chunks = ChunkStore(self.dir)
+        return self._chunks
+
+    def take_released(self):
+        """Manifests of removed steps, to be passed to ChunkStore.release."""
+        paths, self._released = self._released, []
+        return paths
 
     @classmethod
     def open(cls, directory, blend_path=""):
@@ -407,6 +532,7 @@ class HistoryStore:
             ]
             for step in store.steps:
                 step.pop("pending", None)
+            store._positions = None
             if store.get(store.current) is None:
                 store.data["current"] = store.steps[-1]["id"] if store.steps else 0
             store.data["version"] = FORMAT_VERSION
@@ -418,8 +544,10 @@ class HistoryStore:
     def save(self):
         os.makedirs(self.dir, exist_ok=True)
         tmp = self.index_path + ".tmp"
+        # dumps() uses the C encoder; dump() to a file would not (10x slower).
+        text = json.dumps(self.data, separators=(",", ":"))
         with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(self.data, fh, indent=1)
+            fh.write(text)
         os.replace(tmp, self.index_path)
 
     def remove_temp_files(self):
@@ -460,17 +588,14 @@ class HistoryStore:
     def ingest_path(self, step):
         return os.path.join(self.dir, ".ingest_%05d.blend" % step["id"])
 
-    def get(self, step_id):
-        for step in self.steps:
-            if step["id"] == step_id:
-                return step
-        return None
-
     def index_of(self, step_id):
-        for i, step in enumerate(self.steps):
-            if step["id"] == step_id:
-                return i
-        return -1
+        if self._positions is None:
+            self._positions = {s["id"]: i for i, s in enumerate(self.steps)}
+        return self._positions.get(step_id, -1)
+
+    def get(self, step_id):
+        idx = self.index_of(step_id)
+        return self.steps[idx] if idx >= 0 else None
 
     def current_index(self):
         return self.index_of(self.current)
@@ -514,9 +639,10 @@ class HistoryStore:
         }
 
     def commit(self, step):
+        """Add a (pending) step; the index is saved once it is stored."""
         self.steps.append(step)
+        self._positions = None
         self.current = step["id"]
-        self.save()
         return step
 
     def _removable(self):
@@ -526,7 +652,7 @@ class HistoryStore:
     def prune(self, max_steps):
         """Drop the oldest unpinned steps until at most ``max_steps`` remain.
 
-        Returns the number of removed steps (their chunks need a :meth:`gc`).
+        Returns the number of removed steps (see :meth:`take_released`).
         """
         excess = len(self.steps) - max_steps if max_steps else 0
         removed = 0
@@ -556,11 +682,11 @@ class HistoryStore:
         return True
 
     def _remove(self, step):
-        try:
-            os.remove(self.path(step))
-        except OSError:
-            pass
+        # Files are deleted by the worker (ChunkStore.release), which also
+        # frees the chunks nothing else uses.
+        self._released.append(self.path(step))
         self.steps.remove(step)
+        self._positions = None
 
     def clear(self):
         for step in list(self.steps):
