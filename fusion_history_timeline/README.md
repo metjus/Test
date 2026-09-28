@@ -6,8 +6,9 @@ becomes an icon on a timeline strip, and any icon can be clicked to go back
 reopened**.
 
 Blender's own undo stack lives only in memory and is gone once you close the
-file. This add-on writes a `.blend` snapshot of each step to disk, so the
-history is permanent.
+file. This add-on keeps the history on disk, so it's permanent. It does
+**not** keep a full `.blend` copy per step. Snapshots are deduplicated, so
+each step only stores what changed (see *Disk usage* below).
 
 ## Install
 
@@ -42,8 +43,8 @@ and file opened.
 
 ### After closing Blender
 
-History is stored next to the file in `<name>_history/`, one
-`step_#####.blend` per step plus `history.json`. When you reopen the file:
+History is stored next to the file in `<name>_history/` (see *Disk usage*).
+When you reopen the file:
 
 * The marker sits on the step that matches the saved file.
 * Steps made **after the last save** (work you closed without saving) show
@@ -62,23 +63,51 @@ the file on its first save. *Save As* copies the history to the new name.
 * **Idle Delay**: how long after the last change a snapshot is written.
 * **Also Ignore**: extra operator patterns that should never create a step
   (selection, view navigation, mode switches etc. are ignored already).
-* **Max Steps**: the oldest unpinned steps are deleted beyond this count. Pinned steps
-  and checkpoints are always kept.
-* **Compress Snapshots**, **History Folder** (store all histories in one place).
+* **Max Steps** and **Disk Quota (MB)**: the oldest unpinned steps are deleted beyond
+  either limit (defaults: 200 steps, 2048 MB per file). Pinned steps, checkpoints
+  and the current step are always kept.
+* **History Folder**: store all histories in one place instead of next to each file.
 * **Timeline Strip**: show it in the Status Bar, the 3D View header, or the sidebar only.
 * **Visible Steps**: how many icons the strip shows before scrolling.
 
+## Disk usage
+
+Each step is stored as deduplicated, compressed chunks, not as a copy of the file:
+
+* The saved `.blend` is cut at Blender's own data-block boundaries. Every
+  piece is stored once (zlib-compressed, named by its SHA-1) in `chunks/`,
+  and a step is only a small manifest in `manifests/` listing its pieces.
+* Blender writes unchanged data blocks byte-for-byte the same, so a step
+  only adds the blocks that changed. Big arrays (mesh data, images) are
+  split into 256 KiB pieces, so a local edit rewrites only one piece.
+* Deleting or pruning steps removes chunks that no step uses any more.
+
+Measured on a 317 MB file with 6 high-poly meshes:
+
+| Step | Added to disk |
+|---|---|
+| First step (whole file, compressed) | 108 MB |
+| Reopen file + move an object | 0.13 MB |
+| Edit one vertex | 0.19 MB |
+| Add a cube | 0.03 MB |
+
+Folder layout: `<name>_history/history.json`, `manifests/step_#####.fhm`,
+`chunks/xx/<hash>`.
+
 ## How it works / limits
 
-* A snapshot is a full `.blend` copy (`wm.save_as_mainfile(copy=True)`),
-  written after the scene has been idle for *Idle Delay* seconds. It is never
-  written in the middle of an interactive tool or during playback. For very
-  large scenes, raise *Idle Delay* and lower *Max Steps*, because disk use is
-  about file size × steps.
-* A restore opens the snapshot (keeping your current UI layout) and saves it
-  over the working file, so the file on disk matches the marker.
+* To take a step, Blender writes the file once (uncompressed, to a temporary
+  file in the history folder). A background thread then chunks, dedupes and
+  compresses it, and deletes the temporary file, so only changed data stays on
+  disk. The write happens after the scene has been idle for *Idle Delay*
+  seconds, never mid-tool or during playback. For very large scenes the write
+  is the part you notice (about 2 s for 300 MB), so raise *Idle Delay* if needed.
+* A restore rebuilds the step's `.blend` from its chunks and checks each
+  chunk's hash. It then opens the rebuilt file (keeping your current UI
+  layout) and saves it over the working file with that file's original
+  compression, so the file on disk matches the marker.
 * A restore needs the file to be saved at least once.
 * Blender's normal `Ctrl Z` still works as usual. The timeline doesn't
   replace it; it adds a history that persists.
-* Packed/external resources follow Blender's usual rules. Relative paths are
-  remapped when snapshots are written and restored.
+* Relative paths (textures, libraries) are remapped when snapshots are
+  written and restored.

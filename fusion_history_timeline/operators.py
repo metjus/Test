@@ -8,6 +8,14 @@ from bpy.props import IntProperty, StringProperty, EnumProperty
 from . import core
 
 
+def _fmt_size(num):
+    for unit in ("B", "KB", "MB"):
+        if num < 1024:
+            return "%.0f %s" % (num, unit) if unit == "B" else "%.1f %s" % (num, unit)
+        num /= 1024.0
+    return "%.2f GB" % num
+
+
 def _step_tooltip(step, store):
     lines = ["#%d  %s" % (step["id"], step["label"])]
     if step.get("detail"):
@@ -24,6 +32,11 @@ def _step_tooltip(step, store):
         lines.append("Rolled back - click to roll forward")
     if step["id"] == store.data.get("saved_step"):
         lines.append("Matches the saved file")
+    if step.get("pending"):
+        lines.append("Storing...")
+    elif step.get("raw_size"):
+        lines.append("Took %s on disk (file is %s)" % (
+            _fmt_size(step.get("added", 0)), _fmt_size(step["raw_size"])))
     lines.append("Click to restore this state")
     return "\n".join(lines)
 
@@ -135,7 +148,7 @@ class FH_OT_delete_step(_StepOp, bpy.types.Operator):
         return context.window_manager.invoke_confirm(self, event)
 
     def execute(self, context):
-        if not core.get_store().delete(self.step_id):
+        if not core.delete_step(self.step_id):
             return {'CANCELLED'}
         core.sync_ui()
         core.tag_redraw()
@@ -194,7 +207,7 @@ class FH_OT_clear(bpy.types.Operator):
         return context.window_manager.invoke_confirm(self, event)
 
     def execute(self, context):
-        core.get_store().clear()
+        core.clear_history()
         core.sync_ui()
         core.tag_redraw()
         return {'FINISHED'}

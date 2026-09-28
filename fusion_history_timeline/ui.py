@@ -5,7 +5,7 @@ import bpy
 from bpy.props import (BoolProperty, CollectionProperty, EnumProperty, FloatProperty,
                        IntProperty, StringProperty)
 
-from . import core
+from . import core, operators
 
 
 # ------------------------------------------------------------ preferences
@@ -19,11 +19,12 @@ class FH_AddonPreferences(bpy.types.AddonPreferences):
         name="Idle Delay", default=0.6, min=0.1, max=10.0, subtype='TIME_ABSOLUTE', unit='TIME_ABSOLUTE',
         description="Wait this long after the last change before writing a snapshot")
     max_steps: IntProperty(
-        name="Max Steps", default=100, min=0, soft_max=1000,
+        name="Max Steps", default=200, min=0, soft_max=2000,
         description="Oldest unpinned steps are deleted beyond this count (0 = unlimited)")
-    compress: BoolProperty(
-        name="Compress Snapshots", default=False,
-        description="Smaller history folder, slower snapshots")
+    max_disk_mb: IntProperty(
+        name="Disk Quota (MB)", default=2048, min=0, soft_max=100000,
+        description="Oldest unpinned steps are deleted while a file's history uses more "
+                    "disk space than this (0 = unlimited)")
     history_root: StringProperty(
         name="History Folder", subtype='DIR_PATH', default="",
         description="Keep all histories in this folder instead of next to each .blend")
@@ -56,7 +57,7 @@ class FH_AddonPreferences(bpy.types.AddonPreferences):
         col.prop(self, "ignore_operators")
         col = layout.column(heading="Storage")
         col.prop(self, "max_steps")
-        col.prop(self, "compress")
+        col.prop(self, "max_disk_mb")
         col.prop(self, "history_root")
         col = layout.column(heading="Timeline")
         col.prop(self, "strip_location")
@@ -201,7 +202,7 @@ class FH_PT_history(bpy.types.Panel):
         col.scale_y = 0.8
         if not bpy.data.filepath:
             col.label(text="Unsaved file: save to enable restoring", icon='INFO')
-        col.label(text="%d steps, %.1f MB on disk" % (len(store.steps), store.total_size() / 1e6))
+        col.label(text="%d steps, %s on disk" % (len(store.steps), operators._fmt_size(store.disk_bytes)))
 
 
 class TOPBAR_MT_fh_history(bpy.types.Menu):

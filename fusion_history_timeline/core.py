@@ -32,8 +32,8 @@ class _State:
 class _DefaultPrefs:
     auto_capture = True
     debounce = 0.6
-    max_steps = 100
-    compress = False
+    max_steps = 200
+    max_disk_mb = 2048
     history_root = ""
     capture_on_open = True
     ignore_operators = ""
@@ -121,6 +121,20 @@ def _ignore_patterns():
 
 
 # ------------------------------------------------------------------ store
+worker = storage.Worker()
+
+
+def _poll_worker():
+    return 0.1 if worker.poll() else None
+
+
+def _submit(fn, *args, on_done=None):
+    worker.threaded = not bpy.app.background
+    worker.submit(fn, *args, on_done=on_done)
+    if worker.threaded and not bpy.app.timers.is_registered(_poll_worker):
+        bpy.app.timers.register(_poll_worker, first_interval=0.1)
+
+
 def get_store():
     """Store for the currently open file (created lazily)."""
     path = bpy.data.filepath
@@ -128,8 +142,41 @@ def get_store():
     directory = storage.history_dir_for(path, root)
     st = _State.store
     if st is None or os.path.abspath(st.dir) != os.path.abspath(directory):
+        worker.wait()  # pending jobs belong to the previous store
         _State.store = storage.HistoryStore.open(directory, path)
     return _State.store
+
+
+def _collect_garbage(store):
+    """Free chunks of removed steps, then enforce the disk quota."""
+    def done(used, error):
+        if error is not None:
+            print("History Timeline: cleanup failed: %s" % error)
+            return
+        store.data["disk_bytes"] = used
+        quota = prefs().max_disk_mb * 1024 * 1024
+        if quota and used > quota and store.drop_oldest():
+            _collect_garbage(store)  # repeat until under the quota
+        store.save()
+        sync_ui()
+        tag_redraw()
+    _submit(store.chunks.gc, on_done=done)
+
+
+def delete_step(step_id):
+    worker.wait()
+    store = get_store()
+    if not store.delete(step_id):
+        return False
+    _collect_garbage(store)
+    return True
+
+
+def clear_history():
+    worker.wait()
+    store = get_store()
+    store.clear()
+    _collect_garbage(store)
 
 
 def _newest_operator():
@@ -182,7 +229,7 @@ def _write_snapshot(path):
     """Write a copy of the open file without changing its path or dirty state."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     kwargs = dict(filepath=path, copy=True, check_existing=False,
-                  compress=prefs().compress, relative_remap=True)
+                  compress=False, relative_remap=True)  # chunks dedupe raw data only
     _State.saving_copy = True
     try:
         _call_with_window(bpy.ops.wm.save_as_mainfile, **kwargs)
@@ -198,12 +245,16 @@ def capture(label, idname="", category=None, detail=None):
     if detail is None:
         detail = _active_object_name()
     step = store.new_step(label, idname, category, detail)
+    src = store.ingest_path(step)
     try:
-        _write_snapshot(store.path(step))
+        _write_snapshot(store.snapshot_path())
+        os.replace(store.snapshot_path(), src)
     except (RuntimeError, OSError) as ex:
         print("History Timeline: snapshot failed: %s" % ex)
         return None
-    store.commit(step, prefs().max_steps)
+    store.commit(step)
+    _submit(_ingest, store.chunks, src, store.path(step),
+            on_done=lambda result, error: _ingested(store, step["id"], result, error))
     _State.obj_count = len(bpy.data.objects)
     _State.strip_offset = 0
     _reset_pending()
@@ -211,6 +262,39 @@ def capture(label, idname="", category=None, detail=None):
     sync_ui()
     tag_redraw()
     return step
+
+
+def _ingest(chunks, src, manifest):
+    """Worker thread: dedupe + compress the written .blend, then drop it."""
+    try:
+        return chunks.ingest(src, manifest)
+    finally:
+        try:
+            os.remove(src)
+        except OSError:
+            pass
+
+
+def _ingested(store, step_id, result, error):
+    step = store.get(step_id)
+    if step is None:
+        return
+    if error is not None:
+        print("History Timeline: storing step %d failed: %s" % (step_id, error))
+        idx = store.index_of(step_id)
+        store.steps.remove(step)
+        if store.current == step_id:
+            store.current = store.steps[idx - 1]["id"] if idx > 0 and store.steps else 0
+    else:
+        step.pop("pending", None)
+        step["raw_size"], step["added"] = result
+        store.data["disk_bytes"] = store.disk_bytes + step["added"]
+    quota = prefs().max_disk_mb * 1024 * 1024
+    if store.prune(prefs().max_steps) or (quota and store.disk_bytes > quota):
+        _collect_garbage(store)
+    store.save()
+    sync_ui()
+    tag_redraw()
 
 
 def _modal_running():
@@ -339,6 +423,7 @@ def on_save_post(*_args):
     root = bpy.path.abspath(prefs().history_root) if prefs().history_root else ""
     new_dir = storage.history_dir_for(path, root)
     if store is not None and os.path.abspath(store.dir) != os.path.abspath(new_dir):
+        worker.wait()
         # First save of an untitled file moves the history, "Save As" copies it.
         store.relocate(new_dir, path, move=storage.is_temp_dir(store.dir))
     store = get_store()
@@ -350,6 +435,11 @@ def on_save_post(*_args):
         store.data["saved_mtime"] = 0.0
     store.save()
     sync_ui()
+
+
+@persistent
+def on_load_pre(*_args):
+    worker.wait()
 
 
 @persistent
@@ -386,7 +476,7 @@ def on_load_post(*_args):
             store.save()
     elif store.steps and storage.is_temp_dir(store.dir):
         # New untitled file: history of the previous untitled session is stale.
-        store.clear()
+        clear_history()
     sync_ui()
     tag_redraw()
 
@@ -420,8 +510,15 @@ def restore(step_id, deferred=True):
         if step is None:
             raise RestoreError("Step %d no longer exists" % step_id)
 
-    info = {"target": target, "step": step_id, "dir": store.dir,
-            "snapshot": store.path(step)}
+    worker.wait()
+    snapshot = store.snapshot_path()
+    try:
+        store.chunks.materialize(store.path(step), snapshot)
+    except (storage.CorruptHistory, OSError) as ex:
+        raise RestoreError("Cannot rebuild step %d: %s" % (step_id, ex))
+
+    info = {"target": target, "step": step_id, "snapshot": snapshot,
+            "compress": storage.is_compressed_blend(target)}
 
     def _do():
         _State.restoring = info
@@ -446,12 +543,16 @@ def _finish_restore(info):
     try:
         _State.saving_copy = True
         bpy.ops.wm.save_as_mainfile(filepath=target, check_existing=False,
-                                    compress=prefs().compress, relative_remap=True)
+                                    compress=info["compress"], relative_remap=True)
     except RuntimeError as ex:
         print("History Timeline: could not save restored state to %s: %s" % (target, ex))
     finally:
         _State.saving_copy = False
         _State.restoring = None
+        try:
+            os.remove(info["snapshot"])
+        except OSError:
+            pass
 
     _State.store = None
     store = get_store()
@@ -497,6 +598,7 @@ HANDLERS = (
     (bpy.app.handlers.undo_post, on_undo_redo),
     (bpy.app.handlers.redo_post, on_undo_redo),
     (bpy.app.handlers.save_post, on_save_post),
+    (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),
 )
 
@@ -511,7 +613,9 @@ def unregister():
     for handler_list, fn in HANDLERS:
         if fn in handler_list:
             handler_list.remove(fn)
-    if bpy.app.timers.is_registered(_tick):
-        bpy.app.timers.unregister(_tick)
+    worker.wait()
+    for timer in (_tick, _poll_worker):
+        if bpy.app.timers.is_registered(timer):
+            bpy.app.timers.unregister(timer)
     _State.timer_running = False
     _State.store = None
