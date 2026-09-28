@@ -48,17 +48,35 @@ def prefs():
     return _DefaultPrefs
 
 
+# Operators that change selection, visibility, modes, the view or UI state but
+# not the model. They are undoable (so Blender marks the file as changed), yet
+# must never become timeline steps.
 DEFAULT_IGNORE = (
-    "*.select*", "*select_all", "*.hide_view_*", "view3d.view*", "view3d.zoom*",
-    "view3d.navigate", "view3d.localview*", "view3d.cursor3d", "view3d.toggle_*",
-    "screen.*", "wm.*", "ed.*", "file.*", "anim.change_frame", "outliner.item_activate",
-    "outliner.*select*", "object.mode_set", "sculpt.sculptmode_toggle",
-    "view2d.*", "image.view*", "node.view*", "node.select*", "ui.*",
+    # selection: select_all, loop_multi_select, faces_select_linked_flat,
+    # shortest_path_pick, de_select_first ...
+    "*.select*", "*_select", "*_select_*", "*.de_select*", "*deselect*", "*_pick",
+    "*selection_mode", "*selection_domain",
+    # visibility
+    "*.hide*", "*_hide*", "*.reveal*", "*_reveal*", "*.unhide*", "*_unhide*",
+    # modes (Tab = object.editmode_toggle)
+    "*.mode_set", "*mode_toggle", "*_paint_toggle", "particle.particle_edit_toggle",
+    "nla.tweakmode_*", "*enter_editcurve_mode",
+    # active item, 3D cursor, preview range
+    "*set_active*", "*active_set", "*.layer_active", "*cursor_set", "*snap_cursor*",
+    "view3d.cursor3d", "*previewrange*", "*transform_gizmo_set",
+    # view and UI
+    "view3d.view*", "view3d.zoom*", "view3d.navigate", "view3d.localview*",
+    "view3d.toggle_*", "view2d.*", "image.view*", "node.view*", "*_view_all",
+    "screen.*", "wm.*", "ed.*", "file.*", "ui.*", "anim.change_frame",
+    "anim.channels_*", "outliner.item_activate",
     "ht.*",
 )
 
-# Matched before DEFAULT_IGNORE (``wm.*`` would otherwise swallow them).
-ALWAYS_CAPTURE = ("wm.append", "wm.link", "wm.*import*", "wm.*_import")
+# Real edits whose names look like the patterns above (checked first).
+ALWAYS_CAPTURE = (
+    "wm.append", "wm.link", "wm.*import*", "wm.*_import",
+    "*copy*_to_selected", "*snap_selected*", "uv.select_split",
+)
 
 # (patterns, category) - first match wins.
 CATEGORIES = (
@@ -113,6 +131,11 @@ def categorize(idname):
         if _match(idname, patterns):
             return category
     return "other"
+
+
+def is_ignored(idname):
+    """True for operators that never form a step on their own."""
+    return not _match(idname, ALWAYS_CAPTURE) and _match(idname, _ignore_patterns())
 
 
 def _ignore_patterns():
@@ -198,17 +221,35 @@ def clear_history():
     release_removed(store)
 
 
-def _newest_operator():
-    ops = bpy.context.window_manager.operators
-    if not len(ops):
-        return None
-    op = ops[-1]
-    return op.as_pointer(), op.bl_idname, op.name
+def _operator_marker():
+    """Identity of the registered-operator list.
+
+    Comparing only the newest operator's address is not enough: Blender can
+    allocate the next operator at the address just freed, which made a new
+    operator look like the old one.
+    """
+    return tuple((op.as_pointer(), op.bl_idname) for op in bpy.context.window_manager.operators)
 
 
 def _sync_operator_marker():
-    op = _newest_operator()
-    _State.last_op = op[:2] if op else None
+    _State.last_op = _operator_marker()
+
+
+def _no_op_transform(op):
+    """A move/rotate/scale that ended where it started (e.g. a click with a
+    tiny drag). Blender still registers it, but nothing changed."""
+    idname = py_idname(op.bl_idname)
+    if not idname.startswith("transform."):
+        return False
+    value = getattr(op.properties, "value", None)
+    if value is None:
+        return False
+    values = list(value) if hasattr(value, "__len__") else [value]
+    scale = idname in ("transform.resize", "transform.skin_resize") or (
+        idname == "transform.transform" and getattr(op.properties, "mode", "") == 'RESIZE')
+    identity = 1.0 if scale else 0.0
+    count = 3 if idname == "transform.transform" else len(values)
+    return all(abs(v - identity) < 1e-6 for v in values[:count])
 
 
 def _reset_pending():
@@ -357,16 +398,17 @@ def flush_pending():
 
     Returns the captured step or None.
     """
-    op = _newest_operator()
-    new_op = op is not None and (_State.last_op is None or op[:2] != _State.last_op)
+    ops = bpy.context.window_manager.operators
+    new_op = len(ops) and _operator_marker() != _State.last_op
     label, idname, category = None, "", None
 
     if new_op:
         # Selection, navigation, mode switches ... never form a step on their
         # own; whatever they touched is included in the next real step.
-        candidate = py_idname(op[1])
-        if _match(candidate, ALWAYS_CAPTURE) or not _match(candidate, _ignore_patterns()):
-            label, idname = op[2], candidate
+        op = ops[-1]
+        candidate = py_idname(op.bl_idname)
+        if not is_ignored(candidate) and not _no_op_transform(op):
+            label, idname = op.name, candidate
     elif _State.strong_change:
         label, category = _describe_change()
 
@@ -418,10 +460,15 @@ def on_depsgraph_update(scene, depsgraph):
         _State.last_frame = frame
         return
     _State.last_frame = frame
+    # In edit modes, (de)selecting elements is reported as a geometry/shading
+    # update, indistinguishable from an edit. Every real edit there is an
+    # operator, so only operators may create steps in these modes.
     strong = False
+    watch_data = not getattr(bpy.context, "mode", "").startswith("EDIT")
     names = []
     for update in depsgraph.updates:
-        if update.is_updated_geometry or update.is_updated_transform or update.is_updated_shading:
+        if watch_data and (update.is_updated_geometry or update.is_updated_transform
+                           or update.is_updated_shading):
             strong = True
         id_data = update.id
         if isinstance(id_data, bpy.types.Object):
