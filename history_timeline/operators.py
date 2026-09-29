@@ -26,7 +26,10 @@ def _step_tooltip(step, store):
     idx = store.index_of(step["id"])
     if idx > 0 and step.get("parent") and step["parent"] != store.steps[idx - 1]["id"]:
         lines.append("Branched from #%d" % step["parent"])
-    if step["id"] == store.current:
+    if step.get("undone"):
+        lines.append("Undone with Ctrl+Z: Ctrl+Shift+Z brings it back,\n"
+                     "your next change discards it (like Blender's redo)")
+    elif step["id"] == store.current:
         lines.append("Current state (timeline marker)")
     elif store.is_rolled_back(step):
         lines.append("Rolled back - click to roll forward")

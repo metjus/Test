@@ -15,8 +15,12 @@ ADDON_ID = __package__
 
 class _State:
     store = None            # storage.HistoryStore for the open file
-    last_op = None          # (pointer, idname) of newest registered operator
+    last_op = None          # (pointer, idname) of every registered operator
     strong_change = False   # geometry / transform / shading changed
+    tool_change = False     # ... while a built-in tool (grab, knife ...) was running
+    quiet_until = 0.0       # ignore scene updates caused by undo/redo until then
+    undo_log = []           # per Blender undo push: timeline step it created, or None
+    redo_log = []           # entries undone with Ctrl+Z, most recent last
     any_change = False      # anything at all changed
     changed_ids = []        # names of changed datablocks (for labels)
     last_change = 0.0
@@ -221,18 +225,46 @@ def clear_history():
     release_removed(store)
 
 
-def _operator_marker():
+def _registered_operators():
+    return list(bpy.context.window_manager.operators)
+
+
+def _operator_marker(ops=None):
     """Identity of the registered-operator list.
 
     Comparing only the newest operator's address is not enough: Blender can
     allocate the next operator at the address just freed, which made a new
     operator look like the old one.
     """
-    return tuple((op.as_pointer(), op.bl_idname) for op in bpy.context.window_manager.operators)
+    ops = _registered_operators() if ops is None else ops
+    return tuple((op.as_pointer(), op.bl_idname) for op in ops)
 
 
 def _sync_operator_marker():
     _State.last_op = _operator_marker()
+
+
+def _new_operators():
+    """Operators registered since the last sync, oldest first.
+
+    Blender appends to the list and drops the oldest entries, so the new ones
+    are what follows the longest overlap with the previous list.
+    """
+    ops = _registered_operators()
+    cur = _operator_marker(ops)
+    prev = _State.last_op or ()
+    for k in range(min(len(prev), len(cur)), 0, -1):
+        if prev[-k:] == cur[:k]:
+            return ops[k:]
+    return ops if cur != prev else []
+
+
+def _pushes_undo(op):
+    return bool({'UNDO', 'UNDO_GROUPED'} & set(op.bl_options))
+
+
+def _is_real_edit(op):
+    return not is_ignored(py_idname(op.bl_idname)) and not _no_op_transform(op)
 
 
 def _no_op_transform(op):
@@ -254,6 +286,7 @@ def _no_op_transform(op):
 
 def _reset_pending():
     _State.strong_change = False
+    _State.tool_change = False
     _State.any_change = False
     _State.changed_ids = []
 
@@ -367,6 +400,27 @@ def _modal_running():
     return False
 
 
+# Operator modules of Blender's own interactive tools. Changes made while one
+# of them runs only count once the tool finishes (it is then registered); a
+# right-click cancel registers nothing. Add-on modals are not in this list, so
+# an add-on that keeps a modal running cannot hide real edits.
+BUILTIN_TOOL_MODULES = frozenset((
+    "transform", "mesh", "object", "curve", "curves", "sculpt", "sculpt_curves", "paint",
+    "gpencil", "grease_pencil", "armature", "pose", "uv", "node", "view3d", "image",
+    "graph", "action", "nla", "sequencer", "clip", "mask", "font", "lattice", "particle",
+    "marker", "anim",
+))
+
+
+def _tool_running():
+    wm = bpy.context.window_manager
+    for window in wm.windows:
+        for op in getattr(window, "modal_operators", ()):
+            if op.bl_idname.split("_OT_")[0].lower() in BUILTIN_TOOL_MODULES:
+                return True
+    return False
+
+
 def _is_playing():
     screen = getattr(bpy.context, "screen", None)
     if screen is not None and screen.is_animation_playing:
@@ -398,25 +452,35 @@ def flush_pending():
 
     Returns the captured step or None.
     """
-    ops = bpy.context.window_manager.operators
-    new_op = len(ops) and _operator_marker() != _State.last_op
+    new = _new_operators()
+    # Selection, navigation, mode switches ... never form a step on their own;
+    # whatever they touched is included in the next real step.
+    real = [op for op in new if _is_real_edit(op)]
     label, idname, category = None, "", None
+    property_edit = False
 
-    if new_op:
-        # Selection, navigation, mode switches ... never form a step on their
-        # own; whatever they touched is included in the next real step.
-        op = ops[-1]
-        candidate = py_idname(op.bl_idname)
-        if not is_ignored(candidate) and not _no_op_transform(op):
-            label, idname = op.name, candidate
-    elif _State.strong_change:
+    if real:
+        label, idname = real[-1].name, py_idname(real[-1].bl_idname)
+    elif not new and _State.strong_change:
+        # Changed without an operator: a value typed or dragged in the UI.
+        # (Changes made only while a tool ran, then cancelled, are dropped.)
+        property_edit = True
         label, category = _describe_change()
 
-    if label is None or not bpy.data.is_dirty:
+    step = None
+    if label is not None and bpy.data.is_dirty:
+        step = capture(label, idname, category)
+    else:
         _reset_pending()
         _sync_operator_marker()
-        return None
-    return capture(label, idname, category)
+
+    # Mirror Blender's undo stack: one entry per undo push.
+    entries = [step["id"] if step is not None and real and op is real[-1] else None
+               for op in new if _pushes_undo(op)]
+    if property_edit:
+        entries.append(step["id"] if step is not None else None)
+    _record_undo_pushes(entries)
+    return step
 
 
 def _tick():
@@ -460,6 +524,8 @@ def on_depsgraph_update(scene, depsgraph):
         _State.last_frame = frame
         return
     _State.last_frame = frame
+    if time.monotonic() < _State.quiet_until:
+        return  # the scene update that follows an undo/redo is not an edit
     # In edit modes, (de)selecting elements is reported as a geometry/shading
     # update, indistinguishable from an edit. Every real edit there is an
     # operator, so only operators may create steps in these modes.
@@ -474,7 +540,10 @@ def on_depsgraph_update(scene, depsgraph):
         if isinstance(id_data, bpy.types.Object):
             names.append(id_data.name)
     _State.any_change = True
-    _State.strong_change |= strong
+    if strong and _tool_running():
+        _State.tool_change = True
+    else:
+        _State.strong_change |= strong
     for name in names:
         if name not in _State.changed_ids:
             _State.changed_ids.append(name)
@@ -482,11 +551,100 @@ def on_depsgraph_update(scene, depsgraph):
     _ensure_timer()
 
 
-@persistent
-def on_undo_redo(*_args):
-    # Blender's own undo moves the data but the timeline keeps its snapshots.
+# ------------------------------------------------------------ undo / redo
+UNDO_LOG_LIMIT = 1024
+UNDO_QUIET = 0.3  # seconds
+
+
+def _record_undo_pushes(entries):
+    """Append undo pushes; a new push discards Blender's redo stack, so the
+    steps undone with Ctrl+Z are discarded from the timeline too."""
+    if not entries:
+        return
+    if _State.redo_log:
+        _State.redo_log.clear()
+        _discard_undone()
+    _State.undo_log.extend(entries)
+    del _State.undo_log[:-UNDO_LOG_LIMIT]
+
+
+def _discard_undone():
+    store = get_store()
+    gone = [s for s in store.steps if s.get("undone")]
+    for step in gone:
+        store._remove(step)
+    if gone:
+        release_removed(store)
+        store.save()
+        tag_redraw()
+
+
+def _forget_undo(store):
+    """A file load resets Blender's undo stack: undone steps become ordinary
+    rolled-back steps (kept, clickable)."""
+    _State.undo_log.clear()
+    _State.redo_log.clear()
+    for step in store.steps:
+        step.pop("undone", None)
+
+
+def _after_undo_redo():
     _reset_pending()
     _sync_operator_marker()
+    _State.quiet_until = time.monotonic() + UNDO_QUIET
+
+
+@persistent
+def on_undo_pre(*_args):
+    if _State.restoring:
+        return
+    # Pushes still waiting for the idle delay are about to be undone; they
+    # never became steps, but they must be counted to stay in sync.
+    new = _new_operators()
+    entries = [None for op in new if _pushes_undo(op)]
+    if not new and _State.strong_change:
+        entries.append(None)
+    _record_undo_pushes(entries)
+    _reset_pending()
+    _sync_operator_marker()
+
+
+@persistent
+def on_undo_post(*_args):
+    _after_undo_redo()
+    if not _State.undo_log:
+        return
+    entry = _State.undo_log.pop()
+    _State.redo_log.append(entry)
+    store = get_store()
+    step = store.get(entry) if entry is not None else None
+    if step is None:
+        return
+    step["undone"] = True
+    parent = store.get(step.get("parent"))
+    if parent is None:
+        idx = store.index_of(entry)
+        parent = store.steps[idx - 1] if idx > 0 else None
+    store.current = parent["id"] if parent else 0
+    store.save()
+    tag_redraw()
+
+
+@persistent
+def on_redo_post(*_args):
+    _after_undo_redo()
+    if not _State.redo_log:
+        return
+    entry = _State.redo_log.pop()
+    _State.undo_log.append(entry)
+    store = get_store()
+    step = store.get(entry) if entry is not None else None
+    if step is None:
+        return
+    step.pop("undone", None)
+    store.current = entry
+    store.save()
+    tag_redraw()
 
 
 @persistent
@@ -530,6 +688,7 @@ def on_load_post(*_args):
         return
 
     store = get_store()
+    _forget_undo(store)
     _sync_operator_marker()
 
     path = bpy.data.filepath
@@ -632,6 +791,7 @@ def _finish_restore(info):
             _State.saving_copy = False
 
     store = get_store()
+    _forget_undo(store)
     if store.get(info["step"]) is not None:
         store.current = info["step"]
     store.data["saved_step"] = store.current
@@ -646,8 +806,10 @@ def _finish_restore(info):
 
 HANDLERS = (
     (bpy.app.handlers.depsgraph_update_post, on_depsgraph_update),
-    (bpy.app.handlers.undo_post, on_undo_redo),
-    (bpy.app.handlers.redo_post, on_undo_redo),
+    (bpy.app.handlers.undo_pre, on_undo_pre),
+    (bpy.app.handlers.redo_pre, on_undo_pre),
+    (bpy.app.handlers.undo_post, on_undo_post),
+    (bpy.app.handlers.redo_post, on_redo_post),
     (bpy.app.handlers.save_post, on_save_post),
     (bpy.app.handlers.load_pre, on_load_pre),
     (bpy.app.handlers.load_post, on_load_post),

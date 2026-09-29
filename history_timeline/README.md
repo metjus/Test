@@ -145,7 +145,12 @@ vertices, with moves, rotations, scales and vertex edits in rotation), with no l
 * If a snapshot is running into another add-on's always-on tool, recording
   waits at most 20 s for tools to finish.
 * A restore needs the file to be saved at least once.
-* Blender's normal `Ctrl Z` still works as usual. The timeline doesn't
-  replace it; it adds a history that persists.
+* The timeline follows Blender's own undo. `Ctrl Z` moves the marker back and
+  greys out the undone step, and `Ctrl Shift Z` brings it back. Your next change
+  deletes the undone steps, just as Blender discards its redo history. Steps you
+  roll back by clicking the timeline are different: they are kept and stay clickable.
+* Selecting, hiding, switching modes (`Tab`), and tools you cancel with right-click
+  or `Esc` don't create steps. Extrude + cancel does: Blender keeps the extruded
+  geometry in place (only the move is cancelled), so the file really changed.
 * Relative paths (textures, libraries) are remapped when snapshots are
   written and restored.
