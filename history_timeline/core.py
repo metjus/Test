@@ -298,6 +298,30 @@ def tag_redraw():
     for window in wm.windows:
         for area in window.screen.areas:
             area.tag_redraw()
+    _redraw_status_bars()
+
+
+def _redraw_status_bars():
+    """Repaint the status bar, where the timeline strip lives.
+
+    It is a global area, not part of ``Screen.areas``, so tagging areas never
+    reached it and new steps only appeared once something else (the mouse
+    leaving the model) happened to refresh it. Clearing the (empty) status
+    text is Blender's own way to request that repaint. Skipped while a tool
+    runs, since tools show their hints there.
+    """
+    wm = bpy.context.window_manager
+    if _modal_running():
+        return
+    for window in wm.windows:
+        workspace = window.workspace
+        if workspace is None:
+            continue
+        try:
+            with bpy.context.temp_override(window=window):
+                workspace.status_text_set_internal(None)
+        except (RuntimeError, TypeError, AttributeError):
+            pass
 
 
 # ---------------------------------------------------------------- capture
@@ -488,13 +512,21 @@ def _tick():
         _State.timer_running = False
         _reset_pending()
         return None
+    if _is_playing():
+        return TICK
     idle = time.monotonic() - _State.last_change
-    if idle < prefs().debounce or _is_playing():
-        return 0.2
-    # Wait for interactive tools to finish, but not for add-ons that keep a
-    # modal operator running all the time.
-    if _modal_running() and idle < MODAL_WAIT_LIMIT:
-        return 0.2
+    tool = _modal_running()
+    # A command that just finished (a confirmed rotate, an extrude ...) is
+    # recorded right away. Only changes without a command (values typed or
+    # dragged in the UI) wait for the idle delay, so a slider drag is one step.
+    finished_command = not tool and _operator_marker() != _State.last_op
+    if not finished_command:
+        if idle < prefs().debounce:
+            return TICK
+        # Wait for interactive tools to finish, but not for add-ons that
+        # keep a modal operator running all the time.
+        if tool and idle < MODAL_WAIT_LIMIT:
+            return TICK
     _State.timer_running = False
     try:
         flush_pending()
@@ -504,13 +536,14 @@ def _tick():
 
 
 MODAL_WAIT_LIMIT = 20.0  # seconds
+TICK = 0.1  # seconds between checks while changes are pending
 
 
 def _ensure_timer():
     # Checked via is_registered: a stale flag would stop recording for good.
     _State.timer_running = True
     if not bpy.app.timers.is_registered(_tick):
-        bpy.app.timers.register(_tick, first_interval=0.2, persistent=True)
+        bpy.app.timers.register(_tick, first_interval=TICK, persistent=True)
 
 
 # --------------------------------------------------------------- handlers

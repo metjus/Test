@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "history_timeline"
-version = "1.4.0"
+version = "1.4.1"
 name = "History Timeline"
 tagline = "Visual history timeline with undo that survives restarts"
 maintainer = "History Timeline contributors"
