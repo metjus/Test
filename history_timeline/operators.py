@@ -112,6 +112,63 @@ class HT_OT_step(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class _ContinuousUndo:
+    """Blender's undo/redo first; once Blender has nothing left (e.g. right
+    after reopening the file), keep going through the History Timeline."""
+    bl_options = {'INTERNAL'}  # no UNDO/REGISTER: this must never push an undo step itself
+
+    # (Blender operator, timeline direction, wording)
+    blender_op = None
+    offset = 0
+    word = ""
+
+    def execute(self, context):
+        if core.restore_in_progress():
+            return {'CANCELLED'}  # a held key must not queue several file loads
+        op = self.blender_op()
+        try:
+            available = op.poll()
+        except RuntimeError:  # undo system not initialised (background mode)
+            available = False
+        if available:
+            return op()
+        if not core.prefs().continuous_undo:
+            return {'CANCELLED'}
+        store = core.get_store()
+        step = store.neighbour(self.offset)
+        if step is None:
+            self.report({'INFO'}, "Nothing more to %s in the History Timeline" % self.word)
+            return {'CANCELLED'}
+        try:
+            core.restore(step["id"])
+        except core.RestoreError as ex:
+            self.report({'ERROR'}, str(ex))
+            return {'CANCELLED'}
+        self.report({'INFO'}, "History Timeline: %s to #%d %s" % (
+            "back" if self.offset < 0 else "forward", step["id"], step["label"]))
+        return {'FINISHED'}
+
+
+class HT_OT_undo(_ContinuousUndo, bpy.types.Operator):
+    """Undo. When Blender's own undo history is used up (for example after
+    reopening the file), go back one step in the History Timeline"""
+    bl_idname = "ht.undo"
+    bl_label = "Undo (continues in History Timeline)"
+    blender_op = staticmethod(lambda: bpy.ops.ed.undo)
+    offset = -1
+    word = "undo"
+
+
+class HT_OT_redo(_ContinuousUndo, bpy.types.Operator):
+    """Redo. When Blender has nothing left to redo, go forward one step in
+    the History Timeline"""
+    bl_idname = "ht.redo"
+    bl_label = "Redo (continues in History Timeline)"
+    blender_op = staticmethod(lambda: bpy.ops.ed.redo)
+    offset = 1
+    word = "redo"
+
+
 class HT_OT_capture(bpy.types.Operator):
     """Add a named snapshot of the current state to the timeline"""
     bl_idname = "ht.capture"
@@ -278,6 +335,8 @@ class HT_OT_page(bpy.types.Operator):
 
 
 classes = (
+    HT_OT_undo,
+    HT_OT_redo,
     HT_OT_select_step,
     HT_OT_page,
     HT_OT_restore,

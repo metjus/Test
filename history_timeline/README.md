@@ -30,7 +30,8 @@ Requires Blender 4.2 or newer.
 | **Status bar** (bottom of the window) | The timeline strip. Each icon is one step, and hovering it shows the name, active object and time. Click an icon to restore that state. ⏮ ◀ ▶ ⏭ move the marker. |
 | **3D View > Sidebar (N) > History** | The strip, a searchable list of all steps, and Restore / Rename / Pin / Delete for the selected step, plus *Checkpoint*, *Open Folder* and *Clear*. |
 | **Edit > History Timeline** | Roll Back / Roll Forward / Checkpoint. |
-| `Ctrl Alt Z` / `Ctrl Alt Shift Z` | Roll back / roll forward one step. |
+| `Ctrl Z` / `Ctrl Shift Z` | Blender's normal undo/redo. When Blender has nothing left (for example after reopening the file), they keep going back/forward through the timeline. You can turn this off in the preferences. |
+| `Ctrl Alt Z` / `Ctrl Alt Shift Z` | Roll back / roll forward one timeline step directly. |
 
 Timeline icons show what kind of step it was: ➕ add, 🗑 delete, move/rotate/scale,
 modifier, edit mode, sculpt, material/nodes, property edit, 🔖 manual checkpoint,
@@ -64,6 +65,9 @@ the file on its first save. *Save As* copies the history to the new name.
 *Edit > Preferences > Add-ons > History Timeline*
 
 * **Record History**: turn automatic recording on or off. The checkbox is also in the panel header.
+* **Continuous Ctrl+Z** (on by default): when Blender's own undo history runs out
+  (it starts empty every time a file is opened), `Ctrl Z` / `Ctrl Shift Z` continue
+  through the timeline. Turn it off and `Ctrl Z` is exactly Blender's standard undo.
 * **Idle Delay**: how long after the last change a snapshot is written.
 * **Also Ignore**: extra operator patterns that should never create a step
   (selection, view navigation, mode switches etc. are ignored already).

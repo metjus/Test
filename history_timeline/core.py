@@ -40,6 +40,7 @@ class _DefaultPrefs:
     max_disk_mb = 2048
     history_root = ""
     capture_on_open = True
+    continuous_undo = True
     ignore_operators = ""
     strip_location = "STATUSBAR"
     strip_count = 24
@@ -752,6 +753,10 @@ class RestoreError(Exception):
     pass
 
 
+def restore_in_progress():
+    return _State.restoring is not None
+
+
 def restore(step_id, deferred=True):
     """Bring the file back to ``step_id``.
 
@@ -792,9 +797,9 @@ def restore(step_id, deferred=True):
                 os.replace(target, target + "1")
             os.replace(rebuilt, target)
         except OSError as ex:
+            _State.restoring = None
             print("History Timeline: restore failed: %s" % ex)
             return None
-        _State.restoring = info
         try:
             _call_with_window(bpy.ops.wm.open_mainfile, filepath=target, load_ui=False)
         except RuntimeError as ex:
@@ -802,6 +807,9 @@ def restore(step_id, deferred=True):
             print("History Timeline: restore failed: %s" % ex)
         return None
 
+    # Marked busy right away, so repeated clicks / a held Ctrl+Z don't queue
+    # several loads before the first one has happened.
+    _State.restoring = info
     if deferred and not bpy.app.background:
         # Loading a file from inside a button's operator is fragile; do it
         # from a timer once the UI event has been fully handled.

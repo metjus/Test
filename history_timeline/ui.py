@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Timeline strip, sidebar panel and preferences."""
 
+import sys
 import time
 
 import bpy
@@ -29,6 +30,12 @@ class HT_AddonPreferences(bpy.types.AddonPreferences):
     history_root: StringProperty(
         name="History Folder", subtype='DIR_PATH', default="",
         description="Keep all histories in this folder instead of next to each .blend")
+    continuous_undo: BoolProperty(
+        name="Continuous Ctrl+Z", default=True,
+        description="When Blender's own undo history runs out (for example after reopening "
+                    "the file), Ctrl+Z / Ctrl+Shift+Z keep stepping through the History Timeline. "
+                    "Off: Ctrl+Z is Blender's standard undo",
+        update=lambda self, ctx: _update_undo_keys())
     capture_on_open: BoolProperty(
         name="Capture on Open", default=True,
         description="Add a step when a file is opened whose state is not in its timeline yet")
@@ -53,6 +60,7 @@ class HT_AddonPreferences(bpy.types.AddonPreferences):
         layout.use_property_split = True
         col = layout.column(heading="Recording")
         col.prop(self, "auto_capture")
+        col.prop(self, "continuous_undo")
         col.prop(self, "capture_on_open")
         col.prop(self, "debounce")
         col.prop(self, "ignore_operators")
@@ -235,6 +243,13 @@ classes = (
 )
 
 _addon_keymaps = []
+_undo_keymaps = []   # Ctrl+Z / Ctrl+Shift+Z, active only with "Continuous Ctrl+Z"
+
+
+def _update_undo_keys():
+    active = bool(getattr(core.prefs(), "continuous_undo", True))
+    for _km, kmi in _undo_keymaps:
+        kmi.active = active
 
 
 def register():
@@ -257,11 +272,25 @@ def register():
         kmi.properties.direction = 'NEXT'
         _addon_keymaps.append((km, kmi))
 
+        # Take over Ctrl+Z / Ctrl+Shift+Z where Blender binds its own undo
+        # (the "Screen" keymap). Add-on key items are checked before the
+        # default ones; the operators call Blender's undo/redo first.
+        km = kc.keymaps.new(name="Screen", space_type='EMPTY')
+        mods = [dict(ctrl=True)]
+        if sys.platform == "darwin":
+            mods.append(dict(oskey=True))
+        for mod in mods:
+            for idname, shift in (("ht.undo", False), ("ht.redo", True)):
+                kmi = km.keymap_items.new(idname, 'Z', 'PRESS', shift=shift, repeat=True, **mod)
+                _undo_keymaps.append((km, kmi))
+        _update_undo_keys()
+
 
 def unregister():
-    for km, kmi in _addon_keymaps:
+    for km, kmi in _addon_keymaps + _undo_keymaps:
         km.keymap_items.remove(kmi)
     _addon_keymaps.clear()
+    _undo_keymaps.clear()
     bpy.types.TOPBAR_MT_edit.remove(draw_edit_menu)
     bpy.types.VIEW3D_HT_header.remove(draw_view3d_header)
     bpy.types.STATUSBAR_HT_header.remove(draw_statusbar)
