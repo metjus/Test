@@ -27,17 +27,17 @@ def linear_to_srgb(c):
     return c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1.0 / 2.4) - 0.055
 
 
-def _socket_color(socket, depth=0):
-    """Colour on a colour socket, following links through simple nodes."""
+def _socket_source(socket, depth=0):
+    """(owner, property) holding the colour on a colour socket, following simple links."""
     if depth > 16:
         return None
     if not socket.is_linked:
-        return tuple(socket.default_value[:3])
+        return socket, "default_value"
     node = socket.links[0].from_node
     if node.type == "RGB":
-        return tuple(node.outputs[0].default_value[:3])
+        return node.outputs[0], "default_value"
     if node.type == "REROUTE":
-        return _socket_color(node.inputs[0], depth + 1)
+        return _socket_source(node.inputs[0], depth + 1)
     return None
 
 
@@ -52,39 +52,49 @@ _SHADER_COLOR_INPUT = {
 }
 
 
-def _shader_color(node, depth=0):
+def _shader_source(node, depth=0):
     if node is None or depth > 16:
         return None
     if node.type == "REROUTE":
         inp = node.inputs[0]
-        return _shader_color(inp.links[0].from_node, depth + 1) if inp.is_linked else None
+        return _shader_source(inp.links[0].from_node, depth + 1) if inp.is_linked else None
     if node.type in ("MIX_SHADER", "ADD_SHADER"):
         for inp in node.inputs:
             if inp.type == "SHADER" and inp.is_linked:
-                color = _shader_color(inp.links[0].from_node, depth + 1)
-                if color is not None:
-                    return color
+                source = _shader_source(inp.links[0].from_node, depth + 1)
+                if source is not None:
+                    return source
         return None
     name = _SHADER_COLOR_INPUT.get(node.type)
     if name and name in node.inputs:
-        return _socket_color(node.inputs[name])
+        return _socket_source(node.inputs[name])
     return None
 
 
-def material_linear_color(mat):
-    """Linear RGB colour of a material; falls back to its viewport display colour."""
-    if mat is None:
-        return DEFAULT_RGB
-    if mat.use_nodes and mat.node_tree:
+def material_color_source(mat):
+    """(owner, property) that defines a material's colour, for reading or editing.
+
+    This is the Color (RGB) node or shader colour input feeding the active
+    output; otherwise the material's viewport display colour.
+    """
+    if getattr(mat, "use_nodes", True) and mat.node_tree:
         outputs = [n for n in mat.node_tree.nodes if n.type == "OUTPUT_MATERIAL"]
         active = [n for n in outputs if n.is_active_output] or outputs
         for out in active:
             surface = out.inputs.get("Surface")
             if surface and surface.is_linked:
-                color = _shader_color(surface.links[0].from_node)
-                if color is not None:
-                    return color
-    return tuple(mat.diffuse_color[:3])
+                source = _shader_source(surface.links[0].from_node)
+                if source is not None:
+                    return source
+    return mat, "diffuse_color"
+
+
+def material_linear_color(mat):
+    """Linear RGB colour of a material."""
+    if mat is None:
+        return DEFAULT_RGB
+    owner, prop = material_color_source(mat)
+    return tuple(getattr(owner, prop)[:3])
 
 
 def material_srgb(mat):
@@ -318,6 +328,32 @@ class BAMBU_OT_sync_viewport_colors(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class BAMBU_OT_add_material(bpy.types.Operator):
+    """Give objects without a material a new one, so their colour can be edited"""
+    bl_idname = "bambu.add_material"
+    bl_label = "Add Material to Uncoloured Objects"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        objects = export_objects(context, bool(context.selected_objects))
+        targets = [o for o in objects if o.type in GEOMETRY_TYPES and o.data is not None
+                   and not any(s.material for s in o.material_slots)]
+        if not targets:
+            self.report({"INFO"}, "Every object already has a material")
+            return {"CANCELLED"}
+        mat = bpy.data.materials.new("Bambu Colour")
+        if hasattr(mat, "use_nodes"):
+            mat.use_nodes = True
+        for obj in targets:
+            if obj.material_slots:
+                for slot in obj.material_slots:
+                    slot.material = mat
+            else:
+                obj.data.materials.append(mat)
+        self.report({"INFO"}, "Added '%s' to %d object(s)" % (mat.name, len(targets)))
+        return {"FINISHED"}
+
+
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
@@ -343,7 +379,17 @@ class VIEW3D_PT_bambu_colors(bpy.types.Panel):
                 key = mat.name if mat else NO_MATERIAL
                 entry = palette[index_of[key]]
                 row = col.row(align=True)
-                row.label(text="F%d  %s" % (entry.filament, entry.hex), icon="MATERIAL")
+                swatch = row.row(align=True)
+                swatch.ui_units_x = 2.5
+                if mat:
+                    # Clicking the swatch opens Blender's colour picker (wheel + Hex).
+                    owner, prop = material_color_source(mat)
+                    swatch.prop(owner, prop, text="")
+                else:
+                    swatch.operator(BAMBU_OT_add_material.bl_idname, text="", icon="ADD")
+                slot = row.row(align=True)
+                slot.ui_units_x = 1.6
+                slot.label(text="F%d" % entry.filament)
                 if mat:
                     row.prop(mat, "bambu_filament", text=mat.name)
                 else:
@@ -368,6 +414,7 @@ classes = (
     EXPORT_OT_bambu_3mf,
     EXPORT_OT_bambu_obj,
     BAMBU_OT_sync_viewport_colors,
+    BAMBU_OT_add_material,
     VIEW3D_PT_bambu_colors,
 )
 
