@@ -10,7 +10,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
 from bpy_extras.io_utils import ExportHelper
 
-from . import writers
+from . import paint, writers
 from .writers import MAX_FILAMENTS, PaletteEntry
 
 GEOMETRY_TYPES = {"MESH", "CURVE", "SURFACE", "META", "FONT"}
@@ -472,9 +472,11 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+    paint.register()
 
 
 def unregister():
+    paint.unregister()
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

@@ -33,6 +33,30 @@ already painted**, one filament per colour.
 - **Merge Same Colours / Colour Tolerance**: combine near-identical colours into one filament.
 - **Export OBJ + MTL**: fallback. Bambu Studio shows its colour-mapping dialog for coloured OBJ files.
 
+## Paint a single model
+For one whole mesh that needs several colours, use the **Bambu Paint** panel (Bambu tab):
+1. Select the mesh. Click **Add Colour** for each colour you need. Colour 1 is the base
+   colour (unpainted areas); click a swatch to change a colour.
+2. Pick a colour (click its name), choose **Brush** or **Fill**, set **Symmetry** X / Y / Z
+   if the model is symmetric, then click **Start Painting**.
+3. In the viewport:
+   | Input | Action |
+   |---|---|
+   | LMB drag | paint with the active colour |
+   | Shift + LMB | paint with the base colour (erase) |
+   | 1 – 9 | pick colour |
+   | `[` / `]` | brush radius |
+   | F | switch Brush / Fill |
+   | X / Y / Z | toggle symmetry |
+   | Ctrl+Z | undo last stroke |
+   | MMB / wheel | navigate the view as usual |
+   | Esc / Enter / RMB | finish |
+4. Export as usual. Painted areas become separate filaments.
+
+Notes: painting colours whole faces, so edges follow the mesh. Subdivide (or remesh) low-poly
+models for finer detail. Symmetry mirrors across the object's origin, so keep the origin
+on the model's centre line.
+
 ## How it works
 All selected objects are merged (modifiers applied) into one mesh. Each triangle gets:
 - a colour from a standard 3MF colour group (`m:colorgroup`). Bambu Studio reads this and
