@@ -178,6 +178,40 @@ def used_materials(objects):
     return list(seen.values())
 
 
+def panel_rows(objects):
+    """(object, material, label) rows for the sidebar: one per object, or one
+    per material when an object has several."""
+    rows = []
+    for obj in sorted(objects, key=lambda o: o.name):
+        if obj.type not in GEOMETRY_TYPES:
+            continue
+        mats = list(dict.fromkeys(s.material for s in obj.material_slots if s.material)) or [None]
+        for mat in mats:
+            label = obj.name if len(mats) == 1 else "%s \u00b7 %s" % (obj.name, mat.name)
+            rows.append((obj, mat, label))
+    return rows
+
+
+def _panel_palette(context):
+    objects = export_objects(context, bool(context.selected_objects))
+    materials = used_materials(objects)
+    palette, index_of = build_palette(materials, 0.02) if materials else ([], {})
+    return objects, palette, index_of
+
+
+def _get_slot(mat):
+    """Effective filament slot: the manual one, or the automatic one."""
+    if mat.bambu_filament:
+        return mat.bambu_filament
+    _objects, palette, index_of = _panel_palette(bpy.context)
+    i = index_of.get(mat.name)
+    return palette[i].filament if i is not None else 0
+
+
+def _set_slot(mat, value):
+    mat.bambu_filament = value
+
+
 def collect_geometry(context, objects, scale):
     """Evaluate objects (modifiers, instances) into one world-space triangle soup.
 
@@ -366,18 +400,23 @@ class VIEW3D_PT_bambu_colors(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        objects = export_objects(context, bool(context.selected_objects))
+        objects, palette, index_of = _panel_palette(context)
         layout.label(text="%s: %d object(s)" % ("Selected" if context.selected_objects else "Visible",
                                                  len(objects)))
-        materials = used_materials(objects)
-        if not materials:
-            layout.label(text="No materials found", icon="INFO")
+        rows = panel_rows(objects)
+        if not rows:
+            layout.label(text="No mesh objects", icon="INFO")
         else:
-            palette, index_of = build_palette(materials, 0.02)
+            header = layout.row(align=True)
+            header.label(text="Colour")
+            header.label(text="Object")
+            header.label(text="Filament")
+            shared = {}
+            for _obj, mat, _label in rows:
+                shared[mat] = shared.get(mat, 0) + 1
+
             col = layout.column(align=True)
-            for mat in materials:
-                key = mat.name if mat else NO_MATERIAL
-                entry = palette[index_of[key]]
+            for obj, mat, label in rows:
                 row = col.row(align=True)
                 swatch = row.row(align=True)
                 swatch.ui_units_x = 2.5
@@ -387,15 +426,19 @@ class VIEW3D_PT_bambu_colors(bpy.types.Panel):
                     swatch.prop(owner, prop, text="")
                 else:
                     swatch.operator(BAMBU_OT_add_material.bl_idname, text="", icon="ADD")
+                icon = "LINKED" if mat and shared[mat] > 1 else "OBJECT_DATA"
+                row.label(text=label, icon=icon)
                 slot = row.row(align=True)
-                slot.ui_units_x = 1.6
-                slot.label(text="F%d" % entry.filament)
+                slot.ui_units_x = 2.5
                 if mat:
-                    row.prop(mat, "bambu_filament", text=mat.name)
+                    slot.prop(mat, "bambu_slot", text="")
                 else:
-                    row.label(text=NO_MATERIAL)
-            layout.label(text="Slot 0 = automatic", icon="INFO")
-            if max(e.filament for e in palette) > MAX_FILAMENTS:
+                    entry = palette[index_of[NO_MATERIAL]]
+                    slot.label(text=str(entry.filament))
+            if any(n > 1 for m, n in shared.items() if m):
+                layout.label(text="Linked parts share one colour", icon="LINKED")
+            layout.label(text="Filament = Bambu slot, 0 = auto", icon="INFO")
+            if palette and max(e.filament for e in palette) > MAX_FILAMENTS:
                 layout.label(text="More than %d filaments!" % MAX_FILAMENTS, icon="ERROR")
 
         layout.separator()
@@ -423,6 +466,9 @@ def register():
     bpy.types.Material.bambu_filament = IntProperty(
         name="Filament", default=0, min=0, max=MAX_FILAMENTS,
         description="Bambu Studio filament slot for this material (0 = assign automatically)")
+    bpy.types.Material.bambu_slot = IntProperty(
+        name="Filament", min=0, max=MAX_FILAMENTS, get=_get_slot, set=_set_slot,
+        description="Filament slot in Bambu Studio (AMS slot). Type 0 to go back to automatic")
     for cls in classes:
         bpy.utils.register_class(cls)
     bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
@@ -432,4 +478,5 @@ def unregister():
     bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
+    del bpy.types.Material.bambu_slot
     del bpy.types.Material.bambu_filament
