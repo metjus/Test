@@ -67,21 +67,26 @@ _RELS = """<?xml version="1.0" encoding="UTF-8"?>
 def build_3mf_model(vertices, triangles, tri_color, palette, object_name="Model"):
     """Return the 3D/3dmodel.model XML as a string.
 
-    Colours are stored twice: as standard 3MF base materials (so any 3MF
-    viewer shows them) and as Bambu Studio's per-triangle ``paint_color``
-    attribute (so Bambu assigns each triangle to a filament slot).
+    Colours are stored twice:
+    - a standard 3MF colour group (``m:colorgroup``) with a colour per
+      triangle. Bambu Studio reads this for 3MFs from other programs and
+      opens its colour-mapping dialog, adding filaments as needed;
+    - Bambu's per-triangle ``paint_color`` filament codes, used if that
+      dialog is cancelled or unavailable.
     """
     out = [
         '<?xml version="1.0" encoding="UTF-8"?>\n',
         '<model unit="millimeter" xml:lang="en-US" '
-        'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02">\n',
+        'xmlns="http://schemas.microsoft.com/3dmanufacturing/core/2015/02" '
+        'xmlns:m="http://schemas.microsoft.com/3dmanufacturing/material/2015/02">\n',
         ' <metadata name="Application">Blender Bambu Color Export</metadata>\n',
         " <resources>\n",
-        '  <basematerials id="1">\n',
+        # Bambu matches the literal tag names "m:colorgroup" / "m:color".
+        '  <m:colorgroup id="1">\n',
     ]
     for entry in palette:
-        out.append('   <base name=%s displaycolor="%sFF"/>\n' % (quoteattr(entry.name), entry.hex))
-    out.append("  </basematerials>\n")
+        out.append('   <m:color color="%s"/>\n' % entry.hex)
+    out.append("  </m:colorgroup>\n")
     out.append('  <object id="2" type="model" name=%s pid="1" pindex="0">\n' % quoteattr(object_name))
     out.append("   <mesh>\n    <vertices>\n")
     for x, y, z in vertices:

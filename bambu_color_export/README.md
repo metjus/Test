@@ -22,9 +22,10 @@ already painted**, one filament per colour.
      same colour share a slot automatically. Type a number to choose it yourself, 0 to go back to automatic;
    - objects without a material show a **+** button that gives them one.
 3. Click **Export 3MF** (or *File → Export → Bambu Studio 3MF*).
-4. In Bambu Studio open the 3MF, add as many filaments as the export reported, and set
-   their colours to the hex values shown in Blender. The model appears painted, with each
-   part assigned to its filament.
+4. Open the 3MF in Bambu Studio. It says *"The 3mf is not from Bambu Lab, load geometry
+   data and color data only"*. That is expected for any file not saved by Bambu Studio;
+   click OK. Bambu then opens its colour dialog: check the colour → filament matching
+   (it can add missing filaments) and confirm. The model appears painted.
 
 ### Options
 - **Scale**: 1 Blender unit = 1 mm by default. Enable *Use Scene Units* if you model in
@@ -33,6 +34,8 @@ already painted**, one filament per colour.
 - **Export OBJ + MTL**: fallback. Bambu Studio shows its colour-mapping dialog for coloured OBJ files.
 
 ## How it works
-All selected objects are merged (modifiers applied) into one mesh. Each triangle
-gets Bambu's per-triangle `paint_color` filament code, plus a standard 3MF base
-material so other viewers also show the colours.
+All selected objects are merged (modifiers applied) into one mesh. Each triangle gets:
+- a colour from a standard 3MF colour group (`m:colorgroup`). Bambu Studio reads this and
+  shows its colour-to-filament dialog;
+- Bambu's per-triangle `paint_color` filament code (the panel's Filament number), used
+  if you cancel that dialog.

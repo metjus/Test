@@ -11,6 +11,7 @@ import writers  # noqa: E402
 from writers import PaletteEntry, paint_color_code  # noqa: E402
 
 NS = "{http://schemas.microsoft.com/3dmanufacturing/core/2015/02}"
+M = "{http://schemas.microsoft.com/3dmanufacturing/material/2015/02}"
 
 # Two triangles forming a quad, each a different colour.
 VERTS = [(0, 0, 0), (10, 0, 0), (10, 10, 0), (0, 10, 0)]
@@ -47,13 +48,22 @@ class ThreeMFTest(unittest.TestCase):
                 root = ET.fromstring(zf.read("3D/3dmodel.model"))
 
         self.assertEqual(root.get("unit"), "millimeter")
-        bases = root.findall(f"{NS}resources/{NS}basematerials/{NS}base")
-        self.assertEqual([b.get("displaycolor") for b in bases],
-                         ["#FFFFFFFF", "#000000FF", "#FFBFCCFF"])
+        group = root.find(f"{NS}resources/{M}colorgroup")
+        self.assertEqual(group.get("id"), "1")
+        self.assertEqual([c.get("color") for c in group.findall(f"{M}color")],
+                         ["#FFFFFF", "#000000", "#FFBFCC"])
+        obj = root.find(f"{NS}resources/{NS}object")
+        self.assertEqual((obj.get("pid"), obj.get("pindex")), ("1", "0"))
         tris = root.findall(f".//{NS}triangle")
         self.assertEqual([t.get("paint_color") for t in tris], ["4", "2C"])
         self.assertEqual([t.get("p1") for t in tris], ["0", "2"])
+        self.assertEqual({t.get("pid") for t in tris}, {"1"})
         self.assertEqual(len(root.findall(f".//{NS}vertex")), 4)
+
+    def test_literal_bambu_tag_names(self):
+        model = writers.build_3mf_model(VERTS, TRIS, [0, 1], PALETTE)
+        self.assertIn('<m:colorgroup id="1">', model)
+        self.assertIn('<m:color color="#000000"/>', model)
 
     def test_default_slot_has_no_paint(self):
         palette = [PaletteEntry("none", (0.8, 0.8, 0.8), 0)]
@@ -66,8 +76,10 @@ class ObjTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "cat.obj")
             mtl = writers.write_obj(path, VERTS, TRIS, [1, 0], PALETTE[:2], "cat")
-            obj_text = open(path).read()
-            mtl_text = open(mtl).read()
+            with open(path) as f:
+                obj_text = f.read()
+            with open(mtl) as f:
+                mtl_text = f.read()
         self.assertIn("mtllib cat.mtl", obj_text)
         self.assertIn("usemtl F1_Body\nf 1 3 4", obj_text)
         self.assertIn("usemtl F2_Eyes\nf 1 2 3", obj_text)
