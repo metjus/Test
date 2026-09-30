@@ -8,6 +8,7 @@ Symmetry mirrors each dab across the object's origin in local space.
 import itertools
 import math
 
+import blf
 import bpy
 import gpu
 from bpy.props import BoolProperty, EnumProperty, IntProperty, PointerProperty
@@ -25,6 +26,19 @@ NAV_EVENTS = {
     "NUMPAD_6", "NUMPAD_7", "NUMPAD_8", "NUMPAD_9", "NUMPAD_PERIOD",
     "NUMPAD_PLUS", "NUMPAD_MINUS", "NDOF_MOTION",
 }
+# (keys, action) pairs shown in the panel and the viewport overlay.
+CONTROLS = [
+    ("LMB drag", "Paint active colour"),
+    ("Shift + LMB", "Paint base colour (erase)"),
+    ("1 - 9", "Pick colour"),
+    ("[  ]", "Brush radius"),
+    ("F", "Brush / Fill"),
+    ("X  Y  Z", "Toggle symmetry"),
+    ("Ctrl+Z", "Undo stroke"),
+    ("MMB / Wheel", "Navigate view"),
+    ("H", "Show / hide controls"),
+    ("Esc / Enter / RMB", "Finish"),
+]
 NUMBER_KEYS = ["ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE"]
 
 # Default colours for newly added paint colours (linear RGB).
@@ -216,6 +230,10 @@ class BambuPaintSettings(bpy.types.PropertyGroup):
     sym_x: BoolProperty(name="X", description="Mirror painting across the object's X axis")
     sym_y: BoolProperty(name="Y", description="Mirror painting across the object's Y axis")
     sym_z: BoolProperty(name="Z", description="Mirror painting across the object's Z axis")
+    show_controls: BoolProperty(name="Controls", default=False,
+                                description="Show the painting controls in this panel")
+    show_overlay: BoolProperty(name="Show Controls in Viewport", default=True,
+                               description="Show the painting controls in the viewport while painting (H)")
 
 
 class BAMBU_OT_paint_add_color(bpy.types.Operator):
@@ -355,7 +373,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         sym = "".join(a for a, on in zip("XYZ", (s.sym_x, s.sym_y, s.sym_z)) if on) or "off"
         context.workspace.status_text_set(
             "Bambu Paint [%s, symmetry %s]  LMB paint · Shift+LMB base colour · 1-9 colour · "
-            "[ ] radius · F brush/fill · X/Y/Z symmetry · Ctrl+Z undo · Esc/Enter finish"
+            "[ ] radius · F brush/fill · X/Y/Z symmetry · Ctrl+Z undo · H controls · Esc/Enter finish"
             % (s.tool.title(), sym))
 
     def _finish(self, context):
@@ -414,6 +432,8 @@ class BAMBU_OT_paint(bpy.types.Operator):
             s.radius = max(2, int(s.radius / 1.2))
         elif event.type == "RIGHT_BRACKET":
             s.radius = min(500, int(s.radius * 1.2) + 1)
+        elif event.type == "H":
+            s.show_overlay = not s.show_overlay
         elif event.type == "F":
             s.tool = "FILL" if s.tool == "BRUSH" else "BRUSH"
         elif event.type in {"X", "Y", "Z"}:
@@ -427,7 +447,42 @@ class BAMBU_OT_paint(bpy.types.Operator):
         return {"RUNNING_MODAL"}
 
 
+def _draw_controls(op):
+    """Controls list and current state in the viewport's bottom-left corner."""
+    s = op.settings
+    scale = bpy.context.preferences.view.ui_scale
+    tools = next((r for r in op.area.regions if r.type == "TOOLS"), None)
+    x = (tools.width if tools else 0) + 20 * scale
+    line = 18 * scale
+    font = 0
+    obj = op.session.obj
+    mat = obj.active_material
+    sym = " ".join(a for a, on in zip("XYZ", (s.sym_x, s.sym_y, s.sym_z)) if on) or "off"
+    state = "%s · colour %d %s · symmetry %s" % (
+        s.tool.title(), obj.active_material_index + 1, mat.name if mat else "", sym)
+
+    blf.size(font, 13 * scale)
+    blf.enable(font, blf.SHADOW)
+    blf.shadow(font, 3, 0.0, 0.0, 0.0, 0.9)
+    blf.shadow_offset(font, 1, -1)
+    y = 20 * scale
+    rows = CONTROLS if s.show_overlay else [("H", "Show controls")]
+    for keys, action in reversed(rows):
+        blf.color(font, 1.0, 0.85, 0.4, 1.0)
+        blf.position(font, x, y, 0)
+        blf.draw(font, keys)
+        blf.color(font, 1.0, 1.0, 1.0, 0.9)
+        blf.position(font, x + 130 * scale, y, 0)
+        blf.draw(font, action)
+        y += line
+    blf.color(font, 0.6, 0.9, 1.0, 1.0)
+    blf.position(font, x, y + 4 * scale, 0)
+    blf.draw(font, "Bambu Paint: " + state)
+    blf.disable(font, blf.SHADOW)
+
+
 def _draw_brush(op):
+    _draw_controls(op)
     if op.mouse is None:
         return
     from . import material_linear_color
@@ -508,6 +563,18 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
             layout.label(text="Painting… Esc/Enter to finish", icon="BRUSH_DATA")
         else:
             layout.operator(BAMBU_OT_paint.bl_idname, text="Start Painting", icon="BRUSH_DATA")
+        row = layout.row()
+        row.prop(s, "show_controls", emboss=False,
+                 icon="DISCLOSURE_TRI_DOWN" if s.show_controls else "DISCLOSURE_TRI_RIGHT")
+        if s.show_controls:
+            box = layout.box().column(align=True)
+            for keys, action in CONTROLS:
+                split = box.split(factor=0.42)
+                split.label(text=keys)
+                split.label(text=action)
+            box.separator()
+            box.prop(s, "show_overlay")
+
         box = layout.box().column(align=True)
         box.label(text="Colour 1 is the base colour.")
         box.label(text="Paint works per face: add detail")

@@ -49,8 +49,11 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    | F | switch Brush / Fill |
    | X / Y / Z | toggle symmetry |
    | Ctrl+Z | undo last stroke |
+   | H | show / hide the controls overlay |
    | MMB / wheel | navigate the view as usual |
    | Esc / Enter / RMB | finish |
+   The controls are listed in the viewport while painting (H hides them) and in the
+   panel's collapsible **Controls** section.
 4. Export as usual. Painted areas become separate filaments.
 
 Notes: painting colours whole faces, so edges follow the mesh. Subdivide (or remesh) low-poly
