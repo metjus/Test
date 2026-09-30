@@ -1,0 +1,388 @@
+"""Export material colours from Blender so Bambu Studio can read them.
+
+Every triangle is tagged with the filament slot of its material's colour, so
+Bambu Studio opens the model already painted, one filament per colour.
+"""
+
+import os
+
+import bpy
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, StringProperty
+from bpy_extras.io_utils import ExportHelper
+
+from . import writers
+from .writers import MAX_FILAMENTS, PaletteEntry
+
+GEOMETRY_TYPES = {"MESH", "CURVE", "SURFACE", "META", "FONT"}
+NO_MATERIAL = "(no material)"
+DEFAULT_RGB = (0.8, 0.8, 0.8)
+
+
+# ---------------------------------------------------------------------------
+# Material colour resolution
+# ---------------------------------------------------------------------------
+
+def linear_to_srgb(c):
+    c = max(0.0, min(1.0, c))
+    return c * 12.92 if c <= 0.0031308 else 1.055 * c ** (1.0 / 2.4) - 0.055
+
+
+def _socket_color(socket, depth=0):
+    """Colour on a colour socket, following links through simple nodes."""
+    if depth > 16:
+        return None
+    if not socket.is_linked:
+        return tuple(socket.default_value[:3])
+    node = socket.links[0].from_node
+    if node.type == "RGB":
+        return tuple(node.outputs[0].default_value[:3])
+    if node.type == "REROUTE":
+        return _socket_color(node.inputs[0], depth + 1)
+    return None
+
+
+# Shader node type -> name of its colour input.
+_SHADER_COLOR_INPUT = {
+    "BSDF_PRINCIPLED": "Base Color",
+    "BSDF_DIFFUSE": "Color",
+    "EMISSION": "Color",
+    "BSDF_GLOSSY": "Color",
+    "SUBSURFACE_SCATTERING": "Color",
+    "BSDF_TOON": "Color",
+}
+
+
+def _shader_color(node, depth=0):
+    if node is None or depth > 16:
+        return None
+    if node.type == "REROUTE":
+        inp = node.inputs[0]
+        return _shader_color(inp.links[0].from_node, depth + 1) if inp.is_linked else None
+    if node.type in ("MIX_SHADER", "ADD_SHADER"):
+        for inp in node.inputs:
+            if inp.type == "SHADER" and inp.is_linked:
+                color = _shader_color(inp.links[0].from_node, depth + 1)
+                if color is not None:
+                    return color
+        return None
+    name = _SHADER_COLOR_INPUT.get(node.type)
+    if name and name in node.inputs:
+        return _socket_color(node.inputs[name])
+    return None
+
+
+def material_linear_color(mat):
+    """Linear RGB colour of a material; falls back to its viewport display colour."""
+    if mat is None:
+        return DEFAULT_RGB
+    if mat.use_nodes and mat.node_tree:
+        outputs = [n for n in mat.node_tree.nodes if n.type == "OUTPUT_MATERIAL"]
+        active = [n for n in outputs if n.is_active_output] or outputs
+        for out in active:
+            surface = out.inputs.get("Surface")
+            if surface and surface.is_linked:
+                color = _shader_color(surface.links[0].from_node)
+                if color is not None:
+                    return color
+    return tuple(mat.diffuse_color[:3])
+
+
+def material_srgb(mat):
+    return tuple(linear_to_srgb(c) for c in material_linear_color(mat))
+
+
+# ---------------------------------------------------------------------------
+# Palette: colour -> filament slot
+# ---------------------------------------------------------------------------
+
+def _close(a, b, tol):
+    return all(abs(x - y) <= tol for x, y in zip(a, b))
+
+
+def build_palette(materials, tolerance, merge_same_colors=True):
+    """Return (palette, {material_name: palette_index}) for the given materials.
+
+    Materials with ``bambu_filament`` > 0 keep that slot; the rest get the
+    next free slot, sharing one when their colours match within tolerance.
+    """
+    palette = []
+    index_of = {}
+
+    def add(key, rgb, filament, mat_name):
+        palette.append(PaletteEntry(name=mat_name, rgb=rgb, filament=filament, materials=[mat_name]))
+        index_of[key] = len(palette) - 1
+
+    # Explicit slots first, so automatic ones can avoid them.
+    auto = []
+    for mat in materials:
+        key = mat.name if mat else NO_MATERIAL
+        slot = getattr(mat, "bambu_filament", 0) if mat else 0
+        if slot > 0:
+            rgb = material_srgb(mat)
+            same = next((i for i, e in enumerate(palette) if e.filament == slot), None)
+            if same is not None:
+                palette[same].materials.append(key)
+                index_of[key] = same
+            else:
+                add(key, rgb, slot, key)
+        else:
+            auto.append(mat)
+
+    used = {e.filament for e in palette}
+    next_slot = 1
+    for mat in auto:
+        key = mat.name if mat else NO_MATERIAL
+        rgb = material_srgb(mat)
+        match = None
+        if merge_same_colors:
+            match = next((i for i, e in enumerate(palette) if _close(e.rgb, rgb, tolerance)), None)
+        if match is not None:
+            palette[match].materials.append(key)
+            index_of[key] = match
+            continue
+        while next_slot in used:
+            next_slot += 1
+        add(key, rgb, next_slot, key)
+        used.add(next_slot)
+    return palette, index_of
+
+
+# ---------------------------------------------------------------------------
+# Geometry collection
+# ---------------------------------------------------------------------------
+
+def export_objects(context, selected_only):
+    objs = context.selected_objects if selected_only else context.visible_objects
+    return [o for o in objs if o.type in GEOMETRY_TYPES or o.instance_type != "NONE"]
+
+
+def used_materials(objects):
+    """Materials referenced by the objects' slots (for the UI list)."""
+    seen = {}
+    for obj in objects:
+        if obj.type not in GEOMETRY_TYPES:
+            continue
+        slots = [s.material for s in obj.material_slots] or [None]
+        for mat in slots:
+            seen.setdefault(mat.name if mat else NO_MATERIAL, mat)
+    return list(seen.values())
+
+
+def collect_geometry(context, objects, scale):
+    """Evaluate objects (modifiers, instances) into one world-space triangle soup.
+
+    Returns (vertices, triangles, tri_materials) where tri_materials holds the
+    Material (or None) of each triangle.
+    """
+    depsgraph = context.evaluated_depsgraph_get()
+    wanted = {o.original for o in objects}
+    vertices, triangles, tri_materials = [], [], []
+
+    for inst in depsgraph.object_instances:
+        ob = inst.object
+        owner = inst.parent.original if inst.is_instance and inst.parent else ob.original
+        if owner not in wanted or ob.type not in GEOMETRY_TYPES:
+            continue
+        matrix = inst.matrix_world.copy()
+        mesh = ob.to_mesh()
+        if mesh is None:
+            continue
+        try:
+            mesh.calc_loop_triangles()
+            base = len(vertices)
+            for v in mesh.vertices:
+                co = matrix @ v.co
+                vertices.append((co.x * scale, co.y * scale, co.z * scale))
+            mats = [s.material for s in ob.material_slots] or list(mesh.materials)
+            flip = matrix.determinant() < 0
+            for tri in mesh.loop_triangles:
+                a, b, c = tri.vertices
+                if flip:
+                    b, c = c, b
+                triangles.append((a + base, b + base, c + base))
+                mi = tri.material_index
+                tri_materials.append(mats[mi] if mi < len(mats) else None)
+        finally:
+            ob.to_mesh_clear()
+    return vertices, triangles, tri_materials
+
+
+# ---------------------------------------------------------------------------
+# Operators
+# ---------------------------------------------------------------------------
+
+class _BambuExportBase(ExportHelper):
+    use_selection: BoolProperty(
+        name="Selected Only", default=True,
+        description="Export only selected objects (otherwise all visible objects)")
+    global_scale: FloatProperty(
+        name="Scale", default=1.0, min=1e-6, max=1e6, soft_min=0.001, soft_max=1000.0,
+        description="Scale factor; 1 Blender unit = 1 mm at scale 1.0")
+    use_scene_unit: BoolProperty(
+        name="Use Scene Units", default=False,
+        description="Convert using the scene's unit scale so 1 m in Blender becomes 1000 mm")
+    merge_same_colors: BoolProperty(
+        name="Merge Same Colours", default=True,
+        description="Materials with the same colour share one filament")
+    color_tolerance: FloatProperty(
+        name="Colour Tolerance", default=0.02, min=0.0, max=1.0,
+        description="Max per-channel difference for two colours to count as the same")
+
+    def _scale(self, context):
+        scale = self.global_scale
+        if self.use_scene_unit:
+            scale *= context.scene.unit_settings.scale_length * 1000.0
+        return scale
+
+    def execute(self, context):
+        objects = export_objects(context, self.use_selection)
+        if not objects:
+            self.report({"ERROR"}, "Nothing to export (select mesh objects or untick Selected Only)")
+            return {"CANCELLED"}
+
+        vertices, triangles, tri_mats = collect_geometry(context, objects, self._scale(context))
+        if not triangles:
+            self.report({"ERROR"}, "Selected objects have no faces")
+            return {"CANCELLED"}
+
+        materials = list({(m.name if m else NO_MATERIAL): m for m in tri_mats}.values())
+        palette, index_of = build_palette(materials, self.color_tolerance, self.merge_same_colors)
+        tri_color = [index_of[m.name if m else NO_MATERIAL] for m in tri_mats]
+
+        slots = {e.filament for e in palette}
+        if max(slots) > MAX_FILAMENTS:
+            self.report({"ERROR"}, "%d filaments needed; Bambu Studio supports up to %d. "
+                        "Assign shared filament slots in the Bambu sidebar panel."
+                        % (max(slots), MAX_FILAMENTS))
+            return {"CANCELLED"}
+
+        name = os.path.splitext(os.path.basename(self.filepath))[0]
+        self.write(self.filepath, vertices, triangles, tri_color, palette, name)
+
+        summary = ", ".join("F%d %s" % (e.filament, e.hex) for e in sorted(palette, key=lambda e: e.filament))
+        self.report({"INFO"}, "Exported %d triangles, %d filament(s): %s"
+                    % (len(triangles), len(slots), summary))
+        return {"FINISHED"}
+
+    def draw(self, context):
+        layout = self.layout
+        layout.use_property_split = True
+        layout.use_property_decorate = False
+        layout.prop(self, "use_selection")
+        layout.prop(self, "global_scale")
+        layout.prop(self, "use_scene_unit")
+        layout.prop(self, "merge_same_colors")
+        row = layout.row()
+        row.enabled = self.merge_same_colors
+        row.prop(self, "color_tolerance")
+
+
+class EXPORT_OT_bambu_3mf(bpy.types.Operator, _BambuExportBase):
+    """Export as a colour-painted 3MF for Bambu Studio"""
+    bl_idname = "export_mesh.bambu_3mf"
+    bl_label = "Export Bambu 3MF"
+    bl_options = {"PRESET"}
+
+    filename_ext = ".3mf"
+    filter_glob: StringProperty(default="*.3mf", options={"HIDDEN"})
+
+    def write(self, *args):
+        writers.write_3mf(*args)
+
+
+class EXPORT_OT_bambu_obj(bpy.types.Operator, _BambuExportBase):
+    """Export as OBJ + MTL with material colours (Bambu Studio colour-mapping import)"""
+    bl_idname = "export_mesh.bambu_obj"
+    bl_label = "Export Bambu OBJ"
+    bl_options = {"PRESET"}
+
+    filename_ext = ".obj"
+    filter_glob: StringProperty(default="*.obj", options={"HIDDEN"})
+
+    def write(self, *args):
+        writers.write_obj(*args)
+
+
+class BAMBU_OT_sync_viewport_colors(bpy.types.Operator):
+    """Copy each material's resolved colour to its viewport display colour (Solid view)"""
+    bl_idname = "bambu.sync_viewport_colors"
+    bl_label = "Sync Viewport Colours"
+    bl_options = {"REGISTER", "UNDO"}
+
+    def execute(self, context):
+        mats = [m for m in used_materials(export_objects(context, False)) if m]
+        for mat in mats:
+            r, g, b = material_linear_color(mat)
+            mat.diffuse_color = (r, g, b, 1.0)
+        self.report({"INFO"}, "Updated %d material(s)" % len(mats))
+        return {"FINISHED"}
+
+
+# ---------------------------------------------------------------------------
+# UI
+# ---------------------------------------------------------------------------
+
+class VIEW3D_PT_bambu_colors(bpy.types.Panel):
+    bl_label = "Bambu Colour Export"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = "UI"
+    bl_category = "Bambu"
+
+    def draw(self, context):
+        layout = self.layout
+        objects = export_objects(context, bool(context.selected_objects))
+        layout.label(text="%s: %d object(s)" % ("Selected" if context.selected_objects else "Visible",
+                                                 len(objects)))
+        materials = used_materials(objects)
+        if not materials:
+            layout.label(text="No materials found", icon="INFO")
+        else:
+            palette, index_of = build_palette(materials, 0.02)
+            col = layout.column(align=True)
+            for mat in materials:
+                key = mat.name if mat else NO_MATERIAL
+                entry = palette[index_of[key]]
+                row = col.row(align=True)
+                row.label(text="F%d  %s" % (entry.filament, entry.hex), icon="MATERIAL")
+                if mat:
+                    row.prop(mat, "bambu_filament", text=mat.name)
+                else:
+                    row.label(text=NO_MATERIAL)
+            layout.label(text="Slot 0 = automatic", icon="INFO")
+            if max(e.filament for e in palette) > MAX_FILAMENTS:
+                layout.label(text="More than %d filaments!" % MAX_FILAMENTS, icon="ERROR")
+
+        layout.separator()
+        layout.operator(BAMBU_OT_sync_viewport_colors.bl_idname, icon="SHADING_SOLID")
+        col = layout.column(align=True)
+        col.operator(EXPORT_OT_bambu_3mf.bl_idname, text="Export 3MF", icon="EXPORT")
+        col.operator(EXPORT_OT_bambu_obj.bl_idname, text="Export OBJ + MTL", icon="EXPORT")
+
+
+def menu_func_export(self, context):
+    self.layout.operator(EXPORT_OT_bambu_3mf.bl_idname, text="Bambu Studio 3MF, coloured (.3mf)")
+    self.layout.operator(EXPORT_OT_bambu_obj.bl_idname, text="Bambu Studio OBJ, coloured (.obj)")
+
+
+classes = (
+    EXPORT_OT_bambu_3mf,
+    EXPORT_OT_bambu_obj,
+    BAMBU_OT_sync_viewport_colors,
+    VIEW3D_PT_bambu_colors,
+)
+
+
+def register():
+    bpy.types.Material.bambu_filament = IntProperty(
+        name="Filament", default=0, min=0, max=MAX_FILAMENTS,
+        description="Bambu Studio filament slot for this material (0 = assign automatically)")
+    for cls in classes:
+        bpy.utils.register_class(cls)
+    bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
+
+
+def unregister():
+    bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)
+    del bpy.types.Material.bambu_filament

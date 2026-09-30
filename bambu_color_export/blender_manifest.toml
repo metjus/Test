@@ -1,0 +1,17 @@
+schema_version = "1.0.0"
+
+id = "bambu_color_export"
+version = "1.0.0"
+name = "Bambu Color Export"
+tagline = "Export material colours as painted 3MF for Bambu Studio"
+maintainer = "Matus Sturdik"
+type = "add-on"
+
+tags = ["Import-Export", "Material"]
+
+blender_version_min = "4.2.0"
+
+license = ["SPDX:GPL-3.0-or-later"]
+
+[permissions]
+files = "Write exported 3MF/OBJ files to disk"
