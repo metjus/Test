@@ -11,7 +11,7 @@ import math
 import blf
 import bpy
 import gpu
-from bpy.props import BoolProperty, EnumProperty, IntProperty, PointerProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
 from bpy_extras import view3d_utils
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
@@ -33,6 +33,7 @@ CONTROLS = [
     ("1 - 9", "Pick colour"),
     ("[  ]", "Brush radius"),
     ("F", "Brush / Fill"),
+    ("S", "Fill: stop at sharp edges"),
     ("X  Y  Z", "Toggle symmetry"),
     ("Ctrl+Z", "Undo stroke"),
     ("MMB / Wheel", "Navigate view"),
@@ -48,6 +49,14 @@ NEW_COLORS = [
 ]
 
 _running = None  # the active BAMBU_OT_paint operator, if any
+
+
+def tool_label(s):
+    if s.tool != "FILL":
+        return "Brush"
+    if s.fill_sharp:
+        return "Fill (sharp %d°)" % round(math.degrees(s.sharp_angle))
+    return "Fill"
 
 
 def symmetry_signs(sym_x, sym_y, sym_z):
@@ -75,10 +84,12 @@ class PaintSession:
         for p in polys:
             for key in p.edge_keys:
                 edge_faces.setdefault(key, []).append(p.index)
+        # neighbors[face] = [(other_face, edge_key), ...]
         self.neighbors = [[] for _ in polys]
-        for faces in edge_faces.values():
+        for key, faces in edge_faces.items():
             for a in faces:
-                self.neighbors[a].extend(b for b in faces if b != a)
+                self.neighbors[a].extend((b, key) for b in faces if b != a)
+        self.marked_sharp = {e.key for e in mesh.edges if getattr(e, "use_edge_sharp", False)}
 
         self.undo_stack = []
         self.stroke = None
@@ -146,23 +157,37 @@ class PaintSession:
                     faces.add(idx)
         self._apply(faces, mat_index)
 
-    def fill(self, point, normal, face, mat_index, signs):
-        """Paint the connected area that has the same colour as the clicked face."""
+    def fill(self, point, normal, face, mat_index, signs, same_colour=True, max_angle=None):
+        """Paint the connected area around the clicked face.
+
+        same_colour: stop where the colour changes.
+        max_angle:   stop at edges sharper than this (radians) and at edges
+                     marked Sharp; None = ignore edge angles.
+        """
         faces = set()
         for _p, _n, f in self._mirrored(point, normal, face, signs):
-            faces |= self._region(f)
+            faces |= self._region(f, same_colour, max_angle)
         self._apply(faces, mat_index)
 
-    def _region(self, seed):
+    def _region(self, seed, same_colour=True, max_angle=None):
         polys = self.obj.data.polygons
         target = polys[seed].material_index
+        min_dot = math.cos(max_angle) if max_angle is not None else None
+        normals = self.normals
         seen = {seed}
         stack = [seed]
         while stack:
-            for nb in self.neighbors[stack.pop()]:
-                if nb not in seen and polys[nb].material_index == target:
-                    seen.add(nb)
-                    stack.append(nb)
+            face = stack.pop()
+            for nb, edge in self.neighbors[face]:
+                if nb in seen:
+                    continue
+                if same_colour and polys[nb].material_index != target:
+                    continue
+                if min_dot is not None and (normals[face].dot(normals[nb]) < min_dot
+                                            or edge in self.marked_sharp):
+                    continue
+                seen.add(nb)
+                stack.append(nb)
         return seen
 
 
@@ -230,6 +255,16 @@ class BambuPaintSettings(bpy.types.PropertyGroup):
     sym_x: BoolProperty(name="X", description="Mirror painting across the object's X axis")
     sym_y: BoolProperty(name="Y", description="Mirror painting across the object's Y axis")
     sym_z: BoolProperty(name="Z", description="Mirror painting across the object's Z axis")
+    fill_same_colour: BoolProperty(
+        name="Stop at Colour Change", default=True,
+        description="Fill only the area that has the same colour as the clicked face")
+    fill_sharp: BoolProperty(
+        name="Stop at Sharp Edges", default=False,
+        description="Fill only up to sharp edges (creases) and edges marked Sharp (S while painting)")
+    sharp_angle: FloatProperty(
+        name="Sharp Angle", subtype="ANGLE", default=math.radians(30.0),
+        min=math.radians(1.0), max=math.radians(180.0),
+        description="Edges bending more than this count as sharp")
     show_controls: BoolProperty(name="Controls", default=False,
                                 description="Show the painting controls in this panel")
     show_overlay: BoolProperty(name="Show Controls in Viewport", default=True,
@@ -351,7 +386,8 @@ class BAMBU_OT_paint(bpy.types.Operator):
         mat_index = 0 if erase else self.session.obj.active_material_index
         signs = symmetry_signs(s.sym_x, s.sym_y, s.sym_z)
         if s.tool == "FILL":
-            self.session.fill(point, normal, face, mat_index, signs)
+            self.session.fill(point, normal, face, mat_index, signs, s.fill_same_colour,
+                              s.sharp_angle if s.fill_sharp else None)
         else:
             self.session.brush(point, normal, face, self._local_radius(coord, point), mat_index, signs)
 
@@ -373,8 +409,8 @@ class BAMBU_OT_paint(bpy.types.Operator):
         sym = "".join(a for a, on in zip("XYZ", (s.sym_x, s.sym_y, s.sym_z)) if on) or "off"
         context.workspace.status_text_set(
             "Bambu Paint [%s, symmetry %s]  LMB paint · Shift+LMB base colour · 1-9 colour · "
-            "[ ] radius · F brush/fill · X/Y/Z symmetry · Ctrl+Z undo · H controls · Esc/Enter finish"
-            % (s.tool.title(), sym))
+            "[ ] radius · F brush/fill · S sharp edges · X/Y/Z symmetry · Ctrl+Z undo · H controls · Esc/Enter finish"
+            % (tool_label(s), sym))
 
     def _finish(self, context):
         global _running
@@ -434,6 +470,8 @@ class BAMBU_OT_paint(bpy.types.Operator):
             s.radius = min(500, int(s.radius * 1.2) + 1)
         elif event.type == "H":
             s.show_overlay = not s.show_overlay
+        elif event.type == "S":
+            s.fill_sharp = not s.fill_sharp
         elif event.type == "F":
             s.tool = "FILL" if s.tool == "BRUSH" else "BRUSH"
         elif event.type in {"X", "Y", "Z"}:
@@ -459,7 +497,7 @@ def _draw_controls(op):
     mat = obj.active_material
     sym = " ".join(a for a, on in zip("XYZ", (s.sym_x, s.sym_y, s.sym_z)) if on) or "off"
     state = "%s · colour %d %s · symmetry %s" % (
-        s.tool.title(), obj.active_material_index + 1, mat.name if mat else "", sym)
+        tool_label(s), obj.active_material_index + 1, mat.name if mat else "", sym)
 
     blf.size(font, 13 * scale)
     blf.enable(font, blf.SHADOW)
@@ -553,6 +591,13 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
         layout.row().prop(s, "tool", expand=True)
         if s.tool == "BRUSH":
             layout.prop(s, "radius")
+        else:
+            col = layout.column(align=True)
+            col.prop(s, "fill_same_colour")
+            col.prop(s, "fill_sharp")
+            sub = col.row(align=True)
+            sub.enabled = s.fill_sharp
+            sub.prop(s, "sharp_angle")
         row = layout.row(align=True)
         row.label(text="Symmetry")
         row.prop(s, "sym_x", toggle=True)

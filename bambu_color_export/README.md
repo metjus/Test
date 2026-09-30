@@ -47,6 +47,7 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    | 1 – 9 | pick colour |
    | `[` / `]` | brush radius |
    | F | switch Brush / Fill |
+   | S | Fill: stop at sharp edges on/off |
    | X / Y / Z | toggle symmetry |
    | Ctrl+Z | undo last stroke |
    | H | show / hide the controls overlay |
@@ -54,6 +55,9 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    | Esc / Enter / RMB | finish |
    The controls are listed in the viewport while painting (H hides them) and in the
    panel's collapsible **Controls** section.
+   **Fill options**: *Stop at Colour Change* fills only the clicked colour's area;
+   *Stop at Sharp Edges* stops at creases bending more than *Sharp Angle* (default 30°)
+   and at edges marked Sharp. Click a raised detail with it on to colour just that detail.
 4. Export as usual. Painted areas become separate filaments.
 
 Notes: painting colours whole faces, so edges follow the mesh. Subdivide (or remesh) low-poly
