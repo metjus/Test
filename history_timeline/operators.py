@@ -214,6 +214,55 @@ class HT_OT_delete_step(_StepOp, bpy.types.Operator):
         return {'FINISHED'}
 
 
+class HT_OT_truncate(bpy.types.Operator):
+    """Go back to this step and permanently delete every step after it"""
+    bl_idname = "ht.truncate"
+    bl_label = "Go Back and Delete Later Steps"
+    bl_options = {'INTERNAL'}
+
+    step_id: IntProperty(description="Step to keep as the last one (0 = the timeline marker)")
+
+    def _target(self):
+        store = core.get_store()
+        return store.get(self.step_id or store.current)
+
+    def invoke(self, context, event):
+        step = self._target()
+        if step is None:
+            self.report({'WARNING'}, "No history step to go back to")
+            return {'CANCELLED'}
+        later = core.steps_after(step["id"])
+        if not later:
+            self.report({'INFO'}, "#%d %s is already the last step" % (step["id"], step["label"]))
+            return {'CANCELLED'}
+        self.step_id = step["id"]
+        pinned = sum(1 for s in later if s.get("pinned"))
+        extra = ""
+        if pinned:
+            extra = ", including %d checkpoint%s / pinned step%s" % (
+                pinned, "s" if pinned > 1 else "", "s" if pinned > 1 else "")
+        message = ("Go back to #%d %s and permanently delete %d later step%s%s.\n"
+                   "This can't be undone." % (step["id"], step["label"], len(later),
+                                              "s" if len(later) > 1 else "", extra))
+        return context.window_manager.invoke_confirm(
+            self, event, title="Delete Later Steps", message=message,
+            confirm_text="Delete %d Step%s" % (len(later), "s" if len(later) > 1 else ""),
+            icon='WARNING')
+
+    def execute(self, context):
+        step = self._target()
+        if step is None:
+            return {'CANCELLED'}
+        try:
+            count = core.truncate_after(step["id"])
+        except core.RestoreError as ex:
+            self.report({'ERROR'}, str(ex))
+            return {'CANCELLED'}
+        self.report({'INFO'}, "Back at #%d %s, deleted %d later step%s" % (
+            step["id"], step["label"], count, "s" if count != 1 else ""))
+        return {'FINISHED'}
+
+
 class HT_OT_pin_step(_StepOp, bpy.types.Operator):
     """Pin this step so it is never pruned by the step limit"""
     bl_idname = "ht.pin_step"
@@ -343,6 +392,7 @@ classes = (
     HT_OT_step,
     HT_OT_capture,
     HT_OT_delete_step,
+    HT_OT_truncate,
     HT_OT_pin_step,
     HT_OT_rename_step,
     HT_OT_clear,

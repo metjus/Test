@@ -210,6 +210,13 @@ class HT_PT_history(bpy.types.Panel):
             row.operator("ht.pin_step", text="",
                          icon='PINNED' if step.get("pinned") else 'UNPINNED').step_id = step["id"]
             row.operator("ht.delete_step", text="", icon='X').step_id = step["id"]
+            later = core.steps_after(step["id"])
+            if later:
+                row = col.row(align=True)
+                row.alert = True
+                row.operator("ht.truncate", icon='TRASH',
+                             text="Go Back Here, Delete %d Later Step%s" % (
+                                 len(later), "s" if len(later) > 1 else "")).step_id = step["id"]
 
         col = layout.column(align=True)
         col.scale_y = 0.8
@@ -225,6 +232,8 @@ class TOPBAR_MT_ht_history(bpy.types.Menu):
         layout = self.layout
         layout.operator("ht.step", text="Roll Back", icon='PLAY_REVERSE').direction = 'PREV'
         layout.operator("ht.step", text="Roll Forward", icon='PLAY').direction = 'NEXT'
+        layout.separator()
+        layout.operator("ht.truncate", text="Delete Later Steps", icon='TRASH').step_id = 0
         layout.separator()
         layout.operator("ht.capture", icon='BOOKMARKS')
         layout.operator("ht.open_folder", icon='FILE_FOLDER')

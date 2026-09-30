@@ -14,6 +14,7 @@ Blender forgets your undo history the moment you close a file. History Timeline 
 
 - Every edit (move, extrude, bevel, modifier, material change and so on) becomes a step on the timeline automatically
 - Click a step to restore it. Later steps aren't deleted: they turn grey and stay one click away
+- Changed your mind for good? Go back to a step and delete everything after it (with a confirmation)
 - Closed without saving, or Blender crashed? When you reopen the file, your recent steps are still on the timeline
 - Hover a step to see what it was, which object it touched and when
 
@@ -64,7 +65,7 @@ Steps are not full copies of your file. History Timeline stores only the parts o
 
 ## Summary / "You'll get" line
 
-You'll get: history_timeline-1.5.0.zip, a Blender extension for Blender 4.2 and newer.
+You'll get: history_timeline-1.6.0.zip, a Blender extension for Blender 4.2 and newer.
 
 ## Additional details (key / value pairs)
 
@@ -72,7 +73,7 @@ You'll get: history_timeline-1.5.0.zip, a Blender extension for Blender 4.2 and 
 |---|---|
 | Blender version | 4.2 or newer |
 | Format | Blender extension (.zip) |
-| Version | 1.5.0 |
+| Version | 1.6.0 |
 
 ## Images (upload order)
 

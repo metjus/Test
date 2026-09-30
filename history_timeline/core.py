@@ -210,6 +210,45 @@ def _scan(store):
     _submit(store.chunks.scan, on_done=done)
 
 
+def steps_after(step_id):
+    """Steps that come after ``step_id`` on the timeline (branches included)."""
+    store = get_store()
+    idx = store.index_of(step_id)
+    return store.steps[idx + 1:] if idx >= 0 else []
+
+
+def truncate_after(step_id):
+    """Go back to ``step_id`` and permanently delete every later step.
+
+    Returns the number of deleted steps.
+    """
+    store = get_store()
+    if store.get(step_id) is None:
+        raise RestoreError("Step %d no longer exists" % step_id)
+    if _State.any_change:
+        flush_pending()  # unrecorded work becomes a (later) step, deleted below
+    worker.wait()
+    later = steps_after(step_id)
+    for step in list(later):
+        store._remove(step)
+    if store.get(store.data.get("saved_step", 0)) is None:
+        store.data["saved_step"] = 0
+    release_removed(store)
+    # Blender's undo steps may point at deleted steps; the mirror starts over.
+    _State.undo_log.clear()
+    _State.redo_log.clear()
+    for step in store.steps:
+        step.pop("undone", None)
+    if store.current != step_id or bpy.data.is_dirty:
+        store.current = step_id
+        store.save()
+        restore(step_id)
+    else:
+        store.save()
+    tag_redraw()
+    return len(later)
+
+
 def delete_step(step_id):
     worker.wait()
     store = get_store()

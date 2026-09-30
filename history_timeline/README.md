@@ -39,6 +39,11 @@ and file opened.
 
 ### Rolling back with the timeline marker
 
+* **Go back and delete later steps:** select a step in the sidebar and use the red
+  *Go Back Here, Delete N Later Steps* button, or use *Edit > History Timeline > Delete
+  Later Steps* for the step the marker is on. A confirmation dialog shows how many steps
+  (and checkpoints) will be deleted. This can't be undone.
+
 * Restoring an older step **doesn't delete anything**. The marker moves back
   and later steps turn grey ("rolled back"), and you can click one to roll forward.
 * If you keep working after a rollback, the new steps are appended after a
