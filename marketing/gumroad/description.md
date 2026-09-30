@@ -46,7 +46,6 @@ Steps are not full copies of your file. History Timeline stores only the parts o
 ### Requirements
 
 - Blender 4.2 or newer (installs as a Blender extension)
-- Windows, macOS and Linux
 - No external dependencies
 
 ### Installation
@@ -72,7 +71,6 @@ You'll get: history_timeline-1.5.0.zip, a Blender extension for Blender 4.2 and 
 | Key | Value |
 |---|---|
 | Blender version | 4.2 or newer |
-| Platforms | Windows, macOS, Linux |
 | Format | Blender extension (.zip) |
 | Version | 1.5.0 |
 
