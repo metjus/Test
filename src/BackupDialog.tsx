@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 import { BackupError, exportBackup, importBackup, markBackup, MIN_PASSWORD } from './backup'
 
+// Testovacia verzia v claude.ai Artifact: prehliadač tam blokuje ukladanie súborov zo stránky
+const NO_DOWNLOAD = import.meta.env.VITE_ARTIFACT === '1'
+
 const stamp = () => new Date().toISOString().slice(0, 10)
 
 async function saveFile(blob: Blob, name: string) {
@@ -76,6 +79,12 @@ export function BackupDialog({ onClose, onDone }: { onClose: () => void; onDone:
           obnoviť, tak si ho bezpečne uschovaj.
         </p>
 
+        {NO_DOWNLOAD && (
+          <p className="error">
+            Testovacia verzia: ukladanie súborov je tu zablokované, takže záloha sa vytvoriť nedá. Obnova zo súboru funguje. Export
+            bude fungovať v nasadenej appke.
+          </p>
+        )}
         <div className="form">
           <label>
             Heslo zálohy
@@ -90,7 +99,7 @@ export function BackupDialog({ onClose, onDone }: { onClose: () => void; onDone:
 
         <div className="actions">
           <button disabled={!!busy || !pw} onClick={() => pick.current?.click()}>⬆ Obnoviť zo zálohy</button>
-          <button className="primary" disabled={!!busy || pw.length < MIN_PASSWORD} onClick={doExport}>⬇ Vytvoriť zálohu</button>
+          <button className="primary" disabled={NO_DOWNLOAD || !!busy || pw.length < MIN_PASSWORD} onClick={doExport}>⬇ Vytvoriť zálohu</button>
           <input ref={pick} hidden type="file" onChange={(e) => { doImport(e.target.files?.[0]); e.target.value = '' }} />
         </div>
 

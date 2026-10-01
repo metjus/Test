@@ -31,7 +31,10 @@ export function AddDialog({ onClose }: { onClose: () => void }) {
         noticeDays: s.noticeDays ?? null,
       })
     } catch (e) {
-      setError(`Spracovanie zlyhalo: ${e instanceof Error ? e.message : e}. Dokument môžeš pridať aj bez rozpoznaného textu.`)
+      // OCR zlyhal: dokument sa dá uložiť aj bez rozpoznaného textu a údaje vyplníš ručne
+      setFile({ name: f.name, mime: f.type || 'application/octet-stream', blob: f, text: '' })
+      setMeta({ ...emptyDoc(), title: f.name.replace(/\.\w+$/, '') })
+      setError(`Text sa nepodarilo rozpoznať (${e instanceof Error ? e.message : e}). Dokument môžeš uložiť a údaje vyplniť ručne.`)
     } finally {
       setBusy(null)
     }
@@ -64,6 +67,7 @@ export function AddDialog({ onClose }: { onClose: () => void }) {
 
         {file && (
           <>
+            {error && <p className="error">{error}</p>}
             <p className="muted">Údaje sú len návrh z rozpoznaného textu. Skontroluj ich pred uložením.</p>
             <DocForm value={meta} onChange={setMeta} />
             <details>
@@ -71,7 +75,7 @@ export function AddDialog({ onClose }: { onClose: () => void }) {
               <pre className="ocr">{file.text.trim() || '(nič sa nerozpoznalo)'}</pre>
             </details>
             <div className="actions">
-              <button className="ghost" onClick={() => setFile(null)}>Zrušiť</button>
+              <button className="ghost" onClick={() => { setFile(null); setError(null) }}>Zrušiť</button>
               <button className="primary" onClick={save}>Uložiť</button>
             </div>
           </>

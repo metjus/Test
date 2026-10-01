@@ -14,10 +14,36 @@ export interface Processed {
 export type Progress = (msg: string) => void
 
 let worker: Promise<Worker> | null = null
-const asset = (p: string) => new URL(`ocr/${p}`, document.baseURI).href
+// Cesta od umiestnenia skriptu (nie od adresy stránky), aby fungovala aj pod podadresárom
+const ROOT = new URL('..', /* @vite-ignore */ import.meta.url).href
+const asset = (p: string) => `${ROOT}ocr/${p}`
+const IN_ARTIFACT = import.meta.env.VITE_ARTIFACT === '1'
+
+/**
+ * Testovacia verzia na claude.ai nesmie servírovať .gz súbory, preto sú jazykové dáta publikované
+ * ako base64 text. Malý obalový worker presmeruje ich sťahovanie, zvyšok je rovnaký ako v normálnej appke.
+ */
+function artifactWorkerUrl() {
+  const src = `
+    const origFetch = self.fetch.bind(self);
+    self.fetch = async (input, init) => {
+      const m = String(input).match(/\\/lang\\/(\\w+)\\.traineddata\\.gz$/);
+      if (!m) return origFetch(input, init);
+      const txt = await (await origFetch(${JSON.stringify(asset('lang/'))} + m[1] + '.b64.txt')).text();
+      const bin = atob(txt.trim());
+      const data = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+      return new Response(data);
+    };
+    importScripts(${JSON.stringify(asset('worker.min.js'))});
+  `
+  return URL.createObjectURL(new Blob([src], { type: 'text/javascript' }))
+}
+
 const getWorker = () =>
   (worker ??= createWorker(['slk', 'eng'], 1, {
-    workerPath: asset('worker.min.js'),
+    workerPath: IN_ARTIFACT ? artifactWorkerUrl() : asset('worker.min.js'),
+    workerBlobURL: !IN_ARTIFACT,
     corePath: asset('core'),
     langPath: asset('lang'),
     gzip: true,

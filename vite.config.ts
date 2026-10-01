@@ -2,11 +2,14 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+const artifact = process.env.VITE_ARTIFACT === '1' // testovacia verzia bez service workera
+
 export default defineConfig({
   base: './',
   plugins: [
     react(),
     VitePWA({
+      disable: artifact,
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
