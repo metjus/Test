@@ -1,0 +1,58 @@
+---
+import Base from '../layouts/Base.astro';
+import Hero from '../components/home/Hero.astro';
+import Services from '../components/home/Services.astro';
+import When from '../components/home/When.astro';
+import Steps from '../components/home/Steps.astro';
+import Solution from '../components/home/Solution.astro';
+import Trust from '../components/home/Trust.astro';
+import Faq from '../components/home/Faq.astro';
+import Final from '../components/home/Final.astro';
+import { faq } from '../data/faq.js';
+import '../styles/home.css';
+
+const title = 'Revízne správy a projektová dokumentácia elektrických zariadení | GridFlow';
+const description =
+  'Revízne správy a projektová dokumentácia elektrických zariadení. OPaOS E1A, E1B pre domy, byty, rozvádzače, bleskozvody, fotovoltiku, NN prípojky a EV nabíjačky. Celé Slovensko.';
+
+const business = {
+  '@context': 'https://schema.org',
+  '@type': 'ProfessionalService',
+  name: 'GridFlow s.r.o.',
+  url: new URL('/', Astro.site).href,
+  telephone: '+421910635595',
+  description,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Buková ulica 1309/23',
+    postalCode: '951 12',
+    addressLocality: 'Ivanka pri Nitre',
+    addressCountry: 'SK',
+  },
+  areaServed: { '@type': 'Country', name: 'Slovensko' },
+  knowsAbout: ['Revízne správy', 'OPaOS E1A, E1B', 'Projektová dokumentácia elektro'],
+};
+
+// Do FAQPage idú len odpovede, ktoré sú aj na stránke a nie sú zástupným údajom.
+const faqPage = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq
+    .filter((item) => item.a)
+    .map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+};
+---
+<Base title={title} description={description} path="/" variant="home" mbar ld={[business, faqPage]}>
+<Hero />
+<Services />
+<When />
+<Steps />
+<Solution />
+<Trust />
+<Faq />
+<Final />
+</Base>

@@ -1,0 +1,10 @@
+{
+  // Cloudflare (Workers / Pages): statický web z priečinka dist/ (npm run build).
+  // "name" musí zodpovedať názvu projektu v Cloudflare.
+  "name": "webtest",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "404-page"
+  }
+}

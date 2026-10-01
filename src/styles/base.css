@@ -1,0 +1,57 @@
+/* Spoločné doplnky: dostupnosť, záložné animácie, pomocné triedy. Farby a písma: pozri docs/02-DIZAJN.md */
+
+.skip{position:absolute;left:16px;top:-80px;z-index:400;padding:12px 20px;border-radius:999px;background:#fff;color:#022253;font:600 14px/1 "Sora","Segoe UI",system-ui,sans-serif;transition:top .2s}
+.skip:focus{top:12px}
+
+.gf :focus-visible{outline:3px solid #02ACC1;outline-offset:3px}
+.svc :focus-visible,.steps3 :focus-visible,.trust :focus-visible,.faq :focus-visible,.solution :focus-visible,.kbody :focus-visible,.after :focus-visible,.pbody :focus-visible,.kcard :focus-visible{outline-color:#022253}
+.btn-cyan:focus-visible,.kbtn:focus-visible,.btn-send:focus-visible{outline-color:#fff}
+.kcard .btn-send:focus-visible{outline-color:#022253}
+
+/* Pole proti spamu (honeypot): mimo obrazovky, pre ľudí aj čítačky neviditeľné */
+.hp{position:absolute!important;left:-9999px;width:1px;height:1px;overflow:hidden}
+
+/* Chybové hlášky formulára */
+.err{margin:8px 0 0;font-size:14px;line-height:1.45;color:#b00020}
+.inp[aria-invalid="true"]{border-color:#b00020}
+.form-error{margin:18px 0 0;padding:14px 16px;border-radius:14px;background:#fdecee;color:#8a0019;font-size:15px;line-height:1.5}
+.form-error a{border-bottom:1px solid currentColor}
+.fldwrap{min-width:0}
+.gf .after-note{margin-top:20px}
+
+/* Záložné odhaľovanie (trieda `io` ju nastaví public/js/env.js len bez podpory scroll-driven animácií) */
+.io .rv{opacity:0;transform:translate3d(0,34px,0);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+.io .rv.in{opacity:1;transform:none}
+.io .sw .wi{transform:translate3d(0,112%,0) rotate(2deg);transition:transform 1.25s var(--ease);transition-delay:calc(var(--i,0)*80ms)}
+.io .sw.in .wi{transform:none}
+[hidden]{display:none!important}
+.io .nav{transition:background-color .3s}
+.io .nav.scrolled{background-color:rgba(1,22,56,.92)}
+
+/* Ikony a tlačidlá: spoločné pre všetky stránky (podstránky majú staršiu kópiu štýlov) */
+.ico{display:block;width:var(--s,56px);height:var(--s,56px);flex:none;overflow:visible}
+.btn{gap:10px}
+.btn .ico{--s:20px;--sw:3.6;--ic1:currentColor;--ic2:currentColor}
+.gf .btn-cyan{background:var(--cyan);color:var(--navy);font-weight:600}
+.gf .btn-line{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.gf .btn-navy{background:var(--navy);color:#fff;font-weight:600}
+.kcard{scroll-margin-top:96px}
+
+/* Štatistiky v hero: ikona je v samostatnom dd (platná štruktúra dl) a vizuálne ide prvá */
+.fact dd.ft{order:0;font:inherit;letter-spacing:normal}
+.flow-fill{list-style:none}
+
+/* Nadpis karty formulára je h2 (poradie nadpisov), vzhľad ako pôvodné h3 */
+.kcard h2{font:300 clamp(24px,2.4vw,32px)/1.15 var(--sora);letter-spacing:-.03em;margin:0 0 8px}
+
+/* Zástupné polia na tmavom podklade (údaje a hlavička podstránok) */
+.kinfo .ph,.khero .ph{border-color:rgba(127,214,226,.7);background:rgba(127,214,226,.1);color:var(--cyan-soft)}
+
+/* Cyan ako text na bielom nemá dosť kontrastu (docs/02-DIZAJN.md): tmavší odtieň len pre text */
+.gf .toc b,.gf .pp h2 b,.gf .s3 .no{color:#0a7f90}
+
+/* Radar: o trochu viditeľnejší (pôvodný bol skoro neviditeľný) */
+@keyframes radarping{0%{transform:scale(.06);opacity:0}10%{opacity:1}100%{transform:scale(1);opacity:0}}
+.gf .radar i{border:1.5px solid rgba(2,172,193,.6);animation-name:radarping}
+/* Radar je väčší ako obrazovka, takže jeho scroll-driven nábeh sa nikdy nedokončil (ostal poloprázdny). Je vždy plne viditeľný. */
+.gf .final .radar{animation:none;opacity:1}

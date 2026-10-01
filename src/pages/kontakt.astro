@@ -1,0 +1,126 @@
+---
+import Base from '../layouts/Base.astro';
+import Words from '../components/Words.astro';
+import '../styles/contact.css';
+
+// Bez PUBLIC_FORM_ENDPOINT formulár beží v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
+const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
+
+const services = [
+  { v: 'inst', t: 'Revízia elektroinštalácie', on: true },
+  { v: 'blesk', t: 'Bleskozvod' },
+  { v: 'fve', t: 'Fotovoltika, NN prípojka alebo EV nabíjačka' },
+  { v: 'proj', t: 'Projekt alebo kompletné riešenie' },
+  { v: 'unsure', t: 'Neviem, poraďte mi', exclusive: true },
+];
+const purposes = ['Kolaudácia', 'Poistná udalosť', 'Pripojenie do siete', 'Rekonštrukcia', 'Kontrola bezpečnosti'].map((t, i) => ({ v: `p${i}`, t }));
+const methods = [{ v: 'call', t: 'Zavolať mi', on: true }, { v: 'sms', t: 'Napísať SMS' }];
+const times = [{ v: 'any', t: 'Kedykoľvek', on: true }, { v: 'am', t: 'Dopoludnia' }, { v: 'pm', t: 'Popoludní' }];
+---
+<Base
+  title="Kontakt a nezáväzný dopyt na revíziu | GridFlow"
+  description="Zavolajte alebo pošlite krátky dopyt na revíziu elektrického zariadenia. Pôsobnosť: celé Slovensko."
+  path="/kontakt/"
+>
+<section class="khero">
+<div class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+<div class="wrap">
+<h1><Words w={['Kontakt']} /></h1>
+<p class="ksub hf" style="--d:500ms">Pôsobnosť: celé Slovensko</p>
+</div>
+</section>
+
+<section class="kbody">
+<div class="wrap kgrid">
+<aside class="kinfo">
+<div><p class="k">Tel.:</p><a class="kphone" href="tel:+421910635595">0910 635 595</a></div>
+<div><p class="k">Radšej zavoláte?</p><p class="v">Zavolajte a poradím, čo presne potrebujete.</p></div>
+<div><p class="k">Oprávnenie</p><p class="v">Revízny technik podľa § 24<br>Rozsah E1A, E1B</p></div>
+<div><p class="k">Fakturačné údaje</p><p class="v">GridFlow s.r.o.<br>IČO: 57813329<br>Buková ulica 1309/23<br>951 12 Ivanka pri Nitre</p></div>
+<div><p class="k">E-mail</p><span class="ph">DOPLNIŤ: e-mail</span></div>
+</aside>
+
+<form class="kcard" id="inquiry" novalidate data-endpoint={endpoint} aria-labelledby="inq-title">
+<div id="inq-panel">
+<h2 id="inq-title">Nezáväzný dopyt</h2>
+<p class="hint">Najčastejšie voľby sú už vybrané. Stačí doplniť meno a telefón.</p>
+
+<span class="lbl first" id="lbl-contact"><b class="n">1</b>Kam sa vám môžem ozvať?</span>
+<div class="two" role="group" aria-labelledby="lbl-contact">
+<div class="fldwrap">
+<label class="fld"><span>Meno</span><input class="inp" id="f-name" type="text" name="name" autocomplete="name" placeholder="Meno a priezvisko" required aria-describedby="err-name"></label>
+<p class="err" id="err-name" hidden></p>
+</div>
+<div class="fldwrap">
+<label class="fld"><span>Telefón</span><input class="inp" id="f-phone" type="tel" name="tel" inputmode="tel" autocomplete="tel" placeholder="0900 000 000" required aria-describedby="err-phone"></label>
+<p class="err" id="err-phone" hidden></p>
+</div>
+</div>
+
+<span class="lbl" id="lbl-service"><b class="n">2</b>Čo potrebujete zrevidovať? <small>(môžete vybrať viac)</small></span>
+<div class="chips" role="group" aria-labelledby="lbl-service" data-group="services">
+{services.map((s) => (<button type="button" class={s.on ? 'chip on' : 'chip'} aria-pressed={s.on ? 'true' : 'false'} data-value={s.v} data-exclusive={s.exclusive ? 'true' : undefined}>{s.t}</button>))}
+</div>
+
+<span class="lbl" id="lbl-purpose"><b class="n">3</b>Na aký účel? <small>(nepovinné, tiež viac možností)</small></span>
+<div class="chips" role="group" aria-labelledby="lbl-purpose" data-group="purposes">
+{purposes.map((s) => (<button type="button" class="chip" aria-pressed="false" data-value={s.v}>{s.t}</button>))}
+</div>
+
+<span class="lbl" id="lbl-town"><b class="n">4</b>Obec alebo mesto <small>(nepovinné)</small></span>
+<input class="inp" id="f-town" type="text" name="town" autocomplete="address-level2" placeholder="Kde sa objekt nachádza" aria-labelledby="lbl-town">
+
+<span class="lbl" id="lbl-method"><b class="n">5</b>Ako sa vám ozvať?</span>
+<div class="chips" role="group" aria-labelledby="lbl-method" data-group="method" data-single="true">
+{methods.map((s) => (<button type="button" class={s.on ? 'chip on' : 'chip'} aria-pressed={s.on ? 'true' : 'false'} data-value={s.v}>{s.t}</button>))}
+</div>
+
+<span class="lbl" id="lbl-time"><b class="n">6</b>Kedy sa vám ozvať?</span>
+<div class="chips" role="group" aria-labelledby="lbl-time" data-group="time" data-single="true">
+{times.map((s) => (<button type="button" class={s.on ? 'chip on' : 'chip'} aria-pressed={s.on ? 'true' : 'false'} data-value={s.v}>{s.t}</button>))}
+</div>
+
+<span class="lbl" id="lbl-note"><b class="n">7</b>Poznámka <small>(nepovinné)</small></span>
+<textarea class="inp" id="f-note" name="note" placeholder="Napríklad rozsah, termín alebo čo už máte hotové" aria-labelledby="lbl-note"></textarea>
+
+<div class="hp" aria-hidden="true"><label>Toto pole nechajte prázdne<input type="text" name="website" id="f-website" tabindex="-1" autocomplete="off"></label></div>
+
+<p class="form-error" id="form-error" role="alert" hidden>Dopyt sa nepodarilo odoslať. Skúste to znova alebo zavolajte na <a href="tel:+421910635595">0910 635 595</a>.</p>
+
+<div class="dlg-actions">
+<button type="submit" class="btn-send" id="f-submit" disabled aria-describedby="submit-hint">Odoslať dopyt</button>
+</div>
+<p class="fine" id="submit-hint">Odoslať sa dá po vyplnení mena a telefónu. Dopyt vás k ničomu nezaväzuje. Údaje použijem len na vybavenie dopytu. Viac v <a class="plink" href="/zasady-ochrany-osobnych-udajov/">Zásadách ochrany osobných údajov</a>.</p>
+</div>
+
+<div class="ok" id="inq-sent" hidden>
+<div class="tick"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false"><path d="M6 15.5l6 6L24 9" stroke="#02ACC1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div>
+<h2 id="sent-title" tabindex="-1" style="margin:0 0 6px">Ďakujem, dopyt je odoslaný.</h2>
+<p>Ozvem sa vám na číslo <strong id="sent-phone"></strong>. <span class="ph">DOPLNIŤ: do koľkých hodín sa ozvete</span></p>
+<p class="fine" id="demo-note" hidden>Ukážkový režim: formulár zatiaľ nič neodosiela.</p>
+<ul class="sum">
+<li><span>Čo potrebujete</span><span id="sum-service"></span></li>
+<li><span>Účel</span><span id="sum-purpose"></span></li>
+<li><span>Spôsob kontaktu</span><span id="sum-contact"></span></li>
+</ul>
+<div class="dlg-actions"><button type="button" class="btn-send" id="f-again">Poslať ďalší dopyt</button></div>
+</div>
+</form>
+</div>
+</section>
+
+<section class="after">
+<div class="wrap">
+<h2 class="h sw"><Words w={["Čo", "bude", "nasledovať"]} /></h2>
+<ol class="s3">
+<li class="rv"><span class="no">1</span><h3>Ozvem sa vám</h3><p>Na číslo z formulára, hovorom alebo SMS podľa vašej voľby.</p></li>
+<li class="rv"><span class="no">2</span><h3>Dohodneme rozsah a termín</h3><p>Prejdeme, čo a kde sa bude kontrolovať.</p></li>
+<li class="rv"><span class="no">3</span><h3>Dostanete revíznu správu</h3><p><span class="ph">DOPLNIŤ: lehota a spôsob odovzdania správy</span></p></li>
+</ol>
+</div>
+</section>
+</Base>
+
+<script>
+  import '../scripts/contact-form.js';
+</script>

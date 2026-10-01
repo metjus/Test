@@ -1,0 +1,24 @@
+---
+import Base from '../layouts/Base.astro';
+import Icon from '../components/Icon.astro';
+import Words from '../components/Words.astro';
+import '../styles/policy.css';
+---
+<Base
+  title="Stránka sa nenašla | GridFlow"
+  description="Hľadaná stránka neexistuje. Vráťte sa na hlavnú stránku GridFlow alebo zavolajte."
+  path="/404.html"
+  noindex
+>
+<section class="khero" style="padding-bottom:clamp(96px,11vw,160px)">
+<div class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+<div class="wrap">
+<h1><Words w={['Táto', 'stránka', 'neexistuje']} /></h1>
+<p class="ksub hf" style="--d:500ms">Vráťte sa na hlavnú stránku alebo zavolajte.</p>
+<div class="final-actions hf" style="--d:700ms;margin-top:36px">
+<a class="btn btn-cyan" href="/">Späť na web</a>
+<a class="btn btn-line" href="tel:+421910635595"><Icon n="i-phone" />Zavolať 0910 635 595</a>
+</div>
+</div>
+</section>
+</Base>

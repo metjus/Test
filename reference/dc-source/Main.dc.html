@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<title>GridFlow – web (desktop)</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@200;300;400;600&amp;family=Michroma&amp;display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;scroll-behavior:smooth}
+.gf{--navy:#022253;--deep:#011638;--cyan:#02ACC1;--cyan-soft:#7fd6e2;--ice:#eef3f8;--line:#d6e0ec;--muted-d:#9db3d4;--ink-soft:#3e5379;--ease:cubic-bezier(.16,1,.3,1);--sora:"Sora","Segoe UI",system-ui,sans-serif;--mich:"Michroma","Sora",system-ui,sans-serif;
+  font:300 17px/1.65 var(--sora);color:var(--navy);background:#fff;overflow-x:clip;-webkit-font-smoothing:antialiased;position:relative;scroll-behavior:smooth}
+.gf *,.gf *::before,.gf *::after{box-sizing:border-box}
+.gf h1,.gf h2,.gf h3,.gf p,.gf dl,.gf dd,.gf ol,.gf ul{margin:0;padding:0}
+:where(.gf) a{color:inherit;text-decoration:none}
+.gf img{display:block;max-width:100%;height:auto}
+:where(.gf) button{font:inherit;color:inherit;cursor:pointer}
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 clamp(22px,5vw,64px)}
+
+/* ikony */
+.ico{display:block;width:var(--s,56px);height:var(--s,56px);flex:none;overflow:visible}
+.tile{display:grid;place-items:center;flex:none;width:var(--t,72px);height:var(--t,72px);border-radius:calc(var(--t,72px)*.32);background:#fff;box-shadow:0 14px 34px -16px rgba(2,34,83,.35),0 0 0 1px rgba(2,34,83,.05);transition:background .4s,box-shadow .4s}
+.tile .ico{--s:calc(var(--t,72px)*.62)}
+.tile.dk{background:rgba(255,255,255,.06);box-shadow:0 0 0 1px rgba(255,255,255,.16);--ic1:#fff;--ic2:var(--cyan)}
+.btn .ico{--s:20px;--sw:3.6;--ic1:currentColor;--ic2:currentColor}
+
+/* hlavička */
+.nav{position:sticky;top:0;z-index:60;height:68px;margin-bottom:-68px;display:flex;align-items:center;-webkit-backdrop-filter:saturate(1.6) blur(16px);backdrop-filter:saturate(1.6) blur(16px)}
+.navbar{display:flex;align-items:center;gap:28px}
+.brand img{height:34px;width:auto}
+.links{display:flex;gap:28px;margin-left:auto;font-size:14px;color:#d7e3f6}
+.links a{padding:6px 0;border-bottom:1px solid transparent;transition:color .3s,border-color .4s}
+.links a:hover{color:#fff;border-color:var(--cyan)}
+.navcta{display:flex;align-items:center;gap:10px}
+.call{font:400 12px/1 var(--mich);color:var(--navy);background:#fff;padding:12px 18px;border-radius:999px;transition:background .3s}
+.call:hover{background:var(--cyan-soft)}
+.kbtn{display:inline-flex;align-items:center;font:600 13px/1 var(--sora);color:var(--navy);background:var(--cyan);border:0;padding:12px 20px;border-radius:999px;transition:background .3s,transform .5s var(--ease)}
+.kbtn:hover{background:#fff;transform:translateY(-1px)}
+.progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:80;pointer-events:none}
+.progress i{display:block;height:100%;background:var(--cyan);transform-origin:left;transform:scaleX(0)}
+
+/* tlačidlá */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;padding:0 34px;border-radius:999px;font:400 16px/1 var(--sora);border:1px solid transparent;transition:background .35s,border-color .35s,transform .6s var(--ease)}
+.btn:hover{transform:translateY(-2px)}
+.btn-cyan{background:var(--cyan);color:var(--navy);font-weight:600}
+.btn-cyan:hover{background:#fff}
+.gf .btn-line{background:transparent;color:#fff;border-color:rgba(255,255,255,.4)}
+.btn-line:hover{border-color:#fff;background:rgba(255,255,255,.07)}
+.gf .btn-navy{background:var(--navy);color:#fff;font-weight:600}
+.btn-navy:hover{background:var(--deep)}
+
+/* hero */
+.hero{position:relative;min-height:min(100vh,940px);display:flex;flex-direction:column;background:var(--navy);color:#fff;overflow:hidden;isolation:isolate}
+.hero::after{content:"";position:absolute;inset:auto 0 0;height:30%;background:linear-gradient(to top,rgba(1,22,56,.55),transparent);z-index:-1;pointer-events:none}
+.hero-art{position:absolute;top:30%;right:0;width:62%;height:70%;z-index:-1;pointer-events:none}
+.trace{fill:none;stroke:#0c3d82;stroke-width:24;stroke-linecap:round;stroke-dasharray:1 1;animation:draw 5.2s cubic-bezier(.5,0,.15,1) both;animation-delay:var(--td,0s)}
+.rings circle{fill:#022253;stroke:var(--cyan);stroke-width:7;transform-box:fill-box;transform-origin:center;animation:ringin 1.6s var(--ease) both;animation-delay:var(--rd,0s)}
+.hero-main{position:relative;flex:1;display:flex;align-items:center;justify-content:space-between;gap:clamp(32px,4vw,64px);padding-top:calc(68px + 48px);padding-bottom:40px}
+.hero-copy{flex:1 1 0;min-width:0}
+.hero h1{font:300 clamp(34px,3.9vw,58px)/1.04 var(--sora);letter-spacing:-.04em;max-width:min(100%,17.5em)}
+.lead{max-width:30em;margin-top:26px;font-size:clamp(16px,1.35vw,19px);line-height:1.6;color:#c6d6ee}
+.gf abbr{text-decoration:none;border-bottom:1px dotted var(--cyan-soft)}
+.hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:30px}
+.hero-note{margin-top:18px;font-size:14px;color:var(--muted-d)}
+.hf{animation:heroin 1.5s var(--ease) both;animation-delay:var(--d,0ms)}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60% 55% at 78% 38%,rgba(2,172,193,.22),transparent 70%),radial-gradient(rgba(255,255,255,.1) 1px,transparent 1.5px) 0 0/30px 30px;-webkit-mask-image:linear-gradient(to bottom,#000 55%,transparent);mask-image:linear-gradient(to bottom,#000 55%,transparent)}
+.hero-card{position:relative;flex:none;width:clamp(300px,28vw,380px)}
+.hc-main{--ic1:#fff;--ic2:var(--cyan);background:linear-gradient(160deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);border-radius:30px;padding:24px;box-shadow:0 40px 80px -30px rgba(0,8,26,.7)}
+.hc-head{display:flex;gap:14px;align-items:center;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.14)}
+.hc-head .tile{--t:52px}
+.hc-head b{display:block;font:400 17px/1.25 var(--sora)}
+.hc-head small{color:var(--muted-d);font-size:13px}
+.hc-list{list-style:none;display:grid;gap:2px;margin-top:10px}
+.hc-list li{display:flex;align-items:center;gap:14px;padding:10px 0;font-size:15px;color:#e1ebf8}
+.hc-list li>.ico{--s:30px;--sw:3}
+.hc-list .ck{margin-left:auto;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--cyan);--ic1:var(--navy);--ic2:var(--navy)}
+.hc-list .ck .ico{--s:14px;--sw:5.5}
+.hc-note{margin-top:8px;font-size:12px;color:var(--muted-d)}
+.hc-chip{--ic1:var(--navy);--ic2:var(--cyan);position:absolute;display:flex;align-items:center;gap:10px;padding:10px 16px 10px 12px;border-radius:999px;background:#fff;color:var(--navy);font:400 13px/1 var(--sora);white-space:nowrap;box-shadow:0 20px 40px -16px rgba(0,8,26,.6);animation:floaty 7s ease-in-out infinite}
+.hc-chip .ico{--s:22px;--sw:3.2}
+.hc-chip.c1{left:-46px;top:-22px}
+.hc-chip.c2{right:-18px;bottom:-24px;animation-delay:-3.5s}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid rgba(255,255,255,.16)}
+.fact{display:flex;flex-direction:column;padding:22px 24px 26px 0}
+.fact .tile{--t:52px;margin-bottom:18px;align-self:flex-start}
+.fact+.fact{padding-left:clamp(20px,3vw,40px);border-left:1px solid rgba(255,255,255,.12)}
+.fact dt{order:2;font-size:13px;color:var(--muted-d);margin-top:10px}
+.fact dd{order:1;font:400 clamp(15px,1.9vw,26px)/1.2 var(--mich);letter-spacing:.01em}
+
+.w{display:inline-block;overflow:hidden;vertical-align:top;padding:.16em .04em .14em;margin:-.16em -.04em -.14em}
+.wi{display:inline-block}
+.hero .wi{animation:rise 1.25s var(--ease) both;animation-delay:calc(150ms + var(--i)*80ms)}
+.ch{display:inline-block}
+h2.h{font:300 clamp(30px,3.8vw,58px)/1.08 var(--sora);letter-spacing:-.035em}
+.sub{margin-top:18px;max-width:26em;font-size:clamp(15px,1.25vw,18px);color:var(--ink-soft)}
+.when .sub{color:var(--muted-d)}
+
+/* zástupné údaje, ktoré treba doplniť od klienta */
+.ph{display:inline-block;border:1.5px dashed #0a8fa3;background:rgba(2,172,193,.09);color:#065f6d;border-radius:8px;padding:1px 10px;font:400 .82em/1.6 var(--sora);letter-spacing:0}
+.dark .ph,.when .ph,.final .ph{border-color:rgba(127,214,226,.7);background:rgba(127,214,226,.1);color:var(--cyan-soft)}
+
+/* služby */
+.svc{background:#fff;padding:clamp(96px,14vw,200px) 0}
+.svc-head{max-width:20em;margin-bottom:clamp(44px,6vw,80px)}
+.bento{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.bento li{display:flex;grid-column:span 1;min-width:0}
+.bento li.w2{grid-column:span 2}
+.bcard{position:relative;overflow:hidden;isolation:isolate;width:100%;min-height:clamp(200px,19vw,260px);display:flex;flex-direction:column;justify-content:space-between;gap:36px;padding:24px;border:0;border-radius:30px;background:var(--ice);color:var(--navy);text-align:left;transition:background .5s var(--ease),color .5s var(--ease),transform .7s var(--ease),box-shadow .5s}
+.bcard::after{content:"";position:absolute;z-index:-1;right:-70px;bottom:-70px;width:230px;height:230px;border:1px solid rgba(2,172,193,.35);border-radius:50%;box-shadow:0 0 0 38px rgba(2,172,193,.05);transition:transform .8s var(--ease),border-color .5s}
+.bcard:hover,.bcard:focus-visible{background:var(--navy);color:#fff;--ic1:#fff;transform:translateY(-6px);box-shadow:0 30px 60px -28px rgba(2,34,83,.6)}
+.bcard:hover::after{transform:scale(1.25);border-color:rgba(2,172,193,.7)}
+.bcard:focus-visible{outline:3px solid var(--cyan);outline-offset:3px}
+.bcard:hover .tile,.bcard:focus-visible .tile{background:rgba(255,255,255,.08);box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+.bt{display:flex;justify-content:space-between;align-items:flex-start}
+.bn{font:300 clamp(21px,2.2vw,32px)/1.08 var(--sora);letter-spacing:-.03em}
+.go{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1.5px solid #b6c6db;transition:background .4s,border-color .4s}
+.go .ico{--s:18px;--sw:3.4;--ic1:var(--navy)}
+.bcard:hover .go,.bcard:focus-visible .go{background:var(--cyan);border-color:var(--cyan)}
+
+/* kedy */
+.when{background:var(--deep);color:#fff;padding:clamp(100px,14vw,190px) 0}
+.when-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,7vw,110px);align-items:start}
+.when-head{position:sticky;top:34vh}
+.when h2.h{font-size:clamp(28px,3.3vw,50px);color:#e9f0fb}
+.rail{--rt:clamp(52px,5.4vw,84px);position:relative;list-style:none;padding-left:clamp(44px,5vw,76px)}
+.rail::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:2px;background:rgba(255,255,255,.14)}
+.rail li{position:relative;display:flex;align-items:flex-start;gap:clamp(16px,2vw,28px);font:300 clamp(26px,3.5vw,54px)/1.1 var(--sora);letter-spacing:-.035em;margin-bottom:clamp(44px,13vh,120px)}
+.rail .tile{--t:var(--rt)}
+.rail li>span:last-child{min-width:0;padding-top:calc((var(--rt) - 1.1em)/2)}
+.rail li:last-child{margin-bottom:clamp(60px,26vh,240px)}
+.rail li::before{content:"";position:absolute;left:calc(-1 * clamp(44px,5vw,76px) + 1px);top:calc(var(--rt)/2 - 12px);width:24px;height:24px;border:5px solid var(--cyan);border-radius:50%;background:var(--deep)}
+.when-cta{margin-top:-60px}
+
+/* postup */
+.steps3{padding:clamp(96px,13vw,180px) 0;background:#fff}
+.steps3 h2.h{max-width:14em}
+.s3{list-style:none;margin-top:clamp(48px,7vw,90px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(24px,4vw,56px)}
+.s3 li{border-top:2px solid var(--navy);padding-top:26px}
+.s3 .sh{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}
+.s3 .no{font:400 clamp(28px,3.4vw,46px)/1 var(--mich);color:var(--cyan)}
+.s3 .tile{--t:76px;background:var(--ice);box-shadow:none}
+.s3 h3{font:400 clamp(20px,2vw,28px)/1.2 var(--sora);letter-spacing:-.02em;margin-bottom:12px}
+.s3 p{color:var(--ink-soft);font-size:16px}
+.s3-cta{margin-top:clamp(40px,6vw,70px)}
+
+/* riešenie */
+.solution{background:var(--ice);padding:clamp(100px,14vw,190px) 0}
+.solution h2.h{max-width:20em;font-size:clamp(28px,3.6vw,54px)}
+.flow{position:relative;list-style:none;margin-top:clamp(60px,9vw,120px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));view-timeline-name:--flow;view-timeline-axis:block}
+.flow::before{content:"";position:absolute;left:0;right:0;top:31px;height:3px;background:#c9d6e6;border-radius:2px}
+.flow-fill{position:absolute;left:0;right:0;top:31px;height:3px;background:linear-gradient(90deg,var(--navy),var(--cyan));border-radius:2px}
+.step{position:relative;padding:92px 28px 0 0;font:300 clamp(21px,2.5vw,38px)/1.15 var(--sora);letter-spacing:-.03em}
+.step .dot{position:absolute;left:0;top:0;width:64px;height:64px;border:4px solid var(--c);border-radius:50%;background:var(--ice);display:grid;place-items:center;--ic1:var(--c);--ic2:var(--cyan)}
+.step .dot .ico{--s:30px;--sw:3}
+.gf .flow-note{margin-top:clamp(64px,9vw,110px);max-width:34em;padding-left:22px;border-left:3px solid var(--cyan);font-size:clamp(16px,1.4vw,20px)}
+
+/* dôvera */
+.trust{background:#fff;padding:clamp(96px,13vw,180px) 0}
+.trust-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,6vw,96px);align-items:start}
+.photo{aspect-ratio:4/5;border:1.5px dashed #0a8fa3;border-radius:18px;background:rgba(2,172,193,.06);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:#065f6d;font-size:14px}
+.creds{list-style:none;margin-top:28px;border-top:1px solid var(--line)}
+.creds li{display:flex;justify-content:space-between;gap:20px;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);font-size:17px}
+.cl{display:flex;align-items:center;gap:16px}
+.creds .tile{--t:48px;background:var(--ice);box-shadow:none}
+.creds li b{font:400 clamp(14px,1.5vw,19px)/1.3 var(--mich);text-align:right}
+.reviews{margin-top:clamp(40px,6vw,72px)}
+.rate{font-size:18px}
+.rcards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:20px}
+.rcard{border:1.5px dashed #0a8fa3;border-radius:16px;padding:22px;background:rgba(2,172,193,.05);font-size:15px;color:#065f6d}
+.stars{display:block;width:110px;height:22px;margin-bottom:12px}
+
+/* FAQ */
+.faq{background:var(--ice);padding:clamp(96px,13vw,180px) 0}
+.faq-grid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,6vw,96px);align-items:start}
+.qa{border-top:1px solid #c9d6e6}
+.qa:last-child{border-bottom:1px solid #c9d6e6}
+.qa summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:24px;align-items:center;padding:24px 0;font:300 clamp(19px,1.9vw,26px)/1.25 var(--sora);letter-spacing:-.02em}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::after{content:"";flex:none;width:40px;height:40px;border-radius:50%;border:1.5px solid #b6c6db;background:linear-gradient(var(--navy),var(--navy)) center/14px 2px no-repeat,linear-gradient(var(--navy),var(--navy)) center/2px 14px no-repeat;transition:transform .6s var(--ease),background-color .3s,border-color .3s}
+.qa[open] summary::after{transform:rotate(135deg);background-color:var(--cyan);border-color:var(--cyan)}
+.qa .ans{padding:0 40px 26px 0;color:var(--ink-soft);font-size:16px;max-width:42em}
+
+/* kontakt */
+.final{position:relative;background:var(--navy);color:#fff;overflow:hidden;padding:clamp(110px,16vw,220px) 0 clamp(100px,14vw,190px);isolation:isolate}
+.radar{position:absolute;right:-14vmin;top:50%;width:min(110vmin,1000px);aspect-ratio:1;transform:translateY(-50%);z-index:-1;pointer-events:none}
+.radar i{position:absolute;inset:0;border:1px solid rgba(2,172,193,.42);border-radius:50%;opacity:0;animation:ping 14s cubic-bezier(.2,.6,.3,1) infinite}
+.radar i:nth-child(2){animation-delay:-4.7s}
+.radar i:nth-child(3){animation-delay:-9.3s}
+.radar b{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border:5px solid var(--cyan);border-radius:50%;background:#022253}
+.final h2.h{font-size:clamp(44px,7vw,120px);letter-spacing:-.045em}
+.final-sub{margin-top:18px;font-size:clamp(17px,1.6vw,22px);color:var(--cyan-soft)}
+.final-label{margin-top:clamp(40px,7vw,90px);color:var(--muted-d);font-size:16px}
+.phone{display:inline-block;margin:6px 0 36px;font:400 clamp(26px,7.2vw,104px)/1.05 var(--mich);letter-spacing:-.02em;white-space:nowrap}
+.phone:hover{color:var(--cyan-soft)}
+.final-actions{display:flex;flex-wrap:wrap;gap:14px}
+.foot-wrap{background:var(--deep);color:#a9bddb;padding:44px 0;font-size:14px}
+.foot{display:grid;grid-template-columns:auto 1fr auto;gap:24px 56px;align-items:center}
+.foot img{height:30px;width:auto}
+.legal{line-height:1.7}
+.legal.r{text-align:right}
+
+/* spodná lišta na mobile */
+.mbar{display:none}
+
+/* kontaktné okno */
+.modal{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px;animation:fadein .35s ease both}
+.backdrop{position:absolute;inset:0;border:0;padding:0;background:rgba(1,12,32,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.dlg{position:relative;width:min(980px,100%);max-height:calc(100% - 8px);overflow:auto;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);background:#fff;color:var(--navy);border-radius:26px;box-shadow:0 40px 120px rgba(0,10,30,.5);animation:pop .7s var(--ease) both}
+.dlg-side{background:var(--navy);color:#fff;padding:clamp(28px,3.4vw,48px);display:flex;flex-direction:column;gap:18px;position:relative;overflow:hidden}
+.dlg-side::after{content:"";position:absolute;right:-90px;bottom:-90px;width:300px;height:300px;border:1px solid rgba(2,172,193,.4);border-radius:50%}
+.dlg-side h2{font:300 clamp(26px,2.6vw,36px)/1.12 var(--sora);letter-spacing:-.03em}
+.dlg-side p{color:#c6d6ee;font-size:15px}
+.dlg-phone{font:400 clamp(18px,2vw,26px)/1.2 var(--mich);color:#fff}
+.dlg-phone:hover{color:var(--cyan-soft)}
+.dlg-body{padding:clamp(26px,3.4vw,48px)}
+.close{position:absolute;right:16px;top:16px;width:44px;height:44px;border-radius:50%;border:0;background:#eef3f8;display:flex;align-items:center;justify-content:center;z-index:2;transition:background .3s}
+.close:hover{background:#dbe6f2}
+.dlg-body .stepno{font-size:14px;color:var(--ink-soft);margin-bottom:10px}
+.dlg-body h3{font:300 clamp(24px,2.4vw,32px)/1.15 var(--sora);letter-spacing:-.03em;margin-bottom:22px;padding-right:48px}
+.lbl{display:block;font:400 14px/1.4 var(--sora);margin:22px 0 10px}
+.lbl small{color:var(--ink-soft);font-weight:300}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chip{min-height:46px;padding:0 18px;border-radius:999px;border:1.5px solid #c3d1e3;background:#fff;font:400 15px/1 var(--sora);transition:background .25s,border-color .25s,color .25s}
+.chip:hover{border-color:var(--navy)}
+.chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.inp{width:100%;min-height:52px;border:1.5px solid #c3d1e3;border-radius:14px;padding:0 16px;font:300 17px/1 var(--sora);color:var(--navy);background:#fff;outline:none;transition:border-color .25s,box-shadow .25s}
+.inp:focus{border-color:var(--cyan);box-shadow:0 0 0 4px rgba(2,172,193,.18)}
+textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
+.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fld span{display:block;font:400 14px/1.4 var(--sora);margin-bottom:8px}
+.dlg-actions{display:flex;gap:12px;align-items:center;margin-top:26px;flex-wrap:wrap}
+.btn-send{min-height:56px;padding:0 30px;border-radius:999px;border:0;background:var(--cyan);color:var(--navy);font:600 16px/1 var(--sora);transition:background .3s,opacity .3s,transform .5s var(--ease)}
+.btn-send:hover{background:#0cc0d6;transform:translateY(-1px)}
+.btn-send:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-back{min-height:56px;padding:0 22px;border-radius:999px;border:1.5px solid #c3d1e3;background:#fff;font:400 15px/1 var(--sora)}
+.fine{margin-top:16px;font-size:13px;color:var(--ink-soft);line-height:1.55}
+.ok{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+.ok .tick{width:64px;height:64px;border-radius:50%;background:rgba(2,172,193,.14);display:flex;align-items:center;justify-content:center}
+.sum{list-style:none;border-top:1px solid var(--line);width:100%;margin-top:8px}
+.sum li{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.sum li span:last-child{text-align:right;font-weight:400}
+
+@keyframes rise{from{transform:translate3d(0,112%,0) rotate(2deg)}to{transform:none}}
+@keyframes heroin{from{opacity:0;transform:translate3d(0,26px,0)}to{opacity:1;transform:none}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes ringin{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+@keyframes ping{0%{transform:scale(.06);opacity:0}12%{opacity:.9}100%{transform:scale(1);opacity:0}}
+@keyframes floaty{50%{transform:translateY(-10px)}}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translate3d(0,40px,0) scale(.97)}to{opacity:1;transform:none}}
+
+@supports (animation-timeline: view()) {
+  @keyframes fadeup{from{opacity:0;transform:translate3d(0,34px,0);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+  @keyframes charin{from{opacity:0;transform:translate3d(0,.5em,0);filter:blur(10px)}to{opacity:1;transform:none;filter:none}}
+  @keyframes focus{0%{opacity:.14;transform:translate3d(0,0,0)}38%{opacity:1;transform:translate3d(14px,0,0)}62%{opacity:1;transform:translate3d(14px,0,0)}100%{opacity:.14;transform:translate3d(0,0,0)}}
+  @keyframes ringfocus{0%{border-color:rgba(255,255,255,.22)}38%{border-color:#02ACC1}62%{border-color:#02ACC1}100%{border-color:rgba(255,255,255,.22)}}
+  @keyframes navbg{from{background-color:rgba(1,22,56,0)}to{background-color:rgba(1,22,56,.92)}}
+  @keyframes prog{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes heroout{to{opacity:0;transform:translate3d(0,-48px,0)}}
+  @keyframes par{to{transform:translate3d(0,18%,0)}}
+  @keyframes fillx{from{transform:scaleX(0);transform-origin:left}to{transform:scaleX(1);transform-origin:left}}
+  @keyframes filly{from{transform:scaleY(0);transform-origin:top}to{transform:scaleY(1);transform-origin:top}}
+  @keyframes stepin{from{opacity:.28;transform:translate3d(0,14px,0)}to{opacity:1;transform:none}}
+  @keyframes dotin{from{border-color:#b6c6db;transform:scale(1)}to{border-color:var(--c);transform:scale(1.08)}}
+
+  .nav{animation:navbg linear both;animation-timeline:scroll(root);animation-range:0px 140px}
+  .progress i{animation:prog linear both;animation-timeline:scroll(root)}
+  .hero-copy,.hero-card{animation:heroout linear both;animation-timeline:scroll(root);animation-range:0px 520px}
+  .hero-art{animation:par linear both;animation-timeline:scroll(root);animation-range:0px 900px}
+  .sw{view-timeline-name:--sw;view-timeline-axis:block}
+  .sw .wi{animation:rise linear both;animation-timeline:--sw;animation-range:entry calc(var(--i)*4%) entry calc(40% + var(--i)*4%)}
+  .rv{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 70%}
+  .rail li{animation:focus linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+  .rail li::before{animation:ringfocus linear both;animation-timeline:view();animation-range:cover 0% cover 100%}
+  .flow-fill{animation:fillx linear both;animation-timeline:--flow;animation-range:cover 22% cover 58%}
+  .step{animation:stepin linear both;animation-timeline:--flow;animation-range:cover calc(22% + var(--s)*9%) cover calc(27% + var(--s)*9%)}
+  .step .dot{animation:dotin linear both;animation-timeline:--flow;animation-range:cover calc(22% + var(--s)*9%) cover calc(27% + var(--s)*9%)}
+  .flow-note{animation:fadeup linear both;animation-timeline:view();animation-range:entry 10% entry 80%}
+  .phone{view-timeline-name:--ph;view-timeline-axis:block}
+  .phone .ch{animation:charin linear both;animation-timeline:--ph;animation-range:entry calc(var(--i)*3%) entry calc(40% + var(--i)*3%)}
+}
+
+@media (max-width:1080px){
+  .links{display:none}
+  .navcta{margin-left:auto}
+}
+@media (max-width:960px){
+  .svc-grid,.when-grid,.trust-grid,.faq-grid{grid-template-columns:minmax(0,1fr)}
+  .svc-head,.when-head{position:static}
+  .when-grid,.trust-grid,.faq-grid{gap:44px}
+  .when-cta{margin-top:0}
+  .hero-art{width:100%;opacity:.5}
+  .hero-card{display:none}
+  .bento{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .photo{max-width:320px}
+  .dlg{grid-template-columns:minmax(0,1fr)}
+  .dlg-side{display:none}
+}
+@media (max-width:720px){
+  .brand img{height:28px}
+  .call{display:none}
+  .kbtn{padding:11px 16px;font-size:12px}
+  .rings{display:none}
+  .hero-art{opacity:.4}
+  .facts{grid-template-columns:minmax(0,1fr)}
+  .fact,.fact+.fact{padding:16px 0;border-left:0;flex-direction:row;align-items:baseline;justify-content:space-between;gap:16px}
+  .fact+.fact{border-top:1px solid rgba(255,255,255,.12)}
+  .fact dt{order:1;margin:0}
+  .fact dd{order:2;font-size:15px;text-align:right}
+  .hero-actions .btn{flex:1 1 100%}
+  .s3{grid-template-columns:minmax(0,1fr)}
+  .rcards{grid-template-columns:minmax(0,1fr)}
+  .flow{grid-template-columns:minmax(0,1fr);row-gap:30px}
+  .flow::before{left:30px;right:auto;top:0;bottom:0;width:3px;height:auto}
+  .flow-fill{left:30px;right:auto;top:0;bottom:0;width:3px;height:auto;background:linear-gradient(180deg,var(--navy),var(--cyan))}
+  .step{padding:18px 0 0 92px;min-height:64px}
+  .bento{grid-template-columns:minmax(0,1fr)}
+  .bento li.w2{grid-column:span 1}
+  .bcard{min-height:0;flex-direction:row;align-items:center;gap:16px;padding:14px 18px 14px 14px;border-radius:24px}
+  .bcard::after{display:none}
+  .bt{display:contents}
+  .bcard .tile{--t:60px}
+  .bn{order:1;flex:1}
+  .fact .tile{--t:44px;margin:0}
+  .fact dt{flex:1}
+  .rail .tile{--t:52px}
+  .rail{--rt:52px}
+  .foot{grid-template-columns:minmax(0,1fr)}
+  .legal.r{text-align:left}
+  .radar{right:-45vmin;opacity:.7}
+  .final-actions .btn{flex:1 1 100%}
+  .modal{padding:0;align-items:flex-end}
+  .dlg{border-radius:26px 26px 0 0;max-height:94%}
+  .two{grid-template-columns:minmax(0,1fr)}
+  .mbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;position:fixed;left:0;right:0;bottom:0;z-index:70;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:rgba(1,22,56,.94);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.1)}
+  .mbar a,.mbar button{min-height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;font:600 15px/1 var(--sora);border:0}
+  .mbar a{background:#fff;color:var(--navy)}
+  .mbar a.mcta{background:var(--cyan);color:var(--navy)}
+  .foot-wrap{padding-bottom:96px}
+}
+@media (max-width:720px){
+  @supports (animation-timeline: view()) { .flow-fill{animation-name:filly} }
+}
+@media (prefers-reduced-motion:reduce){
+  html,body,.gf{scroll-behavior:auto}
+  .gf *,.gf *::before,.gf *::after{animation:none!important;transition:none!important}
+}
+
+/* ===== skrolovacie animácie pre všetky odseky ===== */
+.flink{display:inline-block;margin-top:8px;color:#c5d3ea;border-bottom:1px solid rgba(255,255,255,.28);transition:color .3s,border-color .3s}
+.flink:hover{color:#fff;border-color:var(--cyan)}
+.plink{color:var(--navy);border-bottom:1px solid var(--cyan)}
+.plink:hover{background:rgba(2,172,193,.14)}
+@keyframes stepswap{from{opacity:0;transform:translate3d(0,18px,0)}to{opacity:1;transform:none}}
+.kcard>div{animation:stepswap .7s var(--ease) both}
+.kinfo{animation:heroin 1.3s var(--ease) .45s both}
+.kcard{animation:heroin 1.3s var(--ease) .65s both}
+.kinfo>div{animation:heroin 1.2s var(--ease) both;animation-delay:calc(.55s + var(--k,0)*.12s)}
+.kinfo>div:nth-child(2){--k:1}.kinfo>div:nth-child(3){--k:2}.kinfo>div:nth-child(4){--k:3}.kinfo>div:nth-child(5){--k:4}
+.pbody{background:#fff;padding:clamp(64px,9vw,120px) 0}
+.pgrid{display:grid;grid-template-columns:minmax(0,4fr) minmax(0,8fr);gap:clamp(32px,6vw,96px);align-items:start}
+.toc{position:sticky;top:96px;list-style:none;border-top:1px solid var(--line)}
+.toc a{display:flex;gap:14px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);font-size:15px;color:var(--ink-soft);transition:color .3s,padding-left .5s var(--ease)}
+.toc a:hover{color:var(--navy);padding-left:8px}
+.toc b{font:400 12px/1 var(--mich);color:var(--cyan)}
+.pp{padding-bottom:clamp(34px,4vw,54px);margin-bottom:clamp(34px,4vw,54px);border-bottom:1px solid var(--line)}
+.pp:last-child{border-bottom:0;margin-bottom:0}
+.pp h2{font:300 clamp(24px,2.6vw,36px)/1.15 var(--sora);letter-spacing:-.03em;margin-bottom:16px}
+.pp h2 b{font:400 .5em/1 var(--mich);color:var(--cyan);margin-right:14px;vertical-align:middle}
+.pp p,.pp li{color:var(--ink-soft);font-size:16.5px;max-width:46em}
+.pp p+p{margin-top:12px}
+.pp ul{padding-left:22px;display:grid;gap:8px;margin:12px 0}
+.pp strong{font-weight:600;color:var(--navy)}
+.pnote{margin-top:22px}
+@media (max-width:960px){.pgrid{grid-template-columns:minmax(0,1fr)}.toc{position:static}}
+@supports (animation-timeline: view()) {
+  @keyframes cardin{from{opacity:0;transform:translate3d(0,48px,0) scale(.94)}to{opacity:1;transform:none}}
+  @keyframes tilepop{from{opacity:0;transform:scale(.4) rotate(-12deg)}to{opacity:1;transform:none}}
+  @keyframes linex{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  @keyframes clipin{from{clip-path:inset(0 0 100% 0);transform:scale(1.07)}to{clip-path:inset(0 0 0 0);transform:none}}
+  @keyframes radarin{from{opacity:0;transform:translateY(-50%) scale(.5)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+  @keyframes dotdrift{from{background-position:0 0,0 0}to{background-position:0 0,0 -140px}}
+
+  .hero::before{animation:dotdrift linear both;animation-timeline:scroll(root);animation-range:0px 900px}
+
+  .bento li:nth-child(1){--c:0}.bento li:nth-child(2){--c:1}.bento li:nth-child(3){--c:2}.bento li:nth-child(4){--c:0}
+  .bento li:nth-child(5){--c:2}.bento li:nth-child(6){--c:3}.bento li:nth-child(7){--c:0}.bento li:nth-child(8){--c:2}
+  .bento li.rv{animation-name:cardin;animation-range:entry calc(var(--c,0)*7%) entry calc(70% + var(--c,0)*7%)}
+  .bcard .tile{animation:tilepop linear both;animation-timeline:view();animation-range:entry 20% entry 95%}
+
+  .when-head .sub{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 90%}
+  .rail .tile{animation:tilepop linear both;animation-timeline:view();animation-range:cover 0% cover 36%}
+
+  .s3 li:nth-child(1){--n:0}.s3 li:nth-child(2){--n:1}.s3 li:nth-child(3){--n:2}
+  .s3 li{border-top:0;position:relative}
+  .s3 li.rv{animation-range:entry calc(var(--n,0)*9%) entry calc(60% + var(--n,0)*9%)}
+  .s3 li::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--navy);transform-origin:left;animation:linex linear both;animation-timeline:view();animation-range:entry 0% entry 75%}
+  .s3 .tile{animation:tilepop linear both;animation-timeline:view();animation-range:entry 20% entry 95%}
+  .s3-cta{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 100%}
+
+  .step .dot .ico{animation:tilepop linear both;animation-timeline:--flow;animation-range:cover calc(22% + var(--s)*9%) cover calc(30% + var(--s)*9%)}
+
+  .photo.rv{animation-name:clipin;animation-range:entry 0% entry 85%}
+  .creds.rv{animation:none}
+  .creds li{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 80%}
+  .creds .tile{animation:tilepop linear both;animation-timeline:view();animation-range:entry 20% entry 100%}
+
+  .final .radar{animation:radarin linear both;animation-timeline:view();animation-range:entry 0% cover 50%}
+  .final-sub{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 90%}
+  .final-actions{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 100%}
+
+  .foot>*{animation:fadeup linear both;animation-timeline:view();animation-range:entry 0% entry 80%}
+  .pp.rv,.kbody .rv{animation-range:entry 0% entry 70%}
+}
+
+/* ===== výraznejšie skrolovacie animácie + vstup stránok ===== */
+.kbtn:active,.btn:active{transform:scale(.96)}
+.khero .wi{animation:rise 1.3s var(--ease) both;animation-delay:calc(250ms + var(--i)*90ms)}
+.khero .ksub,.khero .pnote{animation:heroin 1.4s var(--ease) both;animation-delay:var(--d,600ms)}
+.after{background:#fff;padding:clamp(80px,10vw,140px) 0}
+.after .s3{margin-top:clamp(36px,5vw,64px)}
+.curtain{position:fixed;inset:0;z-index:300;pointer-events:none}
+.curtain i{position:absolute;inset:0;animation:wipe 1.15s cubic-bezier(.76,0,.24,1) both}
+.curtain i:nth-child(1){background:var(--cyan);animation-delay:.2s}
+.curtain i:nth-child(2){background:var(--navy);animation-delay:0s}
+@keyframes wipe{from{transform:translateY(0)}to{transform:translateY(-101%)}}
+@media (prefers-reduced-motion:reduce){.curtain{display:none}}
+@supports (animation-timeline: view()) {
+  @keyframes fadeup{from{opacity:0;transform:translate3d(0,110px,0);filter:blur(16px)}to{opacity:1;transform:none;filter:none}}
+  @keyframes cardin{from{opacity:0;transform:translate3d(0,140px,0) scale(.82)}to{opacity:1;transform:none}}
+  @keyframes tilepop{from{opacity:0;transform:scale(0) rotate(-70deg)}to{opacity:1;transform:none}}
+  @keyframes rise{from{transform:translate3d(0,125%,0) rotate(6deg)}to{transform:none}}
+  @keyframes focus{0%{opacity:.1;transform:translate3d(0,0,0) scale(.96)}38%{opacity:1;transform:translate3d(38px,0,0) scale(1)}62%{opacity:1;transform:translate3d(38px,0,0) scale(1)}100%{opacity:.1;transform:translate3d(0,0,0) scale(.96)}}
+  @keyframes stepin{from{opacity:.08;transform:translate3d(0,56px,0)}to{opacity:1;transform:none}}
+  @keyframes par{to{transform:translate3d(0,42%,0)}}
+  @keyframes heroout{to{opacity:0;transform:translate3d(0,-110px,0) scale(.95)}}
+  @keyframes dotdrift{from{background-position:0 0,0 0}to{background-position:0 0,0 -260px}}
+  @keyframes slidel{from{opacity:0;transform:translate3d(-120px,0,0)}to{opacity:1;transform:none}}
+  @keyframes slider{from{opacity:0;transform:translate3d(120px,0,0)}to{opacity:1;transform:none}}
+
+  .rv,.kbody .rv,.pp.rv{animation-range:entry 0% cover 32%}
+  .sw .wi{animation-range:entry calc(var(--i)*3%) cover calc(24% + var(--i)*2%)}
+  .bento li.rv{animation-range:entry calc(var(--c,0)*6%) cover calc(30% + var(--c,0)*6%)}
+  .bcard .tile{animation-range:entry 25% cover 30%}
+  .when-head .sub{animation-range:entry 0% cover 30%}
+  .s3 li.rv{animation-range:entry calc(var(--n,0)*10%) cover calc(32% + var(--n,0)*10%)}
+  .s3 li::before{animation-range:entry 0% cover 30%}
+  .s3 .tile{animation-range:entry 30% cover 36%}
+  .s3-cta{animation-range:entry 0% cover 30%}
+  .photo.rv{animation-range:entry 0% cover 42%}
+  .creds li{animation-range:entry 0% cover 30%}
+  .creds .tile{animation-range:entry 30% cover 36%}
+  .final .radar{animation-range:entry 0% cover 60%}
+  .final-sub,.final-actions{animation-range:entry 0% entry 100%}
+  .foot>*{animation-range:entry 0% entry 90%}
+  .toc.rv{animation-name:slidel}
+  .kinfo{animation:heroin 1.4s var(--ease) .55s both}
+}
+
+/* ===== opravy: animácie na konci stránky sa dokončia + vstup na hlavnú stránku ===== */
+.hero .wi{animation-delay:calc(900ms + var(--i)*80ms)}
+.hero .hf{animation-delay:calc(var(--d,0ms) + 750ms)}
+.hero .trace{animation-delay:calc(var(--td,0s) + .85s)}
+.hero .rings circle{animation-delay:calc(var(--rd,0s) + .85s)}
+@supports (animation-timeline: view()) {
+  .after .s3 li.rv{animation-range:entry calc(var(--n,0)*5%) entry calc(78% + var(--n,0)*5%)}
+  .after .s3 li::before{animation-range:entry 0% entry 90%}
+  .after .s3 .tile{animation-range:entry 0% entry 95%}
+  .after .sw .wi{animation-range:entry calc(var(--i)*3%) entry calc(70% + var(--i)*3%)}
+  .pp.rv{animation-range:entry 0% entry 80%}
+  .pp:last-child.rv{animation-range:entry 0% entry 100%}
+  .toc.rv{animation-range:entry 0% entry 100%}
+}
+</style>
+</helmet>
+<div class="gf">
+<div class="curtain" aria-hidden="true"><i></i><i></i></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-house" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20M20 40V31h8v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="21" r="3.2"/></g></g></symbol><symbol id="i-flat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="11" y="6" width="26" height="36" rx="3.5"/><path d="M18 14h4M26 14h4M20 42v-8h8v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 23h4M26 23h4"/></g></g></symbol><symbol id="i-socket" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="11"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19.5 21v4M28.5 21v4M24 30.5v.5"/></g></g></symbol><symbol id="i-board" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="6" width="34" height="36" rx="4.5"/><path d="M14 14h8M14 24h8M14 34h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="31" cy="14" r="2.4"/><circle cx="31" cy="24" r="2.4"/><circle cx="31" cy="34" r="2.4"/></g></g></symbol><symbol id="i-rod" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M5 42h38M10 42V29l14-8 14 8v13M24 21V9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M34 3l-6 9h6l-6 9"/></g></g></symbol><symbol id="i-solar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 41 14 23h28l-6 18zM11 32h28M23.3 23l-6 18M32.7 23l-6 18"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="37" cy="11" r="4.5"/><path d="M37 2.5V4M45.5 11H44M28.5 11H30"/></g></g></symbol><symbol id="i-pole" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M17 6v38M7 13h20M17 20l-7 8M17 20l7 8M12 44h10"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M27 13c9 0 13 5 13 12"/><circle cx="40" cy="30" r="4"/></g></g></symbol><symbol id="i-ev" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="8" y="6" width="22" height="35" rx="4.5"/><path d="M5 43h28"/><rect x="13" y="11" width="12" height="9" rx="2"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 25l-4 6h5l-3 6M30 26h3a5 5 0 0 1 5 5v5"/><circle cx="38" cy="39" r="3"/></g></g></symbol><symbol id="i-blueprint" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M17 19h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 31h4l3-7 4 10 3-4h2"/></g></g></symbol><symbol id="i-hardhat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M9 33a15 15 0 0 1 30 0zM5 38h38"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M24 18v9"/></g></g></symbol><symbol id="i-wrench" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" transform="rotate(38 24 24)"><g style="stroke:var(--ic1,#022253)"><path d="M16 22V7h6v7h4V7h6v15a8 8 0 0 1-16 0zM21 29.5V41a3 3 0 0 0 6 0V29.5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="36" r="1.6"/></g></g></symbol><symbol id="i-shield-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 24l5 5 9-10"/></g></g></symbol><symbol id="i-shield-bolt" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M26 14l-7 11h6l-3 10"/></g></g></symbol><symbol id="i-permit" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M7 23 24 8l17 15M12 20v21h24V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 31l5 5 8-9"/></g></g></symbol><symbol id="i-phone" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="13" y="4" width="22" height="40" rx="6"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 38h8"/><circle cx="24" cy="17" r="3"/></g></g></symbol><symbol id="i-calendar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="10" width="34" height="32" rx="7"/><path d="M7 21h34M16 5v9M32 5v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="29" cy="31" r="3.5"/></g></g></symbol><symbol id="i-report" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M18 20h9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 34l4 4 9-9"/></g></g></symbol><symbol id="i-badge" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="19" r="12.5"/><path d="M17 30l-3 14 10-5 10 5-3-14"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19 19l4 4 7-8"/></g></g></symbol><symbol id="i-pin" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 44S9 30 9 19a15 15 0 0 1 30 0c0 11-15 25-15 25z"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="19" r="5"/></g></g></symbol><symbol id="i-person" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 43c0-9 7-15 16-15s16 6 16 15"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="15" r="8"/></g></g></symbol><symbol id="i-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 25l9 9 19-20"/></g></g></symbol><symbol id="i-arrow" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M14 34 34 14M17 14h17v17"/></g><g style="stroke:var(--ic2,#02ACC1)"></g></g></symbol><symbol id="i-stars" viewBox="0 0 120 24"><g style="fill:var(--ic2,#02ACC1);stroke:none"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(0 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(24 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(48 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(72 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(96 0)"/></g></symbol></defs></svg>
+<div class="progress"><i></i></div>
+<header class="nav" id="top">
+<div class="wrap navbar">
+<a class="brand" href="#top" aria-label="GridFlow – domov"><img src="/_blob/ae8c3724226b2b2205d598f685a5e77a" alt="GridFlow" width="190" height="37"></a>
+<nav class="links" aria-label="Hlavná navigácia">
+<a href="#sluzby">Služby</a>
+<a href="#kedy">Kedy ju potrebujete</a>
+<a href="#postup">Postup</a>
+<a href="#faq">Časté otázky</a>
+</nav>
+<div class="navcta">
+<a class="call" href="tel:+421910635595">0910 635 595</a>
+<a class="kbtn" href="Kontakt.dc.html">Kontakt</a>
+</div>
+</div>
+</header>
+
+<section class="hero">
+<svg class="hero-art" viewBox="0 0 900 600" preserveAspectRatio="xMinYMid slice" aria-hidden="true" focusable="false">
+<g><path class="trace" style="--td:0.00s" pathLength="1" d="M300 120C353.33 120 406.67 120 460 120C475.33 120 490.7 120.34 505.89 122.44C521.08 124.53 536.08 127.97 550.67 132.71C565.25 137.45 579.41 143.47 592.94 150.7C606.46 157.93 619.34 166.36 631.38 175.85C643.42 185.35 654.62 195.91 664.8 207.38C671.88 215.36 678.29 223.89 684.71 232.41C707.18 262.23 729.64 292.04 752.11 321.86C761.34 334.11 771.41 346.29 785.21 352.98C799.01 359.67 814.81 360 830.15 360C920.1 360 1010.05 360 1100 360"></path><path class="trace" style="--td:0.45s" pathLength="1" d="M220 180C299.67 180 379.33 180 459 180C474.33 180 489.72 180.35 504.83 182.99C519.93 185.63 534.73 190.02 548.83 196.04C562.94 202.05 576.35 209.7 588.71 218.77C601.07 227.84 612.38 238.34 622.35 249.99C627.77 256.32 632.68 263.07 637.69 269.72C659.96 299.27 682.23 328.82 704.5 358.37C713.72 370.62 723.36 382.73 735.41 392.2C747.47 401.68 761.21 409 775.8 413.71C790.4 418.42 805.81 420 821.15 420C823.81 420 826.48 420 829.15 420C919.43 420 1009.72 420 1100 420"></path><path class="trace" style="--td:0.90s" pathLength="1" d="M140 240C246.33 240 352.67 240 459 240C474.33 240 489.78 240.51 504.65 244.26C519.51 248.02 533.76 254.23 546.62 262.59C559.48 270.94 570.94 281.42 580.43 293.47C583.72 297.66 586.87 301.97 590.08 306.23C612.55 336.05 635.01 365.86 657.48 395.68C666.71 407.92 676.31 419.96 687.63 430.3C698.96 440.64 711.54 449.61 725.01 456.93C738.48 464.25 752.84 469.94 767.68 473.82C782.51 477.7 797.82 479.76 813.15 479.98C818.15 480.05 823.15 480 828.15 480C918.76 480 1009.38 480 1100 480"></path><path class="trace" style="--td:1.35s" pathLength="1" d="M60 300C192.67 300 325.33 300 458 300C473.33 300 489.02 300.71 503.02 306.97C517.02 313.22 528.42 324.11 537.65 336.35C539.25 338.48 540.86 340.61 542.46 342.74C564.93 372.56 587.4 402.37 609.87 432.19C619.09 444.43 628.63 456.49 639.5 467.3C650.38 478.11 662.25 487.92 674.92 496.56C687.59 505.19 701.05 512.66 715.09 518.84C729.12 525.01 743.73 529.89 758.66 533.39C773.58 536.89 788.83 539.02 804.15 539.73C811.81 540.09 819.48 540 827.15 540C918.1 540 1009.05 540 1100 540"></path></g>
+<g class="rings"><circle style="--rd:0.20s" cx="300" cy="120" r="13"></circle><circle style="--rd:0.65s" cx="220" cy="180" r="13"></circle><circle style="--rd:1.10s" cx="140" cy="240" r="13"></circle><circle style="--rd:1.55s" cx="60" cy="300" r="13"></circle></g>
+</svg>
+<div class="hero-main wrap">
+<div class="hero-copy">
+<h1 aria-label="Potrebujete revíznu správu alebo projektovú dokumentáciu k elektrickému zariadeniu?"><span class="w"><span class="wi" style="--i:0">Potrebujete</span></span> <span class="w"><span class="wi" style="--i:1">revíznu</span></span> <span class="w"><span class="wi" style="--i:2">správu</span></span> <span class="w"><span class="wi" style="--i:3">alebo</span></span> <span class="w"><span class="wi" style="--i:4">projektovú</span></span> <span class="w"><span class="wi" style="--i:5">dokumentáciu</span></span> <span class="w"><span class="wi" style="--i:6">k elektrickému</span></span> <span class="w"><span class="wi" style="--i:7">zariadeniu?</span></span></h1>
+<p class="lead hf" style="--d:700ms">Ponúkam odborné vypracovanie východiskových a pravidelných <abbr title="odborné prehliadky a odborné skúšky">OPaOS</abbr> elektrických zariadení v rozsahu E1A, E1B ako revízny technik podľa § 24.</p>
+<div class="hero-actions hf" style="--d:900ms">
+<a class="btn btn-cyan" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Zavolať 0910 635 595</a>
+<a class="btn btn-line" href="Kontakt.dc.html">Nezáväzný dopyt<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+</div>
+<p class="hero-note hf" style="--d:1050ms">Neviete, ktorý druh revízie potrebujete? Zavolajte alebo nechajte dopyt, ozvem sa vám.</p>
+</div>
+<aside class="hero-card" aria-hidden="true">
+<div class="hc-main hf" style="--d:900ms">
+<div class="hc-head"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-report"></use></svg></span><div><b>Revízna správa</b><small>OPaOS · E1A, E1B</small></div></div>
+<ul class="hc-list"><li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-board"></use></svg><span>Rozvádzače</span><span class="ck"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span></li><li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-rod"></use></svg><span>Bleskozvody</span><span class="ck"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span></li><li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-socket"></use></svg><span>Elektroinštalácie</span><span class="ck"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span></li><li><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg><span>Fotovoltika</span><span class="ck"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span></li></ul>
+<p class="hc-note">Ilustračná ukážka</p>
+</div>
+<div class="hc-chip c2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-badge"></use></svg>Revízny technik § 24</div>
+</aside>
+</div>
+<div class="wrap">
+<dl class="facts hf" style="--d:1250ms">
+<div class="fact"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-board"></use></svg></span><dt>Rozsah OPaOS</dt><dd>E1A, E1B</dd></div>
+<div class="fact"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-badge"></use></svg></span><dt>Revízny technik</dt><dd>podľa § 24</dd></div>
+<div class="fact"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg></span><dt>Pôsobnosť</dt><dd>celé Slovensko</dd></div>
+</dl>
+</div>
+</section>
+
+<section class="svc" id="sluzby">
+<div class="wrap">
+<div class="svc-head"><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Zabezpečujem</span></span> <span class="w"><span class="wi" style="--i:1">revízie</span></span> <span class="w"><span class="wi" style="--i:2">a súvisiace</span></span> <span class="w"><span class="wi" style="--i:3">služby</span></span> <span class="w"><span class="wi" style="--i:4">pre:</span></span></h2></div>
+<ul class="bento">
+<li class="rv"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-house"></use></svg></span></span><span class="bn">Domy</span></div></li>
+<li class="rv"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-flat"></use></svg></span></span><span class="bn">Byty</span></div></li>
+<li class="rv w2"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-socket"></use></svg></span></span><span class="bn">Elektroinštalácie</span></div></li>
+<li class="rv w2"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-board"></use></svg></span></span><span class="bn">Rozvádzače</span></div></li>
+<li class="rv"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-rod"></use></svg></span></span><span class="bn">Bleskozvody</span></div></li>
+<li class="rv"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg></span></span><span class="bn">Fotovoltiku</span></div></li>
+<li class="rv w2"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pole"></use></svg></span></span><span class="bn">NN prípojky</span></div></li>
+<li class="rv w2"><div class="bcard"><span class="bt"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ev"></use></svg></span></span><span class="bn">EV nabíjacie stanice</span></div></li>
+</ul>
+</div>
+</section>
+
+<section class="when" id="kedy">
+<div class="wrap when-grid">
+<div class="when-head">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Revízna</span></span> <span class="w"><span class="wi" style="--i:1">správa</span></span> <span class="w"><span class="wi" style="--i:2">je</span></span> <span class="w"><span class="wi" style="--i:3">dôležitá</span></span> <span class="w"><span class="wi" style="--i:4">najmä</span></span> <span class="w"><span class="wi" style="--i:5">pri:</span></span></h2>
+<p class="sub">Revíznu správu si často pýta stavebný úrad, distribútor elektriny aj poisťovňa. <span class="ph">DOPLNIŤ: potvrdiť s klientom</span></p>
+</div>
+<ol class="rail"><li><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-permit"></use></svg></span><span>kolaudácii</span></li><li><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-bolt"></use></svg></span><span>poistnej udalosti</span></li><li><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pole"></use></svg></span><span>pripojení fotovoltiky alebo NN prípojky do distribučnej siete</span></li><li><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></span><span>rekonštrukcii elektroinštalácie</span></li><li><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></span><span>kontrole bezpečnosti existujúceho zariadenia</span></li></ol>
+</div>
+</section>
+
+<section class="steps3" id="postup">
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Ako</span></span> <span class="w"><span class="wi" style="--i:1">to</span></span> <span class="w"><span class="wi" style="--i:2">prebieha</span></span></h2>
+<ol class="s3">
+<li class="rv"><div class="sh"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg></span><span class="no">1</span></div><h3>Ozvete sa</h3><p>Zavoláte alebo vyplníte krátky dopyt. Stačí vedieť, čo potrebujete zrevidovať.</p></li>
+<li class="rv"><div class="sh"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-calendar"></use></svg></span><span class="no">2</span></div><h3>Dohodneme rozsah a termín</h3><p>Prejdeme, čo a kde sa bude kontrolovať, a dohodneme termín.</p></li>
+<li class="rv"><div class="sh"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-report"></use></svg></span><span class="no">3</span></div><h3>Dostanete revíznu správu</h3><p><span class="ph">DOPLNIŤ: lehota a spôsob odovzdania správy</span></p></li>
+</ol>
+<div class="s3-cta"><a class="btn btn-navy" href="Kontakt.dc.html">Nezáväzný dopyt</a></div>
+</div>
+</section>
+
+<section class="solution" id="riesenie">
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Okrem</span></span> <span class="w"><span class="wi" style="--i:1">revízií</span></span> <span class="w"><span class="wi" style="--i:2">ponúkam</span></span> <span class="w"><span class="wi" style="--i:3">aj</span></span> <span class="w"><span class="wi" style="--i:4">možnosť</span></span> <span class="w"><span class="wi" style="--i:5">kompletného</span></span> <span class="w"><span class="wi" style="--i:6">riešenia:</span></span></h2>
+<ol class="flow">
+<i class="flow-fill"></i>
+<li class="step" style="--s:0;--c:#022253"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><span>Projektová dokumentácia</span></li><li class="step" style="--s:1;--c:#0a5a85"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></b><span>Montáž / rekonštrukcia</span></li><li class="step" style="--s:2;--c:#0482a3"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-wrench"></use></svg></b><span>Oprava</span></li><li class="step" style="--s:3;--c:#02ACC1"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><span>Následná revízia</span></li>
+</ol>
+<p class="flow-note">Možná je aj spolupráca s vašou montážnou firmou.</p>
+</div>
+</section>
+
+<section class="trust" id="technik">
+<div class="wrap">
+<div class="trust-grid">
+<div class="photo rv"><span class="ph">DOPLNIŤ: fotka revízneho technika</span></div>
+<div>
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Kto</span></span> <span class="w"><span class="wi" style="--i:1">vás</span></span> <span class="w"><span class="wi" style="--i:2">bude</span></span> <span class="w"><span class="wi" style="--i:3">revidovať</span></span></h2>
+<ul class="creds rv">
+<li><span class="cl"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-badge"></use></svg></span>Oprávnenie</span><b>Revízny technik podľa § 24</b></li>
+<li><span class="cl"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-board"></use></svg></span>Rozsah</span><b>E1A, E1B</b></li>
+<li><span class="cl"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-person"></use></svg></span>Meno</span><span class="ph">DOPLNIŤ: meno technika</span></li>
+<li><span class="cl"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-report"></use></svg></span>Číslo osvedčenia</span><span class="ph">DOPLNIŤ: číslo osvedčenia</span></li>
+<li><span class="cl"><span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-calendar"></use></svg></span>Prax</span><span class="ph">DOPLNIŤ: roky praxe</span></li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<section class="faq" id="faq">
+<div class="wrap faq-grid">
+<div><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Časté</span></span> <span class="w"><span class="wi" style="--i:1">otázky</span></span></h2></div>
+<div><details class="qa rv"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details><details class="qa rv"><summary>Kedy potrebujem revíznu správu?</summary><p class="ans">Najmä pri kolaudácii, poistnej udalosti, pripojení fotovoltiky alebo NN prípojky do distribučnej siete, rekonštrukcii elektroinštalácie, ale aj pri kontrole bezpečnosti existujúceho zariadenia.</p></details><details class="qa rv"><summary>Pre aké zariadenia robíte revízie?</summary><p class="ans">Pre domy, byty, elektroinštalácie, rozvádzače, bleskozvody, fotovoltiku, NN prípojky a EV nabíjacie stanice.</p></details><details class="qa rv"><summary>Robíte aj opravy a montáž?</summary><p class="ans">Áno. Okrem revízií ponúkam kompletné riešenie: projektová dokumentácia, montáž alebo rekonštrukcia, oprava a následná revízia. Možná je aj spolupráca s vašou montážnou firmou.</p></details><details class="qa rv"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobnosť je celé Slovensko.</p></details><details class="qa rv"><summary>Koľko revízia stojí?</summary><p class="ans">Cena závisí od rozsahu zariadenia. <span class="ph">DOPLNIŤ: cenový rámec alebo spôsob výpočtu</span></p></details><details class="qa rv"><summary>Ako dlho trvá vypracovanie revíznej správy?</summary><p class="ans"><span class="ph">DOPLNIŤ: lehota od obhliadky po odovzdanie správy</span></p></details></div>
+</div>
+</section>
+
+<section class="final">
+<div class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Ozvite</span></span> <span class="w"><span class="wi" style="--i:1">sa</span></span></h2>
+<p class="final-sub">Zavolajte alebo pošlite krátky dopyt.</p>
+<div class="final-actions" style="margin-top:36px">
+<a class="btn btn-cyan" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Zavolať 0910 635 595</a>
+<a class="btn btn-line" href="Kontakt.dc.html">Kontakt a dopyt<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+</div>
+</div>
+</section>
+
+<footer class="foot-wrap">
+<div class="wrap foot">
+<img src="/_blob/ae8c3724226b2b2205d598f685a5e77a" alt="GridFlow" width="170" height="33">
+<p class="legal">GridFlow s.r.o.<br>IČO: 57813329<br>Buková ulica 1309/23, 951 12 Ivanka pri Nitre</p>
+<p class="legal r">© 2026 GridFlow s.r.o.<br><a class="flink" href="Zasady.dc.html">Zásady ochrany osobných údajov</a></p>
+</div>
+</footer>
+
+<div class="mbar">
+<a href="tel:+421910635595">Zavolať</a>
+<a class="mcta" href="Kontakt.dc.html">Nezáväzný dopyt</a>
+</div>
+
+
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":7800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

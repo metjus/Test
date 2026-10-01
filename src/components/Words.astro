@@ -1,0 +1,5 @@
+---
+// Nadpis rozdelený na slová, ktoré sa pri animácii vynárajú z masky (--i = poradie slova).
+const { w } = Astro.props;
+---
+{w.map((word, i) => (<Fragment>{i > 0 && ' '}<span class="w"><span class="wi" style={`--i:${i}`}>{word}</span></span></Fragment>))}
