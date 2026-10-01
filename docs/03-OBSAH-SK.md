@@ -46,7 +46,7 @@ Texty sú **presne podľa zverejnenej verzie** návrhu. Text „DOPLNIŤ: …“
 
 ### Kedy ju potrebujete
 - Revízna správa je dôležitá najmä pri:
-- Revíznu správu si často pýta stavebný úrad, distribútor elektriny aj poisťovňa. [DOPLNIŤ: potvrdiť s klientom]
+- Revíznu správu si často pýta stavebný úrad, distribútor elektriny aj poisťovňa. [DOPLNIŤ: treba potvrdiť]
 - kolaudácii
 - poistnej udalosti
 - pripojení fotovoltiky alebo NN prípojky do distribučnej siete
