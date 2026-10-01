@@ -1,0 +1,5 @@
+---
+// Ikona zo sprite (assets/icons/sprite.svg). Farby: --ic1 (hlavná), --ic2 (akcent), hrúbka: --sw.
+const { n } = Astro.props;
+---
+<svg class="ico" aria-hidden="true" focusable="false"><use href={`#${n}`}></use></svg>

@@ -1,0 +1,100 @@
+---
+import '../styles/fonts.css';
+import '../styles/base.css';
+import sprite from '../../assets/icons/sprite.svg?raw';
+import soraLight from '../../assets/fonts/sora-latin-300.woff2?url';
+import soraRegular from '../../assets/fonts/sora-latin-400.woff2?url';
+import michroma from '../../assets/fonts/michroma-latin-400.woff2?url';
+
+const {
+  title,
+  description,
+  path = '/',
+  variant = 'sub', // 'home' (menu s kotvami) alebo 'sub' (podstránky: len logo a telefón)
+  mbar = false, // spodná lišta na mobile (Zavolať, Nezáväzný dopyt)
+  noindex = false,
+  ld = [], // JSON-LD objekty
+} = Astro.props;
+
+const canonical = new URL(path, Astro.site).href;
+const ogImage = new URL('/logo/icon-512.png', Astro.site).href; // dočasne, kým klient nedodá obrázok 1200 × 630
+const home = variant === 'home';
+const logo = '/logo/gridflow-horizontal-reversed.svg';
+---
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<meta name="description" content={description}>
+{noindex ? <meta name="robots" content="noindex"> : <link rel="canonical" href={canonical}>}
+<meta name="theme-color" content="#022253">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="sk_SK">
+<meta property="og:site_name" content="GridFlow">
+<meta property="og:title" content={title}>
+<meta property="og:description" content={description}>
+<meta property="og:url" content={canonical}>
+<meta property="og:image" content={ogImage}>
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content={title}>
+<meta name="twitter:description" content={description}>
+<meta name="twitter:image" content={ogImage}>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href={soraLight} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={soraRegular} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={michroma} as="font" type="font/woff2" crossorigin>
+<script is:inline src="/js/env.js"></script>
+{ld.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
+</head>
+<body>
+<div class="gf">
+<a class="skip" href="#obsah">Preskočiť na obsah</a>
+<div class="curtain" aria-hidden="true"><i></i><i></i></div>
+<Fragment set:html={sprite} />
+{home && <div class="progress" aria-hidden="true"><i></i></div>}
+<header class={home ? 'nav' : 'nav solid'} id="top">
+<div class="wrap navbar">
+<a class="brand" href={home ? '#top' : '/'} aria-label={home ? 'GridFlow – domov' : 'GridFlow – späť na web'}><img src={logo} alt="GridFlow" width="190" height="37"></a>
+{home && (
+<nav class="links" aria-label="Hlavná navigácia">
+<a href="#sluzby">Služby</a>
+<a href="#kedy">Kedy ju potrebujete</a>
+<a href="#postup">Postup</a>
+<a href="#faq">Časté otázky</a>
+</nav>
+)}
+<div class="navcta">
+<a class="call" href="tel:+421910635595">0910 635 595</a>
+{home && <a class="kbtn" href="/kontakt/">Kontakt</a>}
+</div>
+</div>
+</header>
+
+<main id="obsah">
+<slot />
+</main>
+
+<footer class="foot-wrap">
+<div class="wrap foot">
+<img src={logo} alt="GridFlow" width="170" height="33">
+<p class="legal">GridFlow s.r.o.<br>IČO: 57813329<br>Buková ulica 1309/23, 951 12 Ivanka pri Nitre</p>
+<p class="legal r">© 2026 GridFlow s.r.o.<br><a class="flink" href="/zasady-ochrany-osobnych-udajov/">Zásady ochrany osobných údajov</a></p>
+</div>
+</footer>
+
+{mbar && (
+<div class="mbar">
+<a href="tel:+421910635595">Zavolať</a>
+<a class="mcta" href="/kontakt/">Nezáväzný dopyt</a>
+</div>
+)}
+</div>
+<script>
+  import '../scripts/reveal.js';
+</script>
+</body>
+</html>
