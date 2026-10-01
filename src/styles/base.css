@@ -50,12 +50,8 @@
 /* Cyan ako text na bielom nemá dosť kontrastu (docs/02-DIZAJN.md): tmavší odtieň len pre text */
 .gf .toc b,.gf .pp h2 b,.gf .s3 .no{color:#0a7f90}
 
-/* Radar v záverečnom pruhu a v hlavičkách podstránok: výraznejšie kruhy a uzol */
-@keyframes radarping{0%{transform:scale(.06);opacity:0}8%{opacity:1}65%{opacity:.55}100%{transform:scale(1);opacity:0}}
-.gf .radar::before,.gf .radar::after{content:"";position:absolute;border-radius:50%;pointer-events:none}
-.gf .radar::before{inset:20%;border:1px dashed rgba(127,214,226,.32)}
-.gf .radar::after{inset:38%;border:1px solid rgba(127,214,226,.3)}
-.gf .radar i{border:2px solid rgba(2,172,193,.85);box-shadow:0 0 36px rgba(2,172,193,.28),inset 0 0 36px rgba(2,172,193,.1);animation-name:radarping}
-.gf .radar b{width:34px;height:34px;margin:-17px 0 0 -17px;border-width:6px;box-shadow:0 0 0 14px rgba(2,172,193,.14),0 0 48px rgba(2,172,193,.65)}
-/* Radar je väčší ako obrazovka, takže jeho scroll-driven nábeh sa nikdy nedokončil (ostal poloprázdny). Je vždy plne viditeľný, pulzujú len kruhy. */
+/* Radar: o trochu viditeľnejší (pôvodný bol skoro neviditeľný) */
+@keyframes radarping{0%{transform:scale(.06);opacity:0}10%{opacity:1}100%{transform:scale(1);opacity:0}}
+.gf .radar i{border:1.5px solid rgba(2,172,193,.6);animation-name:radarping}
+/* Radar je väčší ako obrazovka, takže jeho scroll-driven nábeh sa nikdy nedokončil (ostal poloprázdny). Je vždy plne viditeľný. */
 .gf .final .radar{animation:none;opacity:1}
