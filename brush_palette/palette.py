@@ -95,7 +95,11 @@ class PaletteLayout:
     """Geometry of the palette in region pixel coordinates (origin bottom-left)."""
 
     def __init__(self, region_w, region_h, anchor, n_items, n_quick, tab, scale,
-                 thumb_size=72, columns=12, show_labels=True, scroll_row=0, top=None):
+                 thumb_size=72, columns=12, show_labels=True, scroll_row=0, top=None, bounds=None):
+        # ``bounds`` (x0, y0, x1, y1) is the part of the region not covered by overlapping
+        # header / toolbar / sidebar regions; the panel stays inside it.
+        bx0, by0, bx1, by1 = bounds if bounds else (0, 0, region_w, region_h)
+        region_w, region_h = bx1 - bx0, by1 - by0
         s = scale
         self.scale = s
         self.pad = pad = round(10 * s)
@@ -128,13 +132,13 @@ class PaletteLayout:
         self.grid_h = grid_h = visible_rows * row_h - gap
         self.height = height = fixed + grid_h
 
-        ax, ay = anchor
-        x = min(max(ax - width / 2, margin), max(margin, region_w - width - margin))
+        ax, ay = anchor[0] - bx0, anchor[1] - by0
+        x = min(max(ax - width / 2, margin), max(margin, region_w - width - margin)) + bx0
         if top is None:
             # First layout: centre on the mouse. Afterwards the caller passes the top edge
             # back in, so the tabs and letter bar stay put while the list grows or shrinks.
-            top = ay + height / 2
-        top = min(max(top, height + margin), region_h - margin)
+            top = ay + height / 2 + by0
+        top = min(max(top - by0, height + margin), region_h - margin) + by0
         self.panel = Box(round(x), round(top - height), width, height)
         px, py = self.panel.x, self.panel.y
 
@@ -227,6 +231,40 @@ class PaletteLayout:
             if box.contains(mx, my):
                 return (kind, ident)
         return ('PANEL', None)
+
+
+OVERLAP_SIDE = {'UI', 'TOOLS'}
+OVERLAP_BARS = {'HEADER', 'TOOL_HEADER', 'ASSET_SHELF', 'ASSET_SHELF_HEADER', 'FOOTER'}
+
+
+def free_bounds(area, region):
+    """Part of ``region`` (region coordinates) not covered by overlapping regions.
+
+    With "Region Overlap" on, the header, tool header, toolbar and sidebar are drawn on top of
+    the 3D viewport; the palette must avoid them or it ends up hidden behind them.
+    """
+    x0, y0 = region.x, region.y
+    x1, y1 = x0 + region.width, y0 + region.height
+    for other in getattr(area, "regions", ()):
+        if other.type not in OVERLAP_SIDE | OVERLAP_BARS or other.width <= 1 or other.height <= 1:
+            continue
+        ox0, oy0 = other.x, other.y
+        ox1, oy1 = ox0 + other.width, oy0 + other.height
+        if ox1 <= x0 or ox0 >= x1 or oy1 <= y0 or oy0 >= y1:
+            continue  # not overlapping (region overlap is off or it is elsewhere)
+        if other.type in OVERLAP_SIDE:
+            if (ox0 + ox1) / 2 > (x0 + x1) / 2:
+                x1 = min(x1, ox0)
+            else:
+                x0 = max(x0, ox1)
+        else:
+            if (oy0 + oy1) / 2 > (y0 + y1) / 2:
+                y1 = min(y1, oy0)
+            else:
+                y0 = max(y0, oy1)
+    if x1 - x0 < 200 or y1 - y0 < 150:  # too little room left: use the whole region
+        return (0, 0, region.width, region.height)
+    return (x0 - region.x, y0 - region.y, x1 - region.x, y1 - region.y)
 
 
 def filter_items(items, query, prefix_only=False):
@@ -479,7 +517,7 @@ class BPAL_OT_palette(Operator):
         lay = PaletteLayout(self.region.width, self.region.height, self.anchor,
                             len(self.items), len(self.quick_items), self.current_tab, scale,
                             self.prefs.thumb_size, self.prefs.columns, self.prefs.show_labels, self.scroll_row,
-                            self.panel_top)
+                            self.panel_top, free_bounds(self.area, self.region))
         self.scroll_row = lay.scroll_row
         if self.panel_top is None:
             self.panel_top = lay.panel.y + lay.panel.h

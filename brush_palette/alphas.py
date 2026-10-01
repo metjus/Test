@@ -37,6 +37,7 @@ TARGETS = {
 }
 
 SOURCE_PROP = "brush_palette_source"
+STROKE_SETTINGS = ("stroke_method", "spacing", "use_edge_to_edge")
 ALPHA_PROP = "brush_palette_alpha"
 
 
@@ -222,6 +223,14 @@ def _editable_brush(context, brush):
         local[SOURCE_PROP] = source
         if local.asset_data is None:
             local.asset_mark()
+    else:
+        # Reusing an older copy: carry over the stroke the user just set on the original
+        # (e.g. DragRect), otherwise the copy would silently keep its old stroke.
+        for attr in STROKE_SETTINGS:
+            try:
+                setattr(local, attr, getattr(brush, attr))
+            except (AttributeError, TypeError):
+                pass
     if not brushes.activate_local(context, local):
         raise RuntimeError("Could not activate the local brush %r" % local.name)
     return local

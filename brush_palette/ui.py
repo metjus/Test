@@ -164,7 +164,9 @@ class BPAL_PT_palette(Panel):
         box = layout.box()
         box.label(text="Current Brush", icon='BRUSHES_ALL')
         if brush is not None:
-            icon = layout.icon(brush)
+            # The brush preview; layout.icon() can give a tiny generic icon for brush copies.
+            preview = brush.preview
+            icon = preview.icon_id if preview is not None and preview.image_size[0] else layout.icon(brush)
             if icon:
                 box.template_icon(icon_value=icon, scale=5.0)
             box.label(text=brush.name)

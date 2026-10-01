@@ -136,6 +136,18 @@ def test_alphas(pkg):
     alphas.apply(bpy.context, star)
     check(len(bpy.data.textures) == textures_before, "texture reused for the same alpha")
 
+    # Stroke set on the original (e.g. DragRect) carries over to the reused copy.
+    brushes.activate(bpy.context, clay)
+    brushes.set_stroke(bpy.context, 'ANCHORED')
+    alphas.apply(bpy.context, ring)
+    brush = brushes.active_brush(bpy.context)
+    check(brush.name == "Clay Strips Alpha" and brush.stroke_method == 'ANCHORED',
+          "reused copy gets the DragRect stroke set on the original")
+    brushes.activate(bpy.context, clay)
+    brushes.set_stroke(bpy.context, 'SPACE')
+    alphas.apply(bpy.context, ring)  # back on the copy, stroke synced to Space
+    check(brushes.active_brush(bpy.context).stroke_method == 'SPACE', "copy follows the original back to Space")
+
     local = [i for i in brushes.collect(bpy.context) if i.lib_type == 'LOCAL']
     check(any(i.name == "Clay Strips Alpha" for i in local), "local brush listed in palette")
     brushes.load_thumb(local[0])
@@ -169,6 +181,30 @@ def test_layout(pkg):
     small = PaletteLayout(500, 300, (10, 10), 120, 0, 'ALPHAS', 1.0)
     check(small.panel.x >= 0 and small.panel.y >= 0 and small.cols >= 1, "small region still fits")
     check(small.hit(small.button('CHIP', 'AREA_PLANE').x + 2, small.button('CHIP', 'AREA_PLANE').y + 2, 120) == ('CHIP', 'AREA_PLANE'), "hit chip")
+
+    # Region overlap: header, tool header, toolbar and sidebar drawn over the viewport.
+    from types import SimpleNamespace as NS
+    from brush_palette.palette import free_bounds
+    window = NS(type='WINDOW', x=0, y=0, width=1280, height=800)
+    area = NS(regions=[
+        window,
+        NS(type='HEADER', x=0, y=776, width=1280, height=24),
+        NS(type='TOOL_HEADER', x=0, y=752, width=1280, height=24),
+        NS(type='TOOLS', x=0, y=0, width=40, height=752),
+        NS(type='UI', x=1000, y=0, width=280, height=752),
+        NS(type='HUD', x=50, y=10, width=200, height=100),
+    ])
+    bounds = free_bounds(area, window)
+    check(bounds == (40, 0, 1000, 752), "free area avoids header/toolbar/sidebar: %s" % (bounds,))
+    lay = PaletteLayout(1280, 800, (1100, 790), 120, 5, 'BRUSHES', 1.0, bounds=bounds)
+    p = lay.panel
+    check(p.x >= 40 and p.x + p.w <= 1000 and p.y >= 0 and p.y + p.h <= 752,
+          "panel opened near the sidebar stays clear of it: %r" % p)
+    area.regions[4].width = 1  # hidden sidebar
+    check(free_bounds(area, window) == (40, 0, 1280, 752), "hidden sidebar ignored")
+    no_overlap = NS(regions=[NS(type='WINDOW', x=0, y=30, width=1280, height=770),
+                             NS(type='HEADER', x=0, y=0, width=1280, height=30)])
+    check(free_bounds(no_overlap, no_overlap.regions[0]) == (0, 0, 1280, 770), "no overlap: whole region")
 
     class It:
         def __init__(self, name):
