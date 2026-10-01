@@ -1,0 +1,10 @@
+node_modules
+dist
+dev-dist
+*.local
+# Nikdy nenahrávaj skutočné dokumenty a zálohy do repozitára
+/dokumenty/
+/zalohy/
+*.dokbackup
+*.pdf
+public/ocr
