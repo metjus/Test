@@ -1,14 +1,10 @@
 ---
 import Base from '../layouts/Base.astro';
-import Icon from '../components/Icon.astro';
 import Words from '../components/Words.astro';
 import '../styles/contact.css';
 
-// Formulár sa spustí ostro, až keď klient dodá adresu na príjem dopytov (PUBLIC_FORM_ENDPOINT).
-// Do tej doby ostrý build zobrazí len telefón a tlačidlo Zavolať (docs/05-FORMULAR-A-ZASADY.md).
-// Vo vývoji (npm run dev) formulár beží v ukážkovom režime bez odosielania.
+// Bez PUBLIC_FORM_ENDPOINT formulár beží v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
 const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
-const formLive = Boolean(endpoint) || import.meta.env.DEV;
 
 const services = [
   { v: 'inst', t: 'Revízia elektroinštalácie', on: true },
@@ -44,7 +40,6 @@ const times = [{ v: 'any', t: 'Kedykoľvek', on: true }, { v: 'am', t: 'Dopoludn
 <div><p class="k">E-mail</p><span class="ph">DOPLNIŤ: e-mail</span></div>
 </aside>
 
-{formLive ? (
 <form class="kcard" id="inquiry" novalidate data-endpoint={endpoint} aria-labelledby="inq-title">
 <div id="inq-panel">
 <h2 id="inq-title">Nezáväzný dopyt</h2>
@@ -102,6 +97,7 @@ const times = [{ v: 'any', t: 'Kedykoľvek', on: true }, { v: 'am', t: 'Dopoludn
 <div class="tick"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false"><path d="M6 15.5l6 6L24 9" stroke="#02ACC1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div>
 <h2 id="sent-title" tabindex="-1" style="margin:0 0 6px">Ďakujem, dopyt je odoslaný.</h2>
 <p>Ozvem sa vám na číslo <strong id="sent-phone"></strong>. <span class="ph">DOPLNIŤ: do koľkých hodín sa ozvete</span></p>
+<p class="fine" id="demo-note" hidden>Ukážkový režim: formulár zatiaľ nič neodosiela.</p>
 <ul class="sum">
 <li><span>Čo potrebujete</span><span id="sum-service"></span></li>
 <li><span>Účel</span><span id="sum-purpose"></span></li>
@@ -110,18 +106,6 @@ const times = [{ v: 'any', t: 'Kedykoľvek', on: true }, { v: 'am', t: 'Dopoludn
 <div class="dlg-actions"><button type="button" class="btn-send" id="f-again">Poslať ďalší dopyt</button></div>
 </div>
 </form>
-) : (
-<div class="kcard">
-<div>
-<h2>Nezáväzný dopyt</h2>
-<p class="hint">Radšej zavoláte? Zavolajte a poradím, čo presne potrebujete.</p>
-<div class="dlg-actions">
-<a class="btn btn-navy" href="tel:+421910635595"><Icon n="i-phone" />Zavolať 0910 635 595</a>
-</div>
-<p class="fine after-note">E-mail pre dopyty: <span class="ph">DOPLNIŤ: e-mail</span></p>
-</div>
-</div>
-)}
 </div>
 </section>
 

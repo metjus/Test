@@ -119,6 +119,7 @@ if (form) {
     $('#sum-service').textContent = payload.services.join(', ');
     $('#sum-purpose').textContent = payload.purposes.length ? payload.purposes.join(', ') : '—';
     $('#sum-contact').textContent = `${payload.contactMethod}, ${payload.contactTime.toLowerCase()}`;
+    $('#demo-note').hidden = Boolean(endpoint);
     panel.hidden = true;
     sent.hidden = false;
     $('#sent-title').focus({ preventScroll: true });

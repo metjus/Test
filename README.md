@@ -42,7 +42,7 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 
 `/kontakt/` obsahuje formulár podľa `docs/05-FORMULAR-A-ZASADY.md`: povinné je len meno a telefón, najčastejšie voľby sú predvolené, chyby sú po slovensky, je tam honeypot a krátka ochrana proti opakovanému odoslaniu (30 s). Do konzoly sa nič neloguje.
 
-- **Kým nie je nastavené `PUBLIC_FORM_ENDPOINT`**, ostrý build namiesto formulára zobrazí telefón a tlačidlo Zavolať (pravidlo zo zadania, kým klient nedodá e-mail). Vo vývoji sa formulár zobrazí v ukážkovom režime.
+- **Kým nie je nastavené `PUBLIC_FORM_ENDPOINT`**, formulár beží v ukážkovom režime: validácia, voľby aj poďakovanie fungujú, ale nič sa neodosiela (poďakovanie to uvedie). Pred ostrým nasadením endpoint nastavte, inak dopyty zaniknú.
 - **Po nastavení** formulár odošle `POST` s `Content-Type: application/json`:
 
 ```json
