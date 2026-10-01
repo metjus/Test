@@ -182,6 +182,148 @@ def test_layout(pkg):
     check([i.name for i in filter_items(items, "grab")] == ["Elastic Grab"], "word match")
 
 
+
+
+def ev(etype, value='PRESS', x=0, y=0, ctrl=False, alt=False, shift=False, unicode=""):
+    from types import SimpleNamespace
+    return SimpleNamespace(type=etype, value=value, mouse_x=x, mouse_y=y, ctrl=ctrl, alt=alt,
+                           shift=shift, oskey=False, unicode=unicode)
+
+
+def center(box):
+    return box.x + box.w / 2, box.y + box.h / 2
+
+
+def test_events(pkg):
+    """Drive the palette's modal() with synthetic events."""
+    print("events")
+    from brush_palette import alphas, brushes, prefs
+    ctx = bpy.context
+    W, H = 1280, 800
+    p = prefs.get_prefs()
+    p.recents = "[]"
+    p.favorites = "[]"
+
+    pal = make_palette('BRUSHES', W, H)
+    lay = pal.compute_layout()
+    check(pal.modal(ctx, ev('TIMER')) == {'PASS_THROUGH'}, "timer passes through")
+    check(pal.modal(ctx, ev('MIDDLEMOUSE')) == {'PASS_THROUGH'}, "middle mouse navigates the viewport")
+    x, y = center(lay.item_box(3))
+    pal.modal(ctx, ev('MOUSEMOVE', 'NOTHING', x, y))
+    check(pal.hover == ('ITEM', 3), "hover follows mouse")
+
+    for ch in "cl":
+        pal.modal(ctx, ev(ch.upper(), unicode=ch))
+    check(pal.search == "cl" and pal.items and pal.items[0].name == "Clay", "typing filters: %s" %
+          [i.name for i in pal.items[:4]])
+    check(pal.kbd_index == 0, "first match highlighted")
+    pal.modal(ctx, ev('BACK_SPACE'))
+    check(pal.search == "c", "backspace")
+    pal.modal(ctx, ev('L', unicode="l"))
+    pal.modal(ctx, ev('RIGHT_ARROW'))
+    check(pal.kbd_index == 1, "arrow moves highlight")
+    target = pal.items[1]
+    result = pal.modal(ctx, ev('RET'))
+    check(result == {'FINISHED'}, "enter picks and closes")
+    check(brushes.active_key(ctx) == target.key, "enter activated %s" % target.name)
+    check(prefs.recents(p)[:1] == [target.key], "pick recorded in recents")
+
+    pal = make_palette('BRUSHES', W, H)
+    lay = pal.compute_layout()
+    letter_box = dict(lay.letters)["S"]
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(letter_box)))
+    check(pal.prefix_only and pal.items and all(i.name.lower().startswith("s") for i in pal.items),
+          "letter bar filters to S (%d)" % len(pal.items))
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(letter_box)))
+    check(not pal.search and len(pal.items) == len(pal.all_items), "clicking the letter again clears it")
+    pal.modal(ctx, ev('S', unicode="s"))
+    pal.modal(ctx, ev('ESC'))
+    check(pal.search == "" and pal._timer is None, "esc clears search first")
+
+    lay = pal.compute_layout()
+    fav = pal.items[2]
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(2)), ctrl=True))
+    check(fav.key in prefs.favorites(p) and fav in pal.quick_items, "ctrl+click adds favorite to quick pick")
+    lay = pal.compute_layout()
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(2)), ctrl=True))
+    check(fav.key not in prefs.favorites(p), "ctrl+click again removes it")
+
+    lay = pal.compute_layout()
+    if lay.max_scroll_row > 0:
+        pal.modal(ctx, ev('WHEELDOWNMOUSE'))
+        check(pal.scroll_row == 1, "wheel scrolls one row")
+        pal.modal(ctx, ev('WHEELUPMOUSE'))
+        check(pal.scroll_row == 0, "wheel scrolls back")
+    small = make_palette('BRUSHES', 900, 420)
+    lay = small.compute_layout()
+    check(lay.max_scroll_row > 0, "small viewport needs scrolling")
+    small.modal(ctx, ev('WHEELDOWNMOUSE'))
+    small.modal(ctx, ev('WHEELDOWNMOUSE'))
+    check(small.scroll_row == 2, "wheel scrolls rows")
+    small.modal(ctx, ev('WHEELUPMOUSE'))
+    check(small.scroll_row == 1, "wheel scrolls back")
+    for _ in range(50):
+        small.modal(ctx, ev('WHEELDOWNMOUSE'))
+    check(small.scroll_row == lay.max_scroll_row, "scroll stops at the end")
+    top = lay.panel.y + lay.panel.h
+    small.modal(ctx, ev('Q', unicode="q"))
+    lay2 = small.compute_layout()
+    check(lay2.panel.y + lay2.panel.h == top and lay2.header.y == lay.header.y, "panel top stays put while filtering")
+
+    size = p.thumb_size
+    pal.modal(ctx, ev('WHEELUPMOUSE', ctrl=True))
+    check(p.thumb_size == size + 8, "ctrl+wheel grows thumbnails")
+    p.thumb_size = size
+
+    lay = pal.compute_layout()
+    shift_target = pal.items[5]
+    result = pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(5)), shift=True))
+    check(result == {'RUNNING_MODAL'} and pal.active_key == shift_target.key, "shift+click picks and stays open")
+    quick_box = pal.compute_layout().quick[0]
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(quick_box), shift=True))
+    check(pal.active_key == pal.quick_items[0].key, "quick pick slot picks")
+
+    # Alphas: Tab, mapping chip, pick.
+    pal.modal(ctx, ev('TAB'))
+    check(pal.current_tab == 'ALPHAS' and pal.items[0].key == alphas.NONE_KEY, "tab switches to alphas")
+    lay = pal.compute_layout()
+    star_index = next(i for i, it in enumerate(pal.items) if it.name == "Star")
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(dict(lay.chips)['VIEW_PLANE'])))
+    check(p.alpha_map_mode == 'VIEW_PLANE', "chip sets default mapping")
+    result = pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(star_index))))
+    brush = brushes.active_brush(ctx)
+    check(result == {'FINISHED'} and brush.texture is not None, "click applies alpha to %s" % brush.name)
+    check(brush.texture_slot.map_mode == 'VIEW_PLANE', "new alpha uses chosen mapping")
+    p.alpha_map_mode = 'AREA_PLANE'
+
+    pal = make_palette('ALPHAS', W, H)
+    lay = pal.compute_layout()
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(dict(lay.chips)['TILED'])))
+    check(brushes.active_brush(ctx).texture_slot.map_mode == 'TILED', "chip changes mapping of current alpha")
+    result = pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(0))))
+    check(result == {'FINISHED'} and brushes.active_brush(ctx).texture is None, "Off removes the alpha")
+
+    # Closing.
+    pal = make_palette('BRUSHES', W, H)
+    check(pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', 2, 2)) == {'CANCELLED'}, "click outside closes")
+    pal = make_palette('BRUSHES', W, H)
+    check(pal.modal(ctx, ev('RIGHTMOUSE')) == {'CANCELLED'}, "right click closes")
+    pal = make_palette('BRUSHES', W, H)
+    check(pal.modal(ctx, ev('B', alt=True, unicode="b")) == {'CANCELLED'}, "hotkey again closes")
+    pal = make_palette('BRUSHES', W, H)
+    check(pal.modal(ctx, ev('ESC')) == {'CANCELLED'}, "esc closes")
+    pal = make_palette('BRUSHES', W, H)
+    lay = pal.compute_layout()
+    check(pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.close))) == {'CANCELLED'}, "close button")
+
+    # Modes without alphas.
+    bpy.ops.object.mode_set(mode='WEIGHT_PAINT')
+    pal = make_palette('BRUSHES', W, H)
+    pal.modal(ctx, ev('TAB'))
+    check(pal.current_tab == 'BRUSHES' and "Alphas" in pal.message, "no alpha tab in weight paint")
+    bpy.ops.object.mode_set(mode='SCULPT')
+
+
 # ---------------------------------------------------------------------------
 # Off-screen rendering of the palette
 
@@ -213,25 +355,47 @@ class FakeRegion:
         self.width, self.height, self.x, self.y = w, h, 0, 0
 
 
+class FakeArea:
+    type = 'VIEW_3D'
+
+    def tag_redraw(self):
+        pass
+
+
 def make_palette(tab, width, height, search="", hover=None, prefix_only=False):
+    """Palette operator logic bound to a plain object (operators can't be instantiated directly)."""
+    import inspect
+    import time
     from brush_palette import palette, prefs
     op = palette.BPAL_OT_palette
 
     class Fake:
-        pass
-    for name in ("draw_palette", "draw_thumb", "draw_marks", "draw_footer", "compute_layout", "reload", "refresh_filter",
-                 "load_pending"):
-        setattr(Fake, name, op.__dict__[name])
+        reports = []
+
+        def region_alive(self, context):
+            return True
+
+        def report(self, kind, msg):
+            self.reports.append((kind, msg))
+    for name, value in op.__dict__.items():
+        if inspect.isfunction(value) and name not in Fake.__dict__:
+            setattr(Fake, name, value)
     pal = Fake()
     pal.region = FakeRegion(width, height)
+    pal.area = FakeArea()
+    pal._handle = pal._timer = None
     pal.prefs = prefs.get_prefs()
     pal.anchor = (width / 2, height / 2)
     pal.search = ""
     pal.prefix_only = False
     pal.scroll_row = 0
+    pal.panel_top = None
     pal.hover = None
     pal.kbd_index = None
     pal.message = ""
+    pal.request_close = False
+    pal.invoke_key = ('B', False, True, False)
+    pal.opened_at = time.time() - 1.0
     pal.current_tab = tab
     pal.reload(bpy.context)
     if search:
@@ -310,6 +474,7 @@ def main():
     test_brushes(pkg)
     test_alphas(pkg)
     test_layout(pkg)
+    test_events(pkg)
     if args.screenshot_dir:
         screenshots(args.screenshot_dir)
     addon_utils.disable("brush_palette", default_set=True)

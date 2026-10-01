@@ -69,7 +69,7 @@ class PaletteLayout:
     """Geometry of the palette in region pixel coordinates (origin bottom-left)."""
 
     def __init__(self, region_w, region_h, anchor, n_items, n_quick, tab, scale,
-                 thumb_size=72, columns=12, show_labels=True, scroll_row=0):
+                 thumb_size=72, columns=12, show_labels=True, scroll_row=0, top=None):
         s = scale
         self.scale = s
         self.pad = pad = round(10 * s)
@@ -102,8 +102,11 @@ class PaletteLayout:
 
         ax, ay = anchor
         x = min(max(ax - width / 2, margin), max(margin, region_w - width - margin))
-        top = min(max(ay + height / 2, height + margin), region_h - margin)
-        top = max(top, min(height + margin, region_h - margin))
+        if top is None:
+            # First layout: centre on the mouse. Afterwards the caller passes the top edge
+            # back in, so the tabs and letter bar stay put while the list grows or shrinks.
+            top = ay + height / 2
+        top = min(max(top, height + margin), region_h - margin)
         self.panel = Box(round(x), round(top - height), width, height)
         px, py = self.panel.x, self.panel.y
 
@@ -368,6 +371,7 @@ class BPAL_OT_palette(Operator):
         self.search = ""
         self.prefix_only = False
         self.scroll_row = 0
+        self.panel_top = None
         self.hover = None
         self.kbd_index = None
         self.message = ""
@@ -445,8 +449,11 @@ class BPAL_OT_palette(Operator):
         scale = ctx.preferences.system.ui_scale or 1.0  # 0 in background mode
         lay = PaletteLayout(self.region.width, self.region.height, self.anchor,
                             len(self.items), len(self.quick_items), self.current_tab, scale,
-                            self.prefs.thumb_size, self.prefs.columns, self.prefs.show_labels, self.scroll_row)
+                            self.prefs.thumb_size, self.prefs.columns, self.prefs.show_labels, self.scroll_row,
+                            self.panel_top)
         self.scroll_row = lay.scroll_row
+        if self.panel_top is None:
+            self.panel_top = lay.panel.y + lay.panel.h
         return lay
 
     # -- teardown ----------------------------------------------------------

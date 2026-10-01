@@ -76,7 +76,8 @@ The sidebar also has a **Palette** tab (`N` panel) showing the current brush and
 
 `tests/run_tests.py` runs headless with the `bpy` module from PyPI. It enables the add-on in a throw-away
 user folder and checks brush listing and activation, alpha thumbnails, alpha application (including the
-local-copy logic), and the palette layout and hit testing:
+local-copy logic), the palette layout and hit testing, and drives the palette's event handling with synthetic
+mouse/keyboard events (search, letter bar, Enter, arrows, favorites, scrolling, Tab, mapping chips, closing):
 
 ```sh
 pip install bpy==5.0.1        # or 4.5.x
