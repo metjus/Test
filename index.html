@@ -1,20 +1,443 @@
 <!DOCTYPE html>
-<html>
-<html lang="#">
+<html lang="sk">
 <head>
-<title>Test</title>
-<meta charset="UTF-8>
-<meta name="author" content="#">
-<meta name="description" content="#">
-<meta name="keywords" content="#">
-<meta name="viewport" content="width=device-width , initial-scale=1.0">
-<meta name="robots" content="index , follow">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TABEG | Stavebná firma – stavby na kľúč, rekonštrukcie, stavebný dozor</title>
+  <meta name="description" content="TABEG – stavebná firma z Križovian nad Dudváhom. Stavby na kľúč, murárske práce, obklady a dlažby, prestavby bytových jadier a stavebný dozor.">
+  <meta name="author" content="TABEG – Ľubomír Táčovský">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#0A0C18">
+  <meta property="og:title" content="TABEG | Stavebná firma">
+  <meta property="og:description" content="Stavby na kľúč, murárske práce, obklady a dlažby, prestavby bytových jadier a stavebný dozor.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.tabeg.sk/">
+  <meta property="og:image" content="assets/img/logo-tabeg.png">
 
-<link rel="stylesheet" type="text/css" href="#">
-<script src="#"></script>
-<link rel="shortcut icon" type="image/png" href="#"/>
+  <link rel="icon" type="image/png" href="assets/img/logo-tabeg.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
+  <a class="skip-link" href="#main">Preskočiť na obsah</a>
 
+  <!-- Preloader -->
+  <div class="loader" aria-hidden="true">
+    <div class="loader__inner">
+      <img src="assets/img/logo-tabeg.png" alt="" class="loader__logo" width="160" height="46">
+      <span class="loader__bar"><span></span></span>
+    </div>
+  </div>
+
+  <div class="grain" aria-hidden="true"></div>
+  <div class="progress" aria-hidden="true"><span></span></div>
+
+  <!-- Header -->
+  <header class="header" id="top">
+    <div class="header__inner container">
+      <a href="#top" class="header__logo" aria-label="TABEG – na začiatok stránky">
+        <img src="assets/img/logo-tabeg.png" alt="Stavebná firma TABEG" width="160" height="46">
+      </a>
+      <nav class="nav" aria-label="Hlavná navigácia">
+        <ul class="nav__list" id="nav-list">
+          <li><a href="#sluzby">Služby</a></li>
+          <li><a href="#postup">Postup</a></li>
+          <li><a href="#projekty">Projekty</a></li>
+          <li><a href="#o-nas">O nás</a></li>
+          <li><a href="#kontakt">Kontakt</a></li>
+        </ul>
+      </nav>
+      <a href="tel:+421915132350" class="btn btn--ghost header__cta">+421 915 132 350</a>
+      <button class="burger" type="button" aria-label="Otvoriť menu" aria-expanded="false" aria-controls="mobile-menu">
+        <span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Mobile menu -->
+  <div class="menu" id="mobile-menu" hidden>
+    <nav aria-label="Mobilná navigácia">
+      <ul>
+        <li><a href="#sluzby"><small>01</small>Služby</a></li>
+        <li><a href="#postup"><small>02</small>Postup</a></li>
+        <li><a href="#projekty"><small>03</small>Projekty</a></li>
+        <li><a href="#o-nas"><small>04</small>O nás</a></li>
+        <li><a href="#kontakt"><small>05</small>Kontakt</a></li>
+      </ul>
+    </nav>
+    <div class="menu__foot">
+      <a href="tel:+421915132350">+421 915 132 350</a>
+      <a href="mailto:info@tabeg.sk">info@tabeg.sk</a>
+    </div>
+  </div>
+
+  <main id="main">
+
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__grid" aria-hidden="true"></div>
+      <div class="hero__glow" aria-hidden="true"></div>
+
+      <div class="hero__drawing" aria-hidden="true" data-parallax="0.15">
+        <svg viewBox="0 0 900 520" fill="none" class="blueprint">
+          <!-- dimension lines -->
+          <path class="bp bp--thin" d="M60 470 H840" pathLength="1"/>
+          <path class="bp bp--thin" d="M60 460 V480 M840 460 V480" pathLength="1"/>
+          <path class="bp bp--thin" d="M870 120 V440 M860 120 H880 M860 440 H880" pathLength="1"/>
+          <!-- ground -->
+          <path class="bp" d="M20 440 H880" pathLength="1"/>
+          <!-- main volume -->
+          <path class="bp" d="M110 440 V250 H520 V440" pathLength="1"/>
+          <!-- upper cantilever volume -->
+          <path class="bp bp--gold" d="M300 250 V120 H760 V250 H640" pathLength="1"/>
+          <path class="bp" d="M520 250 H640 V440 H520" pathLength="1"/>
+          <!-- roof slab -->
+          <path class="bp bp--gold" d="M280 112 H780" pathLength="1"/>
+          <path class="bp" d="M90 242 H540" pathLength="1"/>
+          <!-- windows upper -->
+          <path class="bp" d="M330 150 H480 V225 H330 Z" pathLength="1"/>
+          <path class="bp" d="M505 150 H730 V225 H505 Z" pathLength="1"/>
+          <path class="bp bp--thin" d="M405 150 V225 M580 150 V225 M655 150 V225" pathLength="1"/>
+          <!-- ground floor glazing -->
+          <path class="bp" d="M140 290 H330 V440" pathLength="1"/>
+          <path class="bp bp--thin" d="M140 290 V440 M205 290 V440 M270 290 V440" pathLength="1"/>
+          <path class="bp" d="M370 300 H480 V440" pathLength="1"/>
+          <path class="bp bp--thin" d="M370 300 V440" pathLength="1"/>
+          <!-- terrace & steps -->
+          <path class="bp bp--thin" d="M640 440 H820 M660 425 H820 M680 410 H820" pathLength="1"/>
+          <!-- labels -->
+          <text x="450" y="500" class="bp-label">16 400</text>
+          <text x="885" y="285" class="bp-label bp-label--v">6 200</text>
+          <text x="302" y="106" class="bp-label">+6,150</text>
+        </svg>
+      </div>
+
+      <div class="container hero__content">
+        <p class="eyebrow" data-reveal>Stavebná firma · Križovany nad Dudváhom</p>
+        <h1 class="hero__title" id="hero-title">
+          <span class="line"><span>Staviame domovy,</span></span>
+          <span class="line"><span>ktoré <em>pretrvajú</em></span></span>
+          <span class="line"><span>generácie.</span></span>
+        </h1>
+        <div class="hero__bottom">
+          <p class="hero__lead" data-reveal>
+            Od prvého výkopu až po odovzdanie kľúčov. Stavby na kľúč, murárske práce, obklady a&nbsp;dlažby,
+            prestavby bytových jadier a&nbsp;stavebný dozor s&nbsp;jedným zodpovedným partnerom.
+          </p>
+          <div class="hero__actions" data-reveal>
+            <a href="#kontakt" class="btn btn--gold" data-magnetic>
+              <span>Nezáväzná konzultácia</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+            <a href="#sluzby" class="btn btn--line">Naše služby</a>
+          </div>
+        </div>
+      </div>
+
+      <a href="#manifest" class="scroll-cue" aria-label="Posunúť nižšie">
+        <span>Scroll</span>
+        <i aria-hidden="true"></i>
+      </a>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>Stavby na kľúč</span><b>◆</b><span>Murárske práce</span><b>◆</b><span>Obklady a dlažby</span><b>◆</b><span>Prestavby bytových jadier</span><b>◆</b><span>Stavebný dozor</span><b>◆</b>
+        <span>Stavby na kľúč</span><b>◆</b><span>Murárske práce</span><b>◆</b><span>Obklady a dlažby</span><b>◆</b><span>Prestavby bytových jadier</span><b>◆</b><span>Stavebný dozor</span><b>◆</b>
+      </div>
+    </div>
+
+    <!-- MANIFEST -->
+    <section class="manifest section" id="manifest" aria-label="Naša filozofia">
+      <div class="container">
+        <p class="eyebrow" data-reveal>Naša filozofia</p>
+        <p class="manifest__text" data-words>
+          Každá stavba je pre nás záväzok. Precízna remeselná práca, poctivé materiály a&nbsp;dôsledný dozor
+          nad každým detailom, aby ste do svojho nového domova vstúpili s&nbsp;istotou, že bol postavený správne.
+        </p>
+        <div class="manifest__sign" data-reveal>
+          <span class="rule"></span>
+          <span>Ľubomír Táčovský, <em>TABEG</em></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SERVICES (horizontal pinned on desktop) -->
+    <section class="services" id="sluzby" aria-labelledby="services-title">
+      <div class="services__pin">
+        <div class="container services__head">
+          <div>
+            <p class="eyebrow" data-reveal>Služby</p>
+            <h2 class="h2" id="services-title" data-reveal>Kompletná stavba<br><em>v jedných rukách</em></h2>
+          </div>
+          <p class="services__hint" aria-hidden="true">
+            <span class="services__count"><b data-service-index>01</b> / 05</span>
+            <span class="services__bar"><span></span></span>
+          </p>
+        </div>
+
+        <div class="services__track">
+          <article class="card">
+            <span class="card__num">01</span>
+            <svg class="card__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 56h48M14 56V28L32 14l18 14v28M26 56V40h12v16M40 22V10h6v17"/><circle cx="32" cy="30" r="3"/></svg>
+            <h3 class="card__title">Stavby na kľúč</h3>
+            <p class="card__text">Rodinný dom od základov po odovzdanie kľúčov. Koordinujeme všetky profesie, termíny aj rozpočet, vy sa staráte len o&nbsp;to, ako budete bývať.</p>
+            <ul class="card__list"><li>Hrubá stavba</li><li>Koordinácia profesií</li><li>Odovzdanie na kľúč</li></ul>
+          </article>
+
+          <article class="card">
+            <span class="card__num">02</span>
+            <svg class="card__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 52h48M8 40h48M8 28h48M8 16h48M20 16v12M40 16v12M12 28v12M30 28v12M48 28v12M20 40v12M40 40v12"/></svg>
+            <h3 class="card__title">Murárske práce</h3>
+            <p class="card__text">Murivo, priečky, omietky a&nbsp;betónové konštrukcie. Remeslo, ktoré tvorí základ každej kvalitnej stavby, robíme poctivo a&nbsp;presne.</p>
+            <ul class="card__list"><li>Murivo a priečky</li><li>Omietky</li><li>Betónové konštrukcie</li></ul>
+          </article>
+
+          <article class="card">
+            <span class="card__num">03</span>
+            <svg class="card__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 10h20v20H10zM34 10h20v20H34zM10 34h20v20H10zM34 34h20v20H34z"/><path d="M40 16l8 8M16 40l8 8"/></svg>
+            <h3 class="card__title">Obklady a dlažby</h3>
+            <p class="card__text">Veľkoformátové dlažby, obklady kúpeľní aj terás. Čisté škáry, presné rezy a&nbsp;dokonalá rovina, detaily, ktoré vidno každý deň.</p>
+            <ul class="card__list"><li>Veľkoformáty</li><li>Kúpeľne a kuchyne</li><li>Terasy</li></ul>
+          </article>
+
+          <article class="card">
+            <span class="card__num">04</span>
+            <svg class="card__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M8 8h48v48H8z"/><path d="M8 30h22V8M30 30v26"/><path d="M40 44h10M45 40v8"/><circle cx="19" cy="19" r="5"/><path d="M36 14h14v10H36z"/></svg>
+            <h3 class="card__title">Prestavby bytových jadier</h3>
+            <p class="card__text">Premena pôvodného umakartového jadra na modernú kúpeľňu a&nbsp;toaletu. Kompletne, vrátane rozvodov, rýchlo a&nbsp;s&nbsp;ohľadom na susedov.</p>
+            <ul class="card__list"><li>Búracie práce</li><li>Nové rozvody</li><li>Kompletná kúpeľňa</li></ul>
+          </article>
+
+          <article class="card">
+            <span class="card__num">05</span>
+            <svg class="card__icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M14 8h28l10 10v38H14z"/><path d="M42 8v10h10"/><path d="M22 30l6 6 12-12M22 46h20"/></svg>
+            <h3 class="card__title">Stavebný dozor</h3>
+            <p class="card__text">Nezávislý odborný dohľad nad vašou stavbou. Kontrolujeme kvalitu, postupy aj dodržiavanie projektu, aby ste mali istotu v&nbsp;každej fáze.</p>
+            <ul class="card__list"><li>Kontrola kvality</li><li>Súlad s projektom</li><li>Preberanie prác</li></ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROCESS -->
+    <section class="process section" id="postup" aria-labelledby="process-title">
+      <div class="container process__inner">
+        <div class="process__intro">
+          <p class="eyebrow" data-reveal>Postup</p>
+          <h2 class="h2" id="process-title" data-reveal>Od prvého stretnutia<br><em>po odovzdanie kľúčov</em></h2>
+          <p class="lead" data-reveal>Jasné kroky, žiadne prekvapenia. Počas celej stavby viete, v&nbsp;akej fáze sa nachádza a&nbsp;čo bude nasledovať.</p>
+        </div>
+        <ol class="steps">
+          <li class="step" data-reveal>
+            <span class="step__dot" aria-hidden="true"></span>
+            <span class="step__num">01</span>
+            <h3>Konzultácia</h3>
+            <p>Stretneme sa, vypočujeme si vaše predstavy a&nbsp;pozrieme sa na projekt alebo priestor, ktorý chcete premeniť.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__dot" aria-hidden="true"></span>
+            <span class="step__num">02</span>
+            <h3>Cenová ponuka</h3>
+            <p>Pripravíme prehľadný rozpočet a&nbsp;harmonogram prác, aby ste presne vedeli, čo, kedy a&nbsp;za koľko.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__dot" aria-hidden="true"></span>
+            <span class="step__num">03</span>
+            <h3>Realizácia</h3>
+            <p>Stavbu vedieme od začiatku do konca. Koordinujeme profesie, materiál aj termíny a&nbsp;pravidelne vás informujeme.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__dot" aria-hidden="true"></span>
+            <span class="step__num">04</span>
+            <h3>Kontrola kvality</h3>
+            <p>Každú fázu preverujeme v&nbsp;rámci stavebného dozoru. Detaily riešime skôr, než sa z&nbsp;nich stanú problémy.</p>
+          </li>
+          <li class="step" data-reveal>
+            <span class="step__dot" aria-hidden="true"></span>
+            <span class="step__num">05</span>
+            <h3>Odovzdanie</h3>
+            <p>Spoločne prejdeme hotové dielo a&nbsp;odovzdáme vám kľúče od priestoru, na ktorý sa môžete spoľahnúť.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <!-- PROJECTS / TYPES
+         Tip: each .tile__media can hold a real project photo:
+         <img src="assets/img/projekt-1.jpg" alt="Popis realizácie" loading="lazy" width="1200" height="1500">
+         The SVG drawings are intentional placeholders until real photos are provided. -->
+    <section class="projects section" id="projekty" aria-labelledby="projects-title">
+      <div class="container">
+        <div class="projects__head">
+          <div>
+            <p class="eyebrow" data-reveal>Projekty</p>
+            <h2 class="h2" id="projects-title" data-reveal>Čo pre vás<br><em>postavíme</em></h2>
+          </div>
+          <p class="lead" data-reveal>Rodinné domy, rekonštrukcie aj detailné interiérové práce. Každý projekt staviame tak, akoby bol náš vlastný.</p>
+        </div>
+
+        <div class="tiles">
+          <figure class="tile tile--tall" data-reveal>
+            <div class="tile__media" data-parallax-inner>
+              <svg viewBox="0 0 400 500" class="tile__art" aria-hidden="true">
+                <path d="M40 430H360M70 430V230L200 130L330 230V430"/><path d="M170 430V320H230V430"/><path d="M100 260H150V310H100ZM250 260H300V310H250Z"/><path d="M280 180V110H305V200"/><path d="M40 450H360" class="thin"/>
+              </svg>
+            </div>
+            <figcaption><span>Rodinný dom</span><small>Stavba na kľúč</small></figcaption>
+          </figure>
+
+          <figure class="tile" data-reveal>
+            <div class="tile__media" data-parallax-inner>
+              <svg viewBox="0 0 400 300" class="tile__art" aria-hidden="true">
+                <path d="M60 60H340V240H60Z"/><path d="M60 120H340M60 180H340M130 60V120M200 120V180M270 60V120M130 180V240M270 180V240M200 60V120" class="thin"/>
+              </svg>
+            </div>
+            <figcaption><span>Kúpeľňa</span><small>Obklady a dlažby</small></figcaption>
+          </figure>
+
+          <figure class="tile" data-reveal>
+            <div class="tile__media" data-parallax-inner>
+              <svg viewBox="0 0 400 300" class="tile__art" aria-hidden="true">
+                <path d="M70 50H330V250H70Z"/><path d="M70 150H200V50M200 150V250"/><circle cx="135" cy="100" r="22"/><path d="M240 80H300V130H240ZM250 200H310" class="thin"/>
+              </svg>
+            </div>
+            <figcaption><span>Bytové jadro</span><small>Kompletná prestavba</small></figcaption>
+          </figure>
+
+          <figure class="tile tile--wide" data-reveal>
+            <div class="tile__media" data-parallax-inner>
+              <svg viewBox="0 0 800 340" class="tile__art" aria-hidden="true">
+                <path d="M40 290H760"/><path d="M90 290V170H420V290M260 170V80H640V170H540M420 170H540V290H420"/><path d="M240 72H660" /><path d="M300 100H420V150H300ZM450 100H620V150H450Z" class="thin"/><path d="M120 200H240V290M300 205H390V290" class="thin"/>
+              </svg>
+            </div>
+            <figcaption><span>Moderná vila</span><small>Hrubá stavba · Stavebný dozor</small></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="about section" id="o-nas" aria-labelledby="about-title">
+      <div class="container about__inner">
+        <div class="about__visual" data-reveal>
+          <div class="about__frame">
+            <span class="about__mono" aria-hidden="true">T</span>
+            <img src="assets/img/logo-tabeg.png" alt="" class="about__logo" width="160" height="46">
+            <span class="about__caption" aria-hidden="true">Križovany nad Dudváhom</span>
+            <span class="about__corner about__corner--tl"></span>
+            <span class="about__corner about__corner--br"></span>
+          </div>
+        </div>
+        <div class="about__text">
+          <p class="eyebrow" data-reveal>O nás</p>
+          <h2 class="h2" id="about-title" data-reveal>Rodinná firma,<br><em>osobný prístup</em></h2>
+          <p class="lead" data-reveal>
+            TABEG vedie Ľubomír Táčovský. Za každou stavbou stojí konkrétny človek, ktorý za výsledok ručí
+            svojím menom. Žiadne anonymné call centrá, s&nbsp;vašou stavbou hovoríte priamo s&nbsp;tým, kto ju riadi.
+          </p>
+          <ul class="values">
+            <li data-reveal><h3>Jeden partner</h3><p>Od hrubej stavby po obklady. Nemusíte koordinovať desať firiem.</p></li>
+            <li data-reveal><h3>Dozor v cene kvality</h3><p>Stavebný dozor je súčasťou nášho remesla, nie dodatočná služba.</p></li>
+            <li data-reveal><h3>Poctivé remeslo</h3><p>Precízne detaily, čistota na stavbe a&nbsp;dodržané termíny.</p></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="container">
+        <p class="eyebrow" data-reveal>Začnime</p>
+        <h2 class="cta__title" id="cta-title">
+          <span class="line"><span>Postavme spolu</span></span>
+          <span class="line"><span><em>váš ďalší domov.</em></span></span>
+        </h2>
+        <a href="tel:+421915132350" class="cta__phone" data-reveal data-magnetic>+421 915 132 350</a>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="contact section" id="kontakt" aria-labelledby="contact-title">
+      <div class="container contact__inner">
+        <div class="contact__info">
+          <p class="eyebrow" data-reveal>Kontakt</p>
+          <h2 class="h2" id="contact-title" data-reveal>Porozprávajme sa<br><em>o vašej stavbe</em></h2>
+          <dl class="contact__list">
+            <div data-reveal><dt>Telefón</dt><dd><a href="tel:+421915132350">+421 915 132 350</a></dd></div>
+            <div data-reveal><dt>E-mail</dt><dd><a href="mailto:info@tabeg.sk">info@tabeg.sk</a><br><a href="mailto:lubos.tacovsky@tabeg.sk">lubos.tacovsky@tabeg.sk</a></dd></div>
+            <div data-reveal><dt>Adresa</dt><dd>Križovany nad Dudváhom 560<br>919 24 Križovany nad Dudváhom</dd></div>
+          </dl>
+        </div>
+
+        <form class="form" id="contact-form" novalidate data-reveal>
+          <div class="field">
+            <input type="text" id="f-name" name="name" autocomplete="name" placeholder=" " required>
+            <label for="f-name">Meno a priezvisko</label>
+            <span class="field__error" id="f-name-err" aria-live="polite"></span>
+          </div>
+          <div class="field">
+            <input type="tel" id="f-phone" name="phone" autocomplete="tel" placeholder=" " inputmode="tel">
+            <label for="f-phone">Telefón <small>(nepovinné)</small></label>
+          </div>
+          <div class="field">
+            <input type="email" id="f-email" name="email" autocomplete="email" placeholder=" " required>
+            <label for="f-email">E-mail</label>
+            <span class="field__error" id="f-email-err" aria-live="polite"></span>
+          </div>
+          <fieldset class="chips">
+            <legend>Mám záujem o</legend>
+            <label><input type="checkbox" name="service" value="Stavba na kľúč"><span>Stavba na kľúč</span></label>
+            <label><input type="checkbox" name="service" value="Murárske práce"><span>Murárske práce</span></label>
+            <label><input type="checkbox" name="service" value="Obklady a dlažby"><span>Obklady a dlažby</span></label>
+            <label><input type="checkbox" name="service" value="Prestavba bytového jadra"><span>Bytové jadro</span></label>
+            <label><input type="checkbox" name="service" value="Stavebný dozor"><span>Stavebný dozor</span></label>
+          </fieldset>
+          <div class="field">
+            <textarea id="f-msg" name="message" rows="4" placeholder=" " required></textarea>
+            <label for="f-msg">Popíšte váš projekt</label>
+            <span class="field__error" id="f-msg-err" aria-live="polite"></span>
+          </div>
+          <button type="submit" class="btn btn--gold btn--full" data-magnetic>
+            <span>Odoslať dopyt</span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <p class="form__note" id="form-note" aria-live="polite">Po odoslaní sa otvorí váš e-mailový klient s&nbsp;predvyplnenou správou.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__brand">
+        <img src="assets/img/logo-tabeg.png" alt="Stavebná firma TABEG" width="160" height="46">
+        <p>Stavby na kľúč, murárske práce, obklady a&nbsp;dlažby, prestavby bytových jadier a&nbsp;stavebný dozor.</p>
+      </div>
+      <div class="footer__col">
+        <h3>Kontakt</h3>
+        <a href="tel:+421915132350">+421 915 132 350</a>
+        <a href="mailto:info@tabeg.sk">info@tabeg.sk</a>
+      </div>
+      <div class="footer__col">
+        <h3>Sídlo</h3>
+        <p>Križovany nad Dudváhom 560<br>919 24 Križovany nad Dudváhom<br>IČO: 33220069</p>
+      </div>
+      <div class="footer__col">
+        <h3>Sledujte nás</h3>
+        <a href="https://www.tiktok.com/@stavebna.firma.tabeg" target="_blank" rel="noopener">TikTok</a>
+      </div>
+    </div>
+    <div class="container footer__bottom">
+      <span>© <span data-year>2026</span> Ľubomír Táčovský – TABEG</span>
+      <a href="#top" class="to-top">Späť hore ↑</a>
+    </div>
+  </footer>
+
+  <script src="assets/js/main.js" defer></script>
 </body>
 </html>
