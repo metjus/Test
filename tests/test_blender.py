@@ -225,3 +225,128 @@ def test_noisy_blurred_texture_on_sphere():
     parts = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     assert len(parts) == 3, [len(p.data.polygons) for p in parts]
     assert sum(len(p.data.polygons) for p in parts) == faces
+
+
+# --------------------------------------------------------------------------- spresnenie a vyhladenie hraníc
+
+import bmesh  # noqa: E402
+
+from split_by_color import mesh_colors, refine  # noqa: E402
+
+
+def border_vertices(obj, labels=None):
+    """Súradnice vrcholov na farebnej hranici."""
+    if labels is None:
+        labels, _ = refine.groups_for(obj, "AUTO", 10.0, 0, 4, True)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    bm.faces.ensure_lookup_table()
+    pts = {}
+    for e in bm.edges:
+        lf = e.link_faces
+        if len(lf) == 2 and labels[lf[0].index] != labels[lf[1].index]:
+            for v in e.verts:
+                pts[v.index] = np.array(v.co)
+    bm.free()
+    return np.array(list(pts.values()))
+
+
+def edge_length_sum(pts_obj, labels):
+    bm = bmesh.new()
+    bm.from_mesh(pts_obj.data)
+    bm.faces.ensure_lookup_table()
+    total = 0.0
+    for e in bm.edges:
+        lf = e.link_faces
+        if len(lf) == 2 and labels[lf[0].index] != labels[lf[1].index]:
+            total += e.calc_length()
+    bm.free()
+    return total
+
+
+def open_edges(obj):
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    n = sum(1 for e in bm.edges if len(e.link_faces) != 2)
+    vol = bm.calc_volume(signed=True)
+    bm.free()
+    return n, vol
+
+
+def diagonal(u, v):
+    return RED if u + v < 1.0 else SKIN
+
+
+def test_refine_makes_diagonal_border_follow_the_texture():
+    obj = make_grid()
+    apply_texture(obj, texture(diagonal, size=256))
+    before = border_vertices(obj)
+    err_before = np.abs(before[:, 0] + before[:, 1]).max() / np.sqrt(2)
+    n0 = len(obj.data.polygons)
+    assert bpy.ops.object.split_by_color_refine(levels=3, smooth=0.0) == {"FINISHED"}
+    after = border_vertices(obj)
+    err_after = np.abs(after[:, 0] + after[:, 1]).max() / np.sqrt(2)
+    assert len(obj.data.polygons) > n0
+    assert err_after < 0.4 * err_before, (err_before, err_after)
+
+
+def test_smoothing_shortens_staircase_border_without_gaps():
+    obj = make_grid()
+    apply_texture(obj, texture(diagonal, size=256))
+    labels, _ = refine.groups_for(obj, "AUTO", 10.0, 0, 4, True)
+    before = edge_length_sum(obj, labels)
+    faces = len(obj.data.polygons)
+    assert bpy.ops.object.split_by_color_refine(levels=0, smooth=0.7, smooth_iterations=20) == {"FINISHED"}
+    assert len(obj.data.polygons) == faces  # vyhladenie netvorí nové plochy
+    labels, _ = refine.groups_for(obj, "AUTO", 10.0, 0, 4, True)
+    assert edge_length_sum(obj, labels) < 0.95 * before
+
+
+def test_closed_sphere_stays_closed_and_keeps_volume_and_split_still_works():
+    def hemispheres(u, v):
+        return RED if 0.2 < u < 0.6 and 0.25 < v < 0.75 else SKIN
+
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24)
+    obj = bpy.context.active_object
+    apply_texture(obj, texture(hemispheres, size=512))
+    open0, vol0 = open_edges(obj)
+    assert open0 == 0
+    assert bpy.ops.object.split_by_color_refine(levels=2, smooth=0.5, smooth_iterations=15) == {"FINISHED"}
+    open1, vol1 = open_edges(obj)
+    assert open1 == 0, "po spresnení nesmú vzniknúť diery ani T-spoje"
+    assert abs(vol1 - vol0) / vol0 < 0.01, (vol0, vol1)
+    faces = len(obj.data.polygons)
+    run(obj, mode="OBJECTS")
+    parts = [o for o in bpy.context.scene.objects if o.type == "MESH"]
+    assert len(parts) == 2
+    assert sum(len(p.data.polygons) for p in parts) == faces
+
+
+def test_small_closed_region_does_not_shrink_to_nothing():
+    def eye(u, v):
+        return BLACK if (u - 0.5) ** 2 + (v - 0.5) ** 2 < 0.04**2 else SKIN
+
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32)
+    obj = bpy.context.active_object
+    apply_texture(obj, texture(eye, size=1024))
+    bpy.ops.object.split_by_color_refine(levels=2, smooth=0.0)
+    labels, _ = refine.groups_for(obj, "AUTO", 10.0, 0, 4, True)
+    pts0 = border_vertices(obj, labels)
+    extent0 = np.ptp(pts0, axis=0).max()
+    bpy.ops.object.split_by_color_refine(levels=0, smooth=0.5, smooth_iterations=30)
+    pts1 = border_vertices(obj, labels)
+    extent1 = np.ptp(pts1, axis=0).max()
+    assert extent1 > 0.85 * extent0, (extent0, extent1)
+
+
+def test_refine_with_vertex_colors_only_smooths():
+    obj = make_grid()
+    attr = obj.data.color_attributes.new("Col", "FLOAT_COLOR", "POINT")
+    co = np.empty(len(obj.data.vertices) * 3, np.float32)
+    obj.data.vertices.foreach_get("co", co)
+    pts = co.reshape(-1, 3)
+    cols = np.array([[0.6, 0.0, 0.0, 1] if p[0] + p[1] < 0 else [0.8, 0.5, 0.3, 1] for p in pts], np.float32)
+    attr.data.foreach_set("color", cols.ravel())
+    faces = len(obj.data.polygons)
+    assert bpy.ops.object.split_by_color_refine(levels=2, smooth=0.5, source="VERTEX") == {"FINISHED"}
+    assert len(obj.data.polygons) == faces

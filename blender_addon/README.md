@@ -16,7 +16,12 @@ Určené na viacfarebnú 3D tlač: každý diel je samostatný objekt s vlastný
    - **Max colors**: horný limit počtu farieb (0 = koľko sa nájde)
    - **Min patch size**: drobné škvrny menšie ako toto sa pripoja k susedovi
    - **Merge blended edges**: rozmazané prechody medzi dvoma farbami nebudú samostatnou farbou
-4. Keď to sedí, klikni **Split into objects**. „Split disconnected patches" oddelí aj nesúvislé miesta
+4. Ak je hranica medzi farbami zubatá, klikni **Refine & Smooth Edges** (krok 2, nepovinný, vráti sa cez `Ctrl+Z`):
+   - **Refine levels**: koľkokrát sa rozdelia plochy na farebnej hranici (0 = vypnuté). Hranica potom sleduje textúru
+     presnejšie, ale pribudnú plochy pri hraniciach. Funguje len pri farbách z textúry.
+   - **Smooth strength / passes**: vyhladí línie medzi farbami. Vrcholy zostávajú spoločné pre oba diely, takže do seba
+     lícujú, a tvar povrchu sa nemení (body sa vracajú na pôvodný povrch, bez zmršťovania).
+5. Keď to sedí, klikni **Split into objects**. „Split disconnected patches" oddelí aj nesúvislé miesta
    rovnakej farby (napr. obe oči zvlášť).
 
 ## Tipy pre Tripo

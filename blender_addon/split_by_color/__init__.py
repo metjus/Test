@@ -11,9 +11,9 @@ bl_info = {
 if "bpy" in locals():  # reload pri vývoji
     import importlib
 
-    from . import core, mesh_colors, operators
+    from . import core, mesh_colors, operators, refine
 
-    for m in (core, mesh_colors, operators):
+    for m in (core, mesh_colors, refine, operators):
         importlib.reload(m)
 
 import bpy

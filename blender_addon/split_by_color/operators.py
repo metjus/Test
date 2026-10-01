@@ -1,11 +1,9 @@
-from __future__ import annotations
-
 import bmesh
 import bpy
 import numpy as np
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 
-from . import core, mesh_colors
+from . import core, mesh_colors, refine
 
 
 def _hex(srgb) -> str:
@@ -43,6 +41,56 @@ def _part_object(src: bpy.types.Object, face_mask: np.ndarray, name: str, mat) -
     return obj
 
 
+def color_props() -> dict:
+    """Nastavenia zisťovania a zoskupenia farieb, spoločné pre všetky operátory."""
+    return {
+        "source": EnumProperty(
+            name="Color from",
+            items=[
+                ("AUTO", "Auto", "Texture if there is one, else vertex colors, else material"),
+                ("TEXTURE", "Texture", "Sample the image texture through the UV map"),
+                ("VERTEX", "Vertex colors", "Use the color attribute"),
+                ("MATERIAL", "Material colors", "Use each material's base color"),
+            ],
+            default="AUTO",
+        ),
+        "tolerance": FloatProperty(
+            name="Color tolerance",
+            description="How different two colors may be to still count as the same (CIELAB distance). "
+            "Raise it if one color is split into several, lower it if different colors are merged",
+            default=10.0, min=1.0, max=60.0,
+        ),
+        "max_colors": IntProperty(
+            name="Max colors",
+            description="Merge the smallest groups until at most this many remain (0 = as many as found)",
+            default=0, min=0, max=64,
+        ),
+        "min_island_faces": IntProperty(
+            name="Min patch size",
+            description="Patches of fewer faces are merged into the neighboring color (removes speckles). "
+            "Separate floating parts are kept",
+            default=4, min=1, max=1000,
+        ),
+        "merge_blends": BoolProperty(
+            name="Merge blended edges",
+            description="Treat colors that only appear between two other colors (soft transitions) as part of them",
+            default=True,
+        ),
+    }
+
+
+def with_color_props(cls):
+    cls.__annotations__ = {**color_props(), **getattr(cls, "__annotations__", {})}
+    return cls
+
+
+def _target_objects(context):
+    return [o for o in context.selected_objects if o.type == "MESH"] or (
+        [context.active_object] if context.active_object and context.active_object.type == "MESH" else []
+    )
+
+
+@with_color_props
 class OBJECT_OT_split_by_color(bpy.types.Operator):
     bl_idname = "object.split_by_color"
     bl_label = "Split by Color"
@@ -57,38 +105,6 @@ class OBJECT_OT_split_by_color(bpy.types.Operator):
         ],
         default="MATERIALS",
     )
-    source: EnumProperty(
-        name="Color from",
-        items=[
-            ("AUTO", "Auto", "Texture if there is one, else vertex colors, else material"),
-            ("TEXTURE", "Texture", "Sample the image texture through the UV map"),
-            ("VERTEX", "Vertex colors", "Use the color attribute"),
-            ("MATERIAL", "Material colors", "Use each material's base color"),
-        ],
-        default="AUTO",
-    )
-    tolerance: FloatProperty(
-        name="Color tolerance",
-        description="How different two colors may be to still count as the same (CIELAB distance). "
-        "Raise it if one color is split into several, lower it if different colors are merged",
-        default=10.0, min=1.0, max=60.0,
-    )
-    max_colors: IntProperty(
-        name="Max colors",
-        description="Merge the smallest groups until at most this many remain (0 = as many as found)",
-        default=0, min=0, max=64,
-    )
-    min_island_faces: IntProperty(
-        name="Min patch size",
-        description="Patches of fewer faces are merged into the neighboring color (removes speckles). "
-        "Separate floating parts are kept",
-        default=4, min=1, max=1000,
-    )
-    merge_blends: BoolProperty(
-        name="Merge blended edges",
-        description="Treat colors that only appear between two other colors (soft transitions) as part of them",
-        default=True,
-    )
     split_islands: BoolProperty(
         name="Split disconnected patches",
         description="Make same-colored patches that do not touch (e.g. both eyes) separate objects",
@@ -102,9 +118,7 @@ class OBJECT_OT_split_by_color(bpy.types.Operator):
 
     @classmethod
     def poll(cls, context):
-        return any(o.type == "MESH" for o in context.selected_objects) or (
-            context.active_object is not None and context.active_object.type == "MESH"
-        )
+        return bool(_target_objects(context))
 
     def draw(self, context):
         col = self.layout.column()
@@ -115,7 +129,7 @@ class OBJECT_OT_split_by_color(bpy.types.Operator):
             col.prop(self, "keep_original")
 
     def execute(self, context):
-        objs = [o for o in context.selected_objects if o.type == "MESH"] or [context.active_object]
+        objs = _target_objects(context)
         total_parts = 0
         for obj in objs:
             try:
@@ -175,6 +189,69 @@ class OBJECT_OT_split_by_color(bpy.types.Operator):
         return len(created)
 
 
+@with_color_props
+class OBJECT_OT_split_by_color_refine(bpy.types.Operator):
+    bl_idname = "object.split_by_color_refine"
+    bl_label = "Refine & Smooth Color Edges"
+    bl_description = (
+        "Reduce jagged color borders: subdivide faces along color borders (using the texture) and smooth the "
+        "border lines. Changes the mesh, undo with Ctrl+Z"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    levels: IntProperty(
+        name="Refine levels",
+        description="How many times faces on a color border are subdivided (0 = off). Each level roughly halves the jaggedness",
+        default=2, min=0, max=4,
+    )
+    smooth: FloatProperty(
+        name="Smooth strength",
+        description="How strongly border lines are straightened (0 = off). The surface shape is preserved",
+        default=0.5, min=0.0, max=1.0,
+    )
+    smooth_iterations: IntProperty(name="Smooth passes", default=10, min=1, max=100)
+
+    @classmethod
+    def poll(cls, context):
+        return bool(_target_objects(context))
+
+    def draw(self, context):
+        col = self.layout.column()
+        for p in ("levels", "smooth", "smooth_iterations", "source", "tolerance", "max_colors", "min_island_faces", "merge_blends"):
+            col.prop(self, p)
+
+    def execute(self, context):
+        if self.levels == 0 and self.smooth == 0:
+            self.report({"INFO"}, "Nothing to do: refine levels and smooth strength are both 0")
+            return {"CANCELLED"}
+        for obj in _target_objects(context):
+            if obj.modifiers:
+                self.report({"WARNING"}, f"{obj.name} has modifiers, they are ignored.")
+
+            def groups():
+                return refine.groups_for(
+                    obj, self.source, self.tolerance, self.max_colors, self.min_island_faces, self.merge_blends
+                )
+
+            try:
+                added = 0
+                if self.levels:
+                    _, used, _ = mesh_colors.face_colors(obj, self.source)
+                    if used == "TEXTURE":
+                        added = refine.refine_boundaries(obj, self.levels, groups)
+                    else:
+                        self.report({"WARNING"}, f"{obj.name}: refining needs a texture, only smoothing is applied.")
+                moved = 0
+                if self.smooth > 0:
+                    labels, _ = groups()
+                    moved = refine.smooth_boundaries(obj, labels, self.smooth, self.smooth_iterations)
+            except mesh_colors.NoColorData as e:
+                self.report({"ERROR"}, f"{obj.name}: {e}")
+                return {"CANCELLED"}
+            self.report({"INFO"}, f"{obj.name}: +{added} faces, {moved} border vertices smoothed")
+        return {"FINISHED"}
+
+
 class VIEW3D_PT_split_by_color(bpy.types.Panel):
     bl_label = "Split by Color"
     bl_idname = "VIEW3D_PT_split_by_color"
@@ -188,11 +265,14 @@ class VIEW3D_PT_split_by_color(bpy.types.Panel):
         op = col.operator("object.split_by_color", text="Preview (materials)", icon="MATERIAL")
         op.mode = "MATERIALS"
         col.separator()
-        col.label(text="2. Create one object per color")
+        col.label(text="2. Optional: fix jagged borders")
+        col.operator("object.split_by_color_refine", text="Refine & Smooth Edges", icon="MOD_SMOOTH")
+        col.separator()
+        col.label(text="3. Create one object per color")
         op = col.operator("object.split_by_color", text="Split into objects", icon="MOD_BUILD")
         op.mode = "OBJECTS"
         col.separator()
         col.label(text="Tweak values in the panel after running", icon="INFO")
 
 
-CLASSES = (OBJECT_OT_split_by_color, VIEW3D_PT_split_by_color)
+CLASSES = (OBJECT_OT_split_by_color, OBJECT_OT_split_by_color_refine, VIEW3D_PT_split_by_color)
