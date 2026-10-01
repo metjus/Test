@@ -1,0 +1,16 @@
+schema_version = "1.0.0"
+
+id = "brush_palette"
+version = "1.0.0"
+name = "Brush & Alpha Palette"
+tagline = "ZBrush-style popup palette for picking brushes and alphas"
+maintainer = "Matus Sturdik"
+type = "add-on"
+
+license = ["SPDX:GPL-3.0-or-later"]
+tags = ["Paint", "Sculpt", "User Interface"]
+
+blender_version_min = "4.3.0"
+
+[permissions]
+files = "Read alpha images and brush asset libraries, write a thumbnail cache"
