@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "brush_palette"
-version = "1.0.0"
+version = "1.1.0"
 name = "Brush & Alpha Palette"
 tagline = "ZBrush-style popup palette for picking brushes and alphas"
 maintainer = "Matus Sturdik"

@@ -372,6 +372,23 @@ def activate(context, item):
     return 'FINISHED' in result
 
 
+def current_stroke(context):
+    brush = active_brush(context)
+    return brush.stroke_method if brush is not None else ""
+
+
+def set_stroke(context, method):
+    """Set the stroke method of the active brush ('SPACE', 'DRAG_DOT', 'ANCHORED', ...)."""
+    brush = active_brush(context)
+    if brush is None:
+        return False
+    try:
+        brush.stroke_method = method
+    except (TypeError, AttributeError):
+        return False
+    return brush.stroke_method == method
+
+
 def activate_local(context, brush):
     return 'FINISHED' in bpy.ops.brush.asset_activate(
         asset_library_type='LOCAL', relative_asset_identifier="Brush/" + brush.name)

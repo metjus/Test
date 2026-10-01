@@ -43,6 +43,32 @@ COL_CHIP_ON = (0.36, 0.25, 0.12, 1.0)
 
 TAB_LABELS = (('BRUSHES', "Brushes"), ('ALPHAS', "Alphas"))
 CHIP_LABELS = tuple((ident, label) for ident, label, _desc in _prefs.MAP_MODES)
+STROKE_LABELS = (('SPACE', "Space"), ('DRAG_DOT', "Drag Dot"), ('ANCHORED', "DragRect"))
+
+# Bottom button rows per tab: (kind, ident, label).
+STROKE_ROW = [('STROKE', ident, label) for ident, label in STROKE_LABELS] + [
+    ('SAVE_BRUSH', None, "Save as New Brush…")]
+BUTTON_ROWS = {
+    'BRUSHES': [STROKE_ROW],
+    'ALPHAS': [
+        [('CHIP', ident, label) for ident, label in CHIP_LABELS] + [('FOLDERS', None, "Add Folder…")],
+        STROKE_ROW,
+    ],
+}
+
+# Footer help shown while hovering a button.
+BUTTON_HELP = {
+    ('STROKE', 'SPACE'): "Space: normal continuous stroke",
+    ('STROKE', 'DRAG_DOT'): "Drag Dot: one stamp you can slide into place before releasing",
+    ('STROKE', 'ANCHORED'): "DragRect: click and drag one stamp – distance sets size (and depth), direction sets rotation",
+    ('SAVE_BRUSH', None): "Save the current brush (with its alpha and settings) into an asset library",
+    ('FOLDERS', None): "Add a folder of alpha images",
+    ('CHIP', 'VIEW_PLANE'): "Alpha projected from the view",
+    ('CHIP', 'AREA_PLANE'): "Alpha follows the surface under the brush",
+    ('CHIP', 'TILED'): "Alpha repeats across the surface",
+    ('CHIP', 'RANDOM'): "Alpha with random offset and rotation per dab",
+    ('CHIP', 'STENCIL'): "Alpha used as a screen-space stencil",
+}
 
 _open_palette = None
 
@@ -89,7 +115,9 @@ class PaletteLayout:
         self.n_quick = n_quick = min(n_quick, self.qcols)
         self.quick_title_h = round(16 * s)
         self.quick_h = quick_h = (self.quick_title_h + qcell + gap) if n_quick else 0
-        self.chips_h = chips_h = round(28 * s) if tab == 'ALPHAS' else 0
+        self.button_row_h = round(28 * s)
+        button_rows = BUTTON_ROWS.get(tab, [])
+        self.chips_h = chips_h = self.button_row_h * len(button_rows)
         self.footer_h = footer_h = round(34 * s)
         self.row_h = row_h = cell + label_h + gap
 
@@ -141,22 +169,25 @@ class PaletteLayout:
         self.grid = Box(px + pad, y - grid_h, width - 2 * pad, grid_h)
         y -= grid_h + pad
 
-        self.chips = []
-        if chips_h:
-            cw = (width - 2 * pad - (len(CHIP_LABELS)) * gap) / (len(CHIP_LABELS) + 1)
-            cy = y - chips_h + round(4 * s)
-            for i, (ident, _label) in enumerate(CHIP_LABELS):
-                self.chips.append((ident, Box(px + pad + i * (cw + gap), cy, cw, chips_h - round(6 * s))))
-            self.folder_button = Box(px + pad + len(CHIP_LABELS) * (cw + gap), cy, cw, chips_h - round(6 * s))
-            y -= chips_h
-        else:
-            self.folder_button = None
+        # Buttons: list of (kind, ident, label, box).
+        self.buttons = []
+        for row in button_rows:
+            bw = (width - 2 * pad - (len(row) - 1) * gap) / len(row)
+            by = y - self.button_row_h + round(4 * s)
+            for i, (kind, ident, label) in enumerate(row):
+                box = Box(px + pad + i * (bw + gap), by, bw, self.button_row_h - round(6 * s))
+                self.buttons.append((kind, ident, label, box))
+            y -= self.button_row_h
 
         self.footer = Box(px, py, width, footer_h)
 
         # The grid scrolls by whole rows, so a row is always either fully visible or hidden.
         self.max_scroll_row = max(0, rows_total - visible_rows)
         self.scroll_row = min(max(scroll_row, 0), self.max_scroll_row)
+
+    def button(self, kind, ident=None):
+        """Box of the button ``(kind, ident)``, or None."""
+        return next((box for k, i, _l, box in self.buttons if k == kind and i == ident), None)
 
     def item_box(self, index):
         """Thumbnail square of grid item ``index`` (may lie outside the visible grid)."""
@@ -192,11 +223,9 @@ class PaletteLayout:
                 cell = Box(box.x, box.y - self.label_h, box.w + self.gap, box.h + self.label_h + self.gap)
                 if cell.contains(mx, my):
                     return ('ITEM', i)
-        for ident, box in self.chips:
+        for kind, ident, _label, box in self.buttons:
             if box.contains(mx, my):
-                return ('CHIP', ident)
-        if self.folder_button and self.folder_button.contains(mx, my):
-            return ('FOLDERS', None)
+                return (kind, ident)
         return ('PANEL', None)
 
 
@@ -655,6 +684,15 @@ class BPAL_OT_palette(Operator):
                 self.message = "Alpha mapping: " + value.replace("_", " ").title()
             else:
                 self.message = "Default mapping for new alphas: " + value.replace("_", " ").title()
+        elif kind == 'STROKE':
+            if brushes.set_stroke(context, value):
+                self.message = dict(STROKE_LABELS)[value] + " stroke on " + brushes.active_brush(context).name
+            else:
+                self.message = "This brush does not support that stroke"
+        elif kind == 'SAVE_BRUSH':
+            self.finish(context)
+            bpy.ops.brush.asset_save_as('INVOKE_DEFAULT')
+            return {'FINISHED'}
         elif kind == 'FOLDERS':
             self.finish(context)
             bpy.ops.brush_palette.add_alpha_folder('INVOKE_DEFAULT')
@@ -708,13 +746,11 @@ class BPAL_OT_palette(Operator):
             hovered = (hover_kind == 'ITEM' and hover_value == i) or self.kbd_index == i
             p.rect(box, COL_CELL_HOVER if hovered else COL_CELL)
 
-        current_map = alphas.current_mapping(bpy.context) if self.current_tab == 'ALPHAS' else ""
-        for ident, box in lay.chips:
-            on = ident == (current_map or self.prefs.alpha_map_mode)
-            hovered = hover_kind == 'CHIP' and hover_value == ident
+        button_on = self.button_states()
+        for kind, ident, _label, box in lay.buttons:
+            hovered = hover_kind == kind and hover_value == ident
+            on = button_on.get((kind, ident), False)
             p.rect(box, COL_CHIP_ON if on else (COL_CELL_HOVER if hovered else COL_CHIP))
-        if lay.folder_button:
-            p.rect(lay.folder_button, COL_CELL_HOVER if hover_kind == 'FOLDERS' else COL_CHIP)
         p.flush()
 
         # Thumbnails.
@@ -789,17 +825,23 @@ class BPAL_OT_palette(Operator):
             draw_text("No matches for “%s”" % self.search if self.search else "Nothing here yet",
                       lay.grid.x + lay.grid.w / 2, lay.grid.y + lay.grid.h / 2, round(12 * s), COL_TEXT_DIM, 'CENTER')
 
-        for ident, box in lay.chips:
-            label = dict(CHIP_LABELS)[ident]
-            on = ident == (current_map or self.prefs.alpha_map_mode)
+        for kind, ident, label, box in lay.buttons:
+            on = button_on.get((kind, ident), False)
             draw_text(label, box.x + box.w / 2, mid(box), small, COL_TEXT if on else COL_TEXT_DIM, 'CENTER',
                       box.w - 4)
-        if lay.folder_button:
-            draw_text("Add Folder…", lay.folder_button.x + lay.folder_button.w / 2, mid(lay.folder_button),
-                      small, COL_TEXT_DIM, 'CENTER', lay.folder_button.w - 4)
 
         self.draw_footer(lay, s, font, small)
         gpu.state.blend_set('NONE')
+
+    def button_states(self):
+        """Which bottom buttons are lit: the alpha mapping and the brush stroke method."""
+        ctx = bpy.context
+        states = {}
+        if self.current_tab == 'ALPHAS':
+            mapping = alphas.current_mapping(ctx) or self.prefs.alpha_map_mode
+            states[('CHIP', mapping)] = True
+        states[('STROKE', brushes.current_stroke(ctx))] = True
+        return states
 
     def draw_thumb(self, p, item, box, inset):
         inner = Box(box.x + inset, box.y + inset, box.w - 2 * inset, box.h - 2 * inset)
@@ -830,6 +872,14 @@ class BPAL_OT_palette(Operator):
         x = foot.x + lay.pad
         top_line = foot.y + foot.h - round(15 * s)
         bottom_line = foot.y + round(6 * s)
+        help_text = BUTTON_HELP.get(tuple(self.hover)) if item is None and self.hover else None
+        if help_text:
+            # Button help gets the whole footer.
+            title, _sep, body = help_text.partition(": ")
+            draw_text(title if body else "", x, top_line, font, COL_TEXT, max_w=foot.w - 2 * lay.pad)
+            body = body[:1].upper() + body[1:] if body else help_text
+            draw_text(body, x, bottom_line, small, COL_TEXT_DIM, max_w=foot.w - 2 * lay.pad)
+            return
         if item is not None:
             draw_text(item.name, x, top_line, font, COL_TEXT, max_w=foot.w * 0.5)
             draw_text(item.subtitle, x, bottom_line, small, COL_TEXT_DIM, max_w=foot.w * 0.5)

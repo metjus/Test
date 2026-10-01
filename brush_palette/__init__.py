@@ -4,7 +4,7 @@
 bl_info = {
     "name": "Brush & Alpha Palette",
     "author": "Matus Sturdik",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (4, 3, 0),
     "location": "3D Viewport > Sculpt / Paint modes > Alt+B (brushes), Alt+A (alphas), Sidebar > Palette",
     "description": "ZBrush-style popup palette with big thumbnails for picking brushes and alphas",

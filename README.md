@@ -31,6 +31,21 @@ puts an alpha on the current brush, with no texture, image, or mapping setup.
 
 ![Alpha palette](docs/palette_alphas.png)
 
+**Stroke buttons** (in both tabs and in the sidebar): **Space** (normal stroke), **Drag Dot** (one stamp you
+slide into place) and **DragRect** (Blender's *Anchored* stroke, like ZBrush's DragRect). With DragRect you
+click and hold, and the drag distance sets the size of the stamp (bigger stamp = deeper/stronger result) and
+the drag direction sets its rotation. Strength itself is the brush Strength (`Shift+F`).
+
+### Your own brushes
+Blender 4.3+ stores brushes as assets, and you can make your own:
+1. pick a brush, change its settings (alpha, stroke, strength, falloff…),
+2. click **Save as New Brush…** in the palette or the sidebar (Blender's *Duplicate Asset* dialog),
+   give it a name, a library and a catalog.
+
+Saved brushes go into a user asset library (*Preferences › File Paths › Asset Libraries*; Blender's default
+is *User Library*). The alpha image is packed into the brush file, so the brush works anywhere. The palette
+picks up new brushes automatically, and brush assets marked in the current .blend are listed too.
+
 ### About the built-in (Essentials) brushes
 Since Blender 4.3, brushes from asset libraries are *linked*, and Blender does not let a linked brush use a
 local texture. So the first time you apply an alpha to one of them, the add-on makes a local copy named

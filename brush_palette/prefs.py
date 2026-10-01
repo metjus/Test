@@ -26,7 +26,7 @@ MAP_MODES = (
 STROKE_MODES = (
     ('KEEP', "Keep", "Do not change the brush stroke method"),
     ('DRAG_DOT', "Drag Dot", "Place a single dab that can be dragged into place"),
-    ('ANCHORED', "Anchored", "ZBrush 'DragRect': click and drag to size the alpha"),
+    ('ANCHORED', "DragRect (Anchored)", "Click and drag one stamp: distance sets size, direction sets rotation"),
     ('SPACE', "Space", "Regular spaced stroke"),
 )
 

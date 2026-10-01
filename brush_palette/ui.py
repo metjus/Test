@@ -117,6 +117,36 @@ class BPAL_OT_apply_alpha(Operator):
         return {'FINISHED'}
 
 
+STROKES = (
+    ('SPACE', "Space", "Normal continuous stroke"),
+    ('DRAG_DOT', "Drag Dot", "One stamp you can slide into place before releasing"),
+    ('ANCHORED', "DragRect", "Click and drag one stamp: distance sets size (and depth), direction sets rotation"),
+)
+
+
+class BPAL_OT_set_stroke(Operator):
+    """Set the stroke method of the active brush"""
+    bl_idname = "brush_palette.set_stroke"
+    bl_label = "Set Stroke"
+    bl_options = {'REGISTER'}
+
+    method: bpy.props.EnumProperty(items=STROKES)
+
+    @classmethod
+    def description(cls, context, properties):
+        return next((desc for ident, _name, desc in STROKES if ident == properties.method), "")
+
+    @classmethod
+    def poll(cls, context):
+        return brushes.active_brush(context) is not None
+
+    def execute(self, context):
+        if not brushes.set_stroke(context, self.method):
+            self.report({'WARNING'}, "This brush does not support that stroke")
+            return {'CANCELLED'}
+        return {'FINISHED'}
+
+
 class BPAL_PT_palette(Panel):
     bl_label = "Brush Palette"
     bl_space_type = 'VIEW_3D'
@@ -142,6 +172,12 @@ class BPAL_PT_palette(Panel):
         row.scale_y = 1.6
         op = row.operator("brush_palette.open", text="Brushes", icon='BRUSHES_ALL')
         op.tab = 'BRUSHES'
+        if brush is not None:
+            row = box.row(align=True)
+            current = brush.stroke_method
+            for method, label, _desc in STROKES:
+                row.operator("brush_palette.set_stroke", text=label, depress=current == method).method = method
+            box.operator("brush.asset_save_as", text="Save as New Brush…", icon='ASSET_MANAGER')
 
         if not alphas.supported(context):
             return
@@ -184,6 +220,7 @@ classes = (
     BPAL_OT_generate_starter_alphas,
     BPAL_OT_refresh,
     BPAL_OT_apply_alpha,
+    BPAL_OT_set_stroke,
     BPAL_PT_palette,
 )
 

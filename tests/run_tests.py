@@ -168,7 +168,7 @@ def test_layout(pkg):
     check(lay.max_scroll_row > 0, "long lists scroll")
     small = PaletteLayout(500, 300, (10, 10), 120, 0, 'ALPHAS', 1.0)
     check(small.panel.x >= 0 and small.panel.y >= 0 and small.cols >= 1, "small region still fits")
-    check(small.hit(small.chips[1][1].x + 2, small.chips[1][1].y + 2, 120) == ('CHIP', 'AREA_PLANE'), "hit chip")
+    check(small.hit(small.button('CHIP', 'AREA_PLANE').x + 2, small.button('CHIP', 'AREA_PLANE').y + 2, 120) == ('CHIP', 'AREA_PLANE'), "hit chip")
 
     class It:
         def __init__(self, name):
@@ -283,12 +283,24 @@ def test_events(pkg):
     pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(quick_box), shift=True))
     check(pal.active_key == pal.quick_items[0].key, "quick pick slot picks")
 
+    # Stroke buttons act on the active brush.
+    lay = pal.compute_layout()
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.button('STROKE', 'ANCHORED'))))
+    check(brushes.active_brush(ctx).stroke_method == 'ANCHORED', "DragRect button sets Anchored stroke")
+    pal.modal(ctx, ev('MOUSEMOVE', 'NOTHING', *center(lay.button('STROKE', 'DRAG_DOT'))))
+    check(pal.hover == ('STROKE', 'DRAG_DOT'), "hovering a stroke button")
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.button('STROKE', 'SPACE'))))
+    check(brushes.active_brush(ctx).stroke_method == 'SPACE', "Space button sets Space stroke")
+    bpy.ops.brush_palette.set_stroke(method='DRAG_DOT')
+    check(brushes.active_brush(ctx).stroke_method == 'DRAG_DOT', "sidebar stroke operator")
+    brushes.set_stroke(ctx, 'SPACE')
+
     # Alphas: Tab, mapping chip, pick.
     pal.modal(ctx, ev('TAB'))
     check(pal.current_tab == 'ALPHAS' and pal.items[0].key == alphas.NONE_KEY, "tab switches to alphas")
     lay = pal.compute_layout()
     star_index = next(i for i, it in enumerate(pal.items) if it.name == "Star")
-    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(dict(lay.chips)['VIEW_PLANE'])))
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.button('CHIP', 'VIEW_PLANE'))))
     check(p.alpha_map_mode == 'VIEW_PLANE', "chip sets default mapping")
     result = pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(star_index))))
     brush = brushes.active_brush(ctx)
@@ -298,8 +310,9 @@ def test_events(pkg):
 
     pal = make_palette('ALPHAS', W, H)
     lay = pal.compute_layout()
-    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(dict(lay.chips)['TILED'])))
+    pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.button('CHIP', 'TILED'))))
     check(brushes.active_brush(ctx).texture_slot.map_mode == 'TILED', "chip changes mapping of current alpha")
+    check(lay.button('STROKE', 'ANCHORED') is not None, "alpha tab also has stroke buttons")
     result = pal.modal(ctx, ev('LEFTMOUSE', 'PRESS', *center(lay.item_box(0))))
     check(result == {'FINISHED'} and brushes.active_brush(ctx).texture is None, "Off removes the alpha")
 
@@ -322,6 +335,41 @@ def test_events(pkg):
     pal.modal(ctx, ev('TAB'))
     check(pal.current_tab == 'BRUSHES' and "Alphas" in pal.message, "no alpha tab in weight paint")
     bpy.ops.object.mode_set(mode='SCULPT')
+
+
+def test_user_library(pkg):
+    """Brushes saved by the user into an asset library show up in the palette."""
+    print("user library")
+    from brush_palette import alphas, brushes
+    ctx = bpy.context
+    lib_dir = tempfile.mkdtemp(prefix="bpal_lib_")
+    bpy.ops.preferences.asset_library_add(directory=lib_dir)
+    lib = bpy.context.preferences.filepaths.asset_libraries[-1]
+
+    items = {i.name: i for i in brushes.collect(ctx)}
+    brushes.activate(ctx, items["Clay Strips"])
+    star = next(i for i in alphas.collect() if i.name == "Star")
+    alphas.apply(ctx, star)                      # -> local "Clay Strips Alpha" with a texture
+    brushes.set_stroke(ctx, 'ANCHORED')
+    result = bpy.ops.brush.asset_save_as(name="My Star Clay", asset_library_reference=lib.name,
+                                         catalog_path="My Brushes")
+    check(result == {'FINISHED'}, "brush saved into user library")
+
+    brushes.refresh()
+    items = {i.name: i for i in brushes.collect(ctx)}
+    mine = items.get("My Star Clay")
+    check(mine is not None and mine.lib_type == 'CUSTOM' and mine.lib_id == lib.name,
+          "saved brush listed from user library: %r" % (mine and mine.subtitle))
+    check(mine is not None and mine.catalog == "My Brushes", "catalog of saved brush")
+    brushes.activate(ctx, items["Grab"])
+    check(brushes.activate(ctx, mine), "saved brush activates from the palette")
+    brush = brushes.active_brush(ctx)
+    check(brushes.active_key(ctx) == mine.key, "active key of user library brush")
+    check(brush.texture is not None and brush.stroke_method == 'ANCHORED',
+          "saved brush keeps its alpha and DragRect stroke")
+    brushes.load_thumb(mine)
+    brushes.activate(ctx, items["Clay Strips"])  # don't leave a brush from a library we remove
+    bpy.ops.preferences.asset_library_remove(index=len(bpy.context.preferences.filepaths.asset_libraries) - 1)
 
 
 # ---------------------------------------------------------------------------
@@ -458,8 +506,9 @@ def screenshots(out_dir):
     from brush_palette import alphas
     stars = next(i for i in alphas.collect() if i.name == "Star")
     alphas.apply(bpy.context, stars)
+    brushes.set_stroke(bpy.context, 'ANCHORED')
     pal = make_palette('ALPHAS', w, h)
-    pal.hover = ('ITEM', 3)
+    pal.hover = ('STROKE', 'ANCHORED')
     render(pal, os.path.join(out_dir, "palette_alphas.png"), w, h, bg)
 
 
@@ -475,6 +524,7 @@ def main():
     test_alphas(pkg)
     test_layout(pkg)
     test_events(pkg)
+    test_user_library(pkg)
     if args.screenshot_dir:
         screenshots(args.screenshot_dir)
     addon_utils.disable("brush_palette", default_set=True)
