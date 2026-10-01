@@ -10,6 +10,9 @@ a bez platených API. Beží ako PWA: na iPhone „Pridať na plochu", na Window
 - Vyhľadávanie v prirodzenej vete („nájdi mi zmluvu k telekomu"), bez diakritiky, s toleranciou skloňovania
 - **Aktualizovať**: nová verzia dokumentu, stará ostáva v histórii
 
+- **Zálohy**: jeden šifrovaný súbor `.dokbackup` (AES-256-GCM, kľúč z hesla), export aj obnova; obnova dáta len zlučuje, nič nemaže
+- Pripomienka v dashboarde, ak je posledná záloha staršia ako 30 dní
+
 ## Spustenie
 ```
 npm install
@@ -24,4 +27,4 @@ OCR engine a jazykové dáta sa pri `dev`/`build` skopírujú do `public/ocr` (n
 Do repozitára nikdy nepatria skutočné dokumenty (`.gitignore` blokuje `*.pdf`, `zalohy/`). Na testovanie používaj vymyslené dáta.
 
 ## Plán
-Zálohy (šifrovaný export/import) → synchronizácia telefón ↔ PC (WebRTC, párovanie cez QR).
+Synchronizácia telefón ↔ PC (WebRTC, párovanie cez QR).

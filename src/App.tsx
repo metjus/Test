@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useMemo, useState } from 'react'
 import { AddDialog } from './AddDialog'
+import { BackupDialog } from './BackupDialog'
+import { lastBackupAt } from './backup'
 import { DetailDialog } from './DetailDialog'
 import { db, requestPersistentStorage } from './db'
 import { statusOf, type Urgency } from './extract'
@@ -33,8 +35,10 @@ export default function App() {
   const [q, setQ] = useState('')
   const [cat, setCat] = useState<string | null>(null)
   const [adding, setAdding] = useState(false)
-  const [open, setOpen] = useState<number | null>(null)
+  const [open, setOpen] = useState<string | null>(null)
   const [persisted, setPersisted] = useState<boolean | null>(null)
+  const [backing, setBacking] = useState(false)
+  const [lastBackup, setLastBackup] = useState<number | null>(lastBackupAt)
 
   useEffect(() => {
     requestPersistentStorage().then(setPersisted)
@@ -63,8 +67,17 @@ export default function App() {
     <div className="app">
       <header className="top">
         <h1>Dokumenty</h1>
-        <button className="primary" onClick={() => setAdding(true)}>+ Pridať</button>
+        <div className="top-actions">
+          <button onClick={() => setBacking(true)}>Zálohy</button>
+          <button className="primary" onClick={() => setAdding(true)}>+ Pridať</button>
+        </div>
       </header>
+
+      {docs && docs.length > 0 && (!lastBackup || Date.now() - lastBackup > 30 * 86_400_000) && (
+        <button className="backup-nag" onClick={() => setBacking(true)}>
+          💾 {lastBackup ? `Posledná záloha je z ${new Date(lastBackup).toLocaleDateString('sk-SK')}.` : 'Ešte nemáš žiadnu zálohu.'} Vytvor ju, inak môžeš o dokumenty prísť.
+        </button>
+      )}
 
       {warn.length > 0 && (
         <section className="alert">
@@ -72,7 +85,7 @@ export default function App() {
           <ul>
             {warn.map(({ d, st }) => (
               <li key={d.id}>
-                <button className={`link ${st.urgency}`} onClick={() => setOpen(d.id!)}>
+                <button className={`link ${st.urgency}`} onClick={() => setOpen(d.id)}>
                   <span className={`dot ${st.urgency}`} /> {d.title} <em>{st.label}</em>
                 </button>
               </li>
@@ -98,7 +111,7 @@ export default function App() {
       ) : (
         <div className="list">
           {list.map((d) => (
-            <Card key={d.id} doc={d} onOpen={() => setOpen(d.id!)} />
+            <Card key={d.id} doc={d} onOpen={() => setOpen(d.id)} />
           ))}
           {list.length === 0 && <p className="muted">Nič sa nenašlo.</p>}
         </div>
@@ -108,6 +121,7 @@ export default function App() {
         <p className="foot muted">Prehliadač zatiaľ nezaručuje trvalé úložisko. Rob si zálohy a appku si pridaj na plochu.</p>
       )}
 
+      {backing && <BackupDialog onClose={() => setBacking(false)} onDone={() => setLastBackup(lastBackupAt())} />}
       {adding && <AddDialog onClose={() => setAdding(false)} />}
       {open !== null && <DetailDialog docId={open} onClose={() => setOpen(null)} />}
     </div>

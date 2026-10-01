@@ -2,7 +2,7 @@ export const DOC_TYPES = ['Zmluva', 'Kúpna zmluva', 'Nájomná zmluva', 'Poistn
 export const CATEGORIES = ['Bývanie', 'Auto', 'Telekomunikácie', 'Poistenie', 'Financie', 'Zdravie', 'Práca', 'Iné'] as const
 
 export interface Doc {
-  id?: number
+  id: string // UUID, aby sa záznamy zo zariadení dali bezpečne zlučovať
   title: string
   type: string
   category: string
@@ -18,12 +18,13 @@ export interface Doc {
 }
 
 export interface DocVersion {
-  id?: number
-  docId: number
+  id: string
+  docId: string
   version: number
   fileName: string
   mime: string
   blob: Blob
+  text: string // OCR / text tejto verzie
   note: string
   addedAt: number
 }

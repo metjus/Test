@@ -5,7 +5,7 @@ import { addVersion, db, deleteDoc, type NewDoc } from './db'
 import { suggest } from './extract'
 import { processFile } from './ocr'
 
-export function DetailDialog({ docId, onClose }: { docId: number; onClose: () => void }) {
+export function DetailDialog({ docId, onClose }: { docId: string; onClose: () => void }) {
   const doc = useLiveQuery(() => db.docs.get(docId), [docId])
   const versions = useLiveQuery(() => db.versions.where('docId').equals(docId).reverse().sortBy('version'), [docId])
   const [draft, setDraft] = useState<NewDoc | null>(null)

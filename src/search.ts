@@ -30,9 +30,9 @@ export function buildIndex(docs: Doc[]): MiniSearch<Doc> {
 
 export function search(ms: MiniSearch<Doc>, docs: Doc[], query: string): Doc[] {
   if (!query.trim()) return docs
-  const byId = new Map(docs.map((d) => [d.id!, d]))
+  const byId = new Map(docs.map((d) => [d.id, d]))
   return ms
     .search(query)
-    .map((r) => byId.get(r.id as number))
+    .map((r) => byId.get(r.id as string))
     .filter((d): d is Doc => !!d)
 }
