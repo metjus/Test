@@ -276,6 +276,8 @@ def cut_object(obj, curve_world: np.ndarray, refine_levels: int = 3, keep_origin
         for p in parts:
             bpy.data.objects.remove(p, do_unlink=True)
         raise CutError("The cut did not separate the model into parts.")
+    if len(parts) == 2:  # dvojica dielov, ktoré k sebe patria (pre kolíky)
+        parts[0]["smartcut_partner"], parts[1]["smartcut_partner"] = parts[1].name, parts[0].name
     if keep_original:
         obj.hide_set(True)
     info = {"parts": len(parts), "faces_before": faces0, "conflict": conflict, "cap": cap_stats}

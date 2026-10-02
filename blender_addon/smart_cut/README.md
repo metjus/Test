@@ -4,7 +4,7 @@ Rozreže model podľa plynulej slučky, ktorú nakreslíš priamo na povrch. Hod
 diely tam, kde rez rovinou nestačí (ohyby rúk, krk). Rez ide po krivke, ktorú vidíš, a oba diely sa uzavrú.
 
 ## Inštalácia
-`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.1.0.zip`.
+`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.2.0.zip`.
 Blender: **Edit > Preferences > Get Extensions > (šípka vpravo hore) Install from Disk**.
 V 3D okne stlač `N`, záložka **Smart Cut**.
 
@@ -24,8 +24,16 @@ V 3D okne stlač `N`, záložka **Smart Cut**.
    **Edge precision** (predvolene 1) určuje, koľkokrát sa plochy pri reze delia pred prichytením hrany; vyššie
    hodnoty zlepšenie nepridajú, len pribudnú drobné trojuholníky. Pôvodný model sa skryje (nezmaže).
 
+5. **Kolíky na lepenie** (vyber jeden z dvoch dielov):
+   - **Add Connectors** umiestni kolíky na plochu rezu ako obyčajné objekty, ktoré vidíš a môžeš posunúť (`G`)
+     alebo zmeniť ich veľkosť (`S`) ešte pred aplikovaním. Počet, priemer a dĺžka sa dajú nastaviť v paneli
+     „Adjust Last Operation" (0 = automaticky podľa veľkosti rezu). **Alternate sides** dá kolíky striedavo na oba diely.
+   - **Apply Connectors** pripojí každý kolík k jeho dielu a do druhého dielu vyreže otvor o **Clearance** väčší
+     (predvolene 0,2; mm, ak 1 jednotka = 1 mm). Otvor je o vôľu hlbší, aby sa zmestilo lepidlo.
+   - Kolíky smerujú v smere osi rezu a sú rovnobežné, takže sa diely zasunú jedným pohybom.
+
 ## Zatiaľ nie je
-- Kolíky a otvory na spájanie dielov.
+- Voliteľná medzera medzi dielmi (ako pri rezaní rovinou s hrúbkou).
 - Rez cez viac slučiek naraz.
 - Interaktívne kreslenie nemá automatický test (potrebuje okno Blenderu). Všetko ostatné je pokryté testami.
 

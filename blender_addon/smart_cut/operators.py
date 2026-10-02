@@ -6,7 +6,7 @@ from bpy_extras import view3d_utils
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
 
-from . import cutter, geom, stroke, surface
+from . import connectors, cutter, geom, stroke, surface
 
 COLOR_STROKE = (1.0, 0.55, 0.05, 1.0)
 
@@ -364,6 +364,80 @@ class SMARTCUT_OT_cut(bpy.types.Operator):
         return {"FINISHED"}
 
 
+# --------------------------------------------------------------------------- 5. kolíky na lepenie
+
+
+def _part_and_partner(context):
+    part = context.active_object
+    if part is None or part.type != "MESH":
+        return None, None
+    name = part.get("smartcut_partner")
+    partner = bpy.data.objects.get(name) if name else None
+    if partner is None:
+        others = [o for o in context.selected_objects if o is not part and o.type == "MESH"]
+        partner = others[0] if others else None
+    return part, partner
+
+
+class SMARTCUT_OT_connectors_add(bpy.types.Operator):
+    bl_idname = "smartcut.connectors_add"
+    bl_label = "Add Connectors"
+    bl_description = (
+        "Place glue pins on the cut surface. They appear as normal objects you can move (G) or scale before applying. "
+        "Select one of the two cut parts first"
+    )
+    bl_options = {"REGISTER", "UNDO"}
+
+    count: IntProperty(name="Pins", description="0 = automatic from the size of the cut", default=0, min=0, max=8)
+    diameter: FloatProperty(name="Diameter", description="In mm if 1 unit = 1 mm. 0 = automatic", default=0.0, min=0.0, max=50.0)
+    length: FloatProperty(name="Length", description="How far the pin sticks out. 0 = automatic", default=0.0, min=0.0, max=100.0)
+    alternate: BoolProperty(
+        name="Alternate sides", description="Put pins on both parts alternately instead of all on the active one", default=False
+    )
+
+    @classmethod
+    def poll(cls, context):
+        part, partner = _part_and_partner(context)
+        return part is not None and partner is not None
+
+    def execute(self, context):
+        part, partner = _part_and_partner(context)
+        try:
+            pins = connectors.add_pins(part, partner, self.count, self.diameter, self.length, self.alternate)
+        except ValueError as e:
+            self.report({"ERROR"}, str(e))
+            return {"CANCELLED"}
+        for o in context.selected_objects:
+            o.select_set(False)
+        for p in pins:
+            p.select_set(True)
+        context.view_layer.objects.active = pins[0]
+        self.report({"INFO"}, f"{len(pins)} pin(s) added. Move or scale them if needed, then Apply Connectors.")
+        return {"FINISHED"}
+
+
+class SMARTCUT_OT_connectors_apply(bpy.types.Operator):
+    bl_idname = "smartcut.connectors_apply"
+    bl_label = "Apply Connectors"
+    bl_description = "Join each pin to its part and cut a matching hole (with clearance) into the other part"
+    bl_options = {"REGISTER", "UNDO"}
+
+    clearance: FloatProperty(
+        name="Clearance", description="Extra room around the pin in the hole, in mm if 1 unit = 1 mm. 0.2 is a good start for glue",
+        default=0.2, min=0.0, max=3.0,
+    )
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.get(connectors.PIN_PROP) for o in context.scene.objects)
+
+    def execute(self, context):
+        pins = [o for o in context.scene.objects if o.get(connectors.PIN_PROP)]
+        n = connectors.apply_pins(pins, self.clearance)
+        self.report({"INFO"}, f"{n} connector(s) applied")
+        return {"FINISHED"} if n else {"CANCELLED"}
+
+
 class VIEW3D_PT_smart_cut(bpy.types.Panel):
     bl_label = "Smart Cut"
     bl_idname = "VIEW3D_PT_smart_cut"
@@ -386,6 +460,10 @@ class VIEW3D_PT_smart_cut(bpy.types.Panel):
         col.separator()
         col.label(text="4. Cut")
         col.operator("smartcut.cut", icon="MOD_BUILD")
+        col.separator()
+        col.label(text="5. Glue pins (select a cut part)")
+        col.operator("smartcut.connectors_add", icon="PINNED")
+        col.operator("smartcut.connectors_apply", icon="CHECKMARK")
 
 
 CLASSES = (
@@ -393,5 +471,7 @@ CLASSES = (
     SMARTCUT_OT_complete,
     SMARTCUT_OT_snap,
     SMARTCUT_OT_cut,
+    SMARTCUT_OT_connectors_add,
+    SMARTCUT_OT_connectors_apply,
     VIEW3D_PT_smart_cut,
 )

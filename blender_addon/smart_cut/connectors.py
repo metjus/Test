@@ -1,0 +1,219 @@
+"""Kolíky a otvory na lepenie dielov: návrh polohy (numpy) a vytvorenie/aplikovanie v Blenderi."""
+from __future__ import annotations
+
+import bmesh
+import bpy
+import numpy as np
+from mathutils import Matrix, Vector
+
+PIN_PROP = "smartcut_pin"
+
+
+# --------------------------------------------------------------------------- návrh (čistý numpy)
+
+
+def _min_dist(points: np.ndarray, others: np.ndarray) -> np.ndarray:
+    out = np.empty(len(points))
+    for s in range(0, len(points), 1024):
+        d = np.linalg.norm(points[s : s + 1024, None, :] - others[None], axis=2)
+        out[s : s + 1024] = d.min(axis=1)
+    return out
+
+
+def plan_pins(cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diameter: float = 0.0, length: float = 0.0):
+    """Kde dať kolíky na plochu rezu. Vráti (stredy, priemer, dĺžka).
+
+    Stredy sú body plochy rezu najďalej od okraja (a od seba). Priemer a dĺžka sa pri 0 zvolia podľa veľkosti plochy.
+    """
+    cap_pts = np.asarray(cap_pts, dtype=np.float64)
+    d_border = _min_dist(cap_pts, np.asarray(border_pts, dtype=np.float64))
+    r_in = float(d_border.max())  # polomer najväčšej vpísanej kružnice (približne)
+    dia = float(diameter) if diameter > 0 else float(np.clip(0.35 * r_in, 2.0, 6.0))
+    dia = min(dia, max(r_in / 1.6, 0.3))  # aby sa kolík na malú plochu zmestil
+    ln = float(length) if length > 0 else float(np.clip(2.5 * dia, 4.0, 12.0))
+    ln = min(ln, 2.0 * r_in) if length <= 0 else ln
+    margin = 0.8 * dia
+    n = count if count > 0 else (1 if r_in < 3.0 * dia else 2 if r_in < 5.0 * dia else 3)
+
+    ok = d_border >= dia / 2 + margin
+    if not ok.any():
+        ok = d_border >= d_border.max() * 0.999  # aspoň najlepší bod
+    pool = np.nonzero(ok)[0]
+    first = pool[int(d_border[pool].argmax())]
+    chosen = [first]
+    min_sep = 2.5 * dia
+    while len(chosen) < n:
+        dist = _min_dist(cap_pts[pool], cap_pts[chosen])
+        # najďalej od už zvolených, pri rovnosti radšej bližšie ku stredu plochy
+        score = dist + 0.15 * d_border[pool]
+        k = int(score.argmax())
+        if dist[k] < min_sep:
+            break
+        chosen.append(pool[k])
+    return cap_pts[chosen], dia, ln
+
+
+# --------------------------------------------------------------------------- meshe
+
+
+def _pin_mesh(name: str, radius: float, length: float, base: float, taper: float = 0.85):
+    """Valec od z = -base (vo vnútri dielu) po z = +length (špička, mierne zúžená)."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(
+        bm, cap_ends=True, cap_tris=False, segments=32, radius1=radius, radius2=radius * taper, depth=length + base
+    )
+    bmesh.ops.translate(bm, vec=(0, 0, (length - base) / 2.0), verts=bm.verts)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    return me
+
+
+def _socket_mesh(name: str, radius: float, depth: float, below: float):
+    """Priamy valec od z = -below (mimo dielu) po z = +depth."""
+    bm = bmesh.new()
+    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=32, radius1=radius, radius2=radius, depth=depth + below)
+    bmesh.ops.translate(bm, vec=(0, 0, (depth - below) / 2.0), verts=bm.verts)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    return me
+
+
+def _rotation_to(axis: Vector) -> Matrix:
+    return axis.normalized().to_track_quat("Z", "Y").to_matrix().to_4x4()
+
+
+# --------------------------------------------------------------------------- dáta o reze
+
+
+def _world_coords(obj) -> np.ndarray:
+    n = len(obj.data.vertices)
+    co = np.empty(n * 3)
+    obj.data.vertices.foreach_get("co", co)
+    m = np.array(obj.matrix_world)
+    return co.reshape(-1, 3) @ m[:3, :3].T + m[:3, 3]
+
+
+def cap_info(part, partner):
+    """Plocha rezu, ktorá patrí k dvojici dielov. Vráti (body plochy, body hranice, priemerná vonkajšia normála)."""
+    me = part.data
+    attr = me.attributes.get("smartcut_cap")
+    if attr is None:
+        return None
+    cap = np.zeros(len(me.polygons), dtype=np.int64)
+    attr.data.foreach_get("value", cap)
+    cap = cap.astype(bool)
+    co = _world_coords(part)
+    partner_cap_keys = set()
+    pme = partner.data
+    pattr = pme.attributes.get("smartcut_cap")
+    if pattr is not None:
+        pcap = np.zeros(len(pme.polygons), dtype=np.int64)
+        pattr.data.foreach_get("value", pcap)
+        pco = _world_coords(partner)
+        for poly in pme.polygons:
+            if pcap[poly.index]:
+                partner_cap_keys.update(tuple(np.round(pco[i], 5)) for i in poly.vertices)
+    in_cap, in_surface = set(), set()
+    normal = np.zeros(3)
+    m3 = np.array(part.matrix_world)[:3, :3]
+    for poly in me.polygons:
+        if not cap[poly.index]:
+            in_surface.update(poly.vertices)
+            continue
+        if partner_cap_keys and not all(tuple(np.round(co[i], 5)) in partner_cap_keys for i in poly.vertices):
+            in_surface.update(poly.vertices)
+            continue  # plocha iného rezu
+        in_cap.update(poly.vertices)
+        normal += (m3 @ np.array(poly.normal)) * poly.area
+    if not in_cap:
+        return None
+    cap_ids = sorted(in_cap)
+    border_ids = sorted(in_cap & in_surface)
+    if not border_ids:
+        return None
+    n = np.linalg.norm(normal)
+    if n < 1e-12:
+        return None
+    return co[cap_ids], co[border_ids], normal / n
+
+
+# --------------------------------------------------------------------------- vytvorenie
+
+
+def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False):
+    """Vytvorí náhľadové kolíky (obyčajné objekty, ktoré sa dajú presúvať). Vráti zoznam objektov."""
+    info = cap_info(part, partner)
+    if info is None:
+        raise ValueError("No cut surface found between these parts.")
+    cap_pts, border_pts, normal = info
+    centers, dia, ln = plan_pins(cap_pts, border_pts, count, diameter, length)
+    radius = dia / 2.0
+    base = max(1.5 * dia, 2.0)
+    pins = []
+    for i, c in enumerate(centers):
+        on_part, other = (part, partner) if (not alternate or i % 2 == 0) else (partner, part)
+        axis = Vector(normal) if on_part is part else Vector(-normal)  # kolík smeruje z dielu von, k druhému dielu
+        me = _pin_mesh(f"Pin{i + 1}", radius, ln, base)
+        ob = bpy.data.objects.new(f"Pin{i + 1}", me)
+        ob.matrix_world = Matrix.Translation(Vector(c)) @ _rotation_to(axis)
+        ob.display_type = "SOLID"
+        ob.show_in_front = True
+        ob[PIN_PROP] = 1
+        ob["smartcut_pin_part"] = on_part.name
+        ob["smartcut_pin_other"] = other.name
+        ob["smartcut_pin_radius"] = radius
+        ob["smartcut_pin_length"] = ln
+        for coll in part.users_collection:
+            coll.objects.link(ob)
+        pins.append(ob)
+    return pins
+
+
+# --------------------------------------------------------------------------- aplikovanie
+
+
+def _boolean(obj, operand, operation: str):
+    mod = obj.modifiers.new("smartcut_bool", "BOOLEAN")
+    mod.operation = operation
+    mod.object = operand
+    mod.solver = "EXACT"
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = obj.evaluated_get(dg)
+    new = bpy.data.meshes.new_from_object(ev)
+    obj.modifiers.remove(mod)
+    old = obj.data
+    obj.data = new
+    if old.users == 0:
+        bpy.data.meshes.remove(old)
+    new.name = obj.name
+
+
+def apply_pins(pins, clearance: float = 0.2, socket_extra: float = 0.0) -> int:
+    """Kolík sa pridá k dielu, na ktorom je, a do druhého dielu sa vyreže otvor o `clearance` väčší."""
+    done = 0
+    for pin in list(pins):
+        part = bpy.data.objects.get(pin.get("smartcut_pin_part", ""))
+        other = bpy.data.objects.get(pin.get("smartcut_pin_other", ""))
+        if part is None or other is None:
+            continue
+        sx = (abs(pin.scale.x) + abs(pin.scale.y)) / 2.0
+        radius = pin["smartcut_pin_radius"] * sx
+        length = pin["smartcut_pin_length"] * abs(pin.scale.z)
+        sock = bpy.data.objects.new("socket_tmp", _socket_mesh("socket_tmp", radius + clearance, length + clearance + socket_extra, max(2.0 * radius, 1.0)))
+        sock.matrix_world = pin.matrix_world @ Matrix.Diagonal((1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0))
+        for coll in other.users_collection:
+            coll.objects.link(sock)
+        pin.hide_viewport = False
+        _boolean(part, pin, "UNION")
+        _boolean(other, sock, "DIFFERENCE")
+        bpy.data.objects.remove(sock, do_unlink=True)
+        done += 1
+    for pin in pins:
+        if pin.name in bpy.data.objects:
+            me = pin.data
+            bpy.data.objects.remove(pin, do_unlink=True)
+            if me.users == 0:
+                bpy.data.meshes.remove(me)
+    return done
