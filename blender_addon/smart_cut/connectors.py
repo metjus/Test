@@ -237,8 +237,11 @@ def _boolean(obj, operand, operation: str):
     new.name = obj.name
 
 
-def apply_pins(pins, clearance: float = 0.2, socket_extra: float = 0.0) -> int:
-    """Kolík sa pridá k dielu, na ktorom je, a do druhého dielu sa vyreže otvor o `clearance` väčší."""
+def apply_pins(pins, clearance: float = 0.05, socket_extra: float = 0.0) -> int:
+    """Kolík sa pridá k dielu, na ktorom je, a do druhého dielu sa vyreže otvor s vôľou `clearance` na každej strane.
+
+    Otvor je na dne o niečo hlbší, aby kolík nedosadol skôr, než sa stretnú plochy rezu.
+    """
     done = 0
     for pin in list(pins):
         part = bpy.data.objects.get(pin.get("smartcut_pin_part", ""))
@@ -250,7 +253,10 @@ def apply_pins(pins, clearance: float = 0.2, socket_extra: float = 0.0) -> int:
         length = pin["smartcut_pin_length"] * abs(pin.scale.z)
         shape = pin.get("smartcut_pin_shape", "ROUND")
         sock = bpy.data.objects.new(
-            "socket_tmp", _socket_mesh("socket_tmp", size + 2.0 * clearance, length + clearance + socket_extra, size, shape)
+            "socket_tmp",
+            _socket_mesh(
+                "socket_tmp", size + 2.0 * clearance, length + max(2.0 * clearance, 0.08 * size) + socket_extra, size, shape
+            ),
         )
         sock.matrix_world = pin.matrix_world @ Matrix.Diagonal((1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0))
         for coll in other.users_collection:

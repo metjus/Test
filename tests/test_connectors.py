@@ -188,7 +188,7 @@ def test_square_pin_is_keyed_to_the_cut_and_fits_with_clearance():
     v_top0, _ = volume_and_open_edges(top)
     v_bot0, _ = volume_and_open_edges(bottom)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)  # štvorcový je predvolený
+    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, taper=0.9)  # štvorcový je predvolený
     pin = _pins()[0]
     assert pin["smartcut_pin_shape"] == "SQUARE"
     frame = np.array(pin.matrix_world)
@@ -199,7 +199,7 @@ def test_square_pin_is_keyed_to_the_cut_and_fits_with_clearance():
     assert o_top == 0 and o_bot == 0
     s_, k, ln, c = 4.0, 0.9, 8.0, 0.3
     pin_vol = ln * (s_ * s_ + s_ * s_ * k + (s_ * k) ** 2) / 3.0
-    hole_vol = (s_ + 2 * c) ** 2 * (ln + c)
+    hole_vol = (s_ + 2 * c) ** 2 * (ln + max(2 * c, 0.08 * s_))
     assert (v_top - v_top0) == pytest.approx(pin_vol, rel=0.12)
     assert (v_bot0 - v_bot) == pytest.approx(hole_vol, rel=0.12)
 
@@ -267,3 +267,42 @@ def test_preview_pins_are_wireframe_and_visible_through_the_model():
     for pin in _pins():
         assert pin.display_type == "WIRE" and pin.show_in_front
     assert not top.hide_get() and not bottom.hide_get()  # oba diely ostávajú viditeľné
+
+
+def _rings(obj, frame, origin, zmin):
+    """Polovičné šírky vrcholov nad rovinou rezu (kolík má vrcholy len na koncoch, nie po dĺžke)."""
+    m = np.array(obj.matrix_world)
+    co = np.array([tuple(v.co) for v in obj.data.vertices]) @ m[:3, :3].T + m[:3, 3] - origin
+    x, y, z = co @ frame[:3, 0], co @ frame[:3, 1], co @ frame[:3, 2]
+    w = np.maximum(abs(x), abs(y))
+    return w[(z > zmin) & (w < 4.0)]
+
+
+@pytest.mark.parametrize("clearance", [0.0, 0.05, 0.15])
+def test_side_gap_equals_the_clearance_setting(clearance):
+    top, bottom = limb_cut()
+    select(top)
+    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, taper=1.0)  # rovný kolík: vôľa je všade rovnaká
+    pin = _pins()[0]
+    frame = np.array(pin.matrix_world)
+    origin = frame[:3, 3]
+    assert bpy.ops.smartcut.connectors_apply(clearance=clearance) == {"FINISHED"}
+    peg = _rings(top, frame, origin, 4.0)
+    hole = _rings(bottom, frame, origin, 4.0)
+    assert len(peg) >= 4 and len(hole) >= 4
+    assert peg.max() == pytest.approx(2.0, abs=0.01)  # kolík má presne zadaný rozmer
+    assert hole.max() == pytest.approx(2.0 + clearance, abs=0.01)  # otvor je väčší presne o vôľu na stranu
+
+
+def test_defaults_are_a_snug_glue_fit():
+    top, bottom = limb_cut()
+    select(top)
+    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)  # predvolené zúženie
+    pin = _pins()[0]
+    frame = np.array(pin.matrix_world)
+    origin = frame[:3, 3]
+    assert bpy.ops.smartcut.connectors_apply() == {"FINISHED"}  # predvolená vôľa
+    hole = _rings(bottom, frame, origin, 4.0).max()
+    tip = _rings(top, frame, origin, 4.0).max()
+    assert hole - 2.0 == pytest.approx(0.05, abs=0.01)  # tesné, nie plávajúce
+    assert 2.0 - tip < 0.12  # zúženie len na zavedenie, kolík dosadá takmer po celej dĺžke

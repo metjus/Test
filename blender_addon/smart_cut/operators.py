@@ -395,8 +395,9 @@ class SMARTCUT_OT_connectors_add(bpy.types.Operator):
     )
     taper: FloatProperty(
         name="Taper",
-        description="Width of the tip relative to the base (1 = straight). A slightly tapered peg is easier to insert",
-        default=0.9, min=0.5, max=1.0,
+        description="Width of the tip relative to the base (1 = straight). Just enough taper to guide the peg in; "
+        "lower values make the fit loose along most of the peg",
+        default=0.96, min=0.5, max=1.0,
     )
     count: IntProperty(name="Pins", description="0 = automatic from the size of the cut", default=0, min=0, max=8)
     diameter: FloatProperty(name="Size", description="Width of the peg (side of the square or diameter), in mm if 1 unit = 1 mm. 0 = automatic", default=0.0, min=0.0, max=50.0)
@@ -433,8 +434,10 @@ class SMARTCUT_OT_connectors_apply(bpy.types.Operator):
     bl_options = {"REGISTER", "UNDO"}
 
     clearance: FloatProperty(
-        name="Clearance", description="Extra room around the pin in the hole, in mm if 1 unit = 1 mm. 0.2 is a good start for glue",
-        default=0.2, min=0.0, max=3.0,
+        name="Clearance",
+        description="Gap on each side between peg and hole, in mm if 1 unit = 1 mm. 0.05 is a snug fit that still "
+        "leaves a film for CA glue; raise it only if the parts do not go together after printing",
+        default=0.05, min=0.0, max=1.0, step=1, precision=3,
     )
 
     @classmethod
