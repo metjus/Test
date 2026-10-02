@@ -424,6 +424,84 @@ built.append(page("thumbnail", """
 .ms i.now { background: var(--accent); box-shadow: 0 0 18px rgba(255,122,26,.7); }
 """, width=1200, height=1200))
 
+# ------------------------------------------------------- thumbnails v2
+# Built to read at the small sizes Gumroad shows them (~200-300 px):
+# one subject, few words, big type, no fine print.
+def strip(n, now, big=False):
+    icons = ["cube", "add", "subd", "material", "move", "bookmark", "polish", "material"]
+    out = []
+    for i in range(n):
+        cls = "sc now" if i == now else ("sc past" if i > now else "sc")
+        out.append('<div class="%s">%s</div>' % (cls, icon(icons[i % len(icons)])))
+    return '<div class="strip%s">%s</div>' % (" big" if big else "", "".join(out))
+
+THUMB_CSS = """
+.strip { display: flex; gap: 14px; }
+.strip .sc { width: 104px; height: 104px; border-radius: 26px; display: grid; place-items: center;
+             background: #1b1f27; border: 2px solid #343b49; color: #cdd2dd; font-size: 50px; }
+.strip .sc.now { background: #2a1a0e; border-color: var(--accent); color: #fff;
+                 box-shadow: 0 0 0 6px rgba(255,122,26,.18), 0 0 50px rgba(255,122,26,.55); }
+.strip .sc.past { opacity: .35; }
+"""
+
+# A: product shot + name + timeline
+built.append(page("thumb-a", """
+<img class="bg" src="%s"><div class="shade"></div>
+<div class="t"><h1>History<br>Timeline</h1>%s</div>
+""" % (S5, strip(6, 5)), THUMB_CSS + """
+body { background: var(--bg); }
+.bg { position: absolute; left: -60px; top: -40px; width: 1320px; height: 990px; object-fit: cover; object-position: 50% 38%; }
+.shade { position: absolute; inset: 0; background: linear-gradient(rgba(11,13,17,0) 38%, rgba(11,13,17,.88) 58%, var(--bg) 70%); }
+.t { position: absolute; left: 90px; right: 90px; bottom: 90px; }
+.t h1 { font-size: 150px; line-height: .95; letter-spacing: -.045em; }
+.t .strip { margin-top: 50px; }
+""", width=1200, height=1200))
+
+# B: the shortcut itself as the hero
+built.append(page("thumb-b", """
+<div class="glow"></div>
+<div class="keys"><kbd>Ctrl</kbd><b>+</b><kbd class="z">Z</kbd></div>
+<div class="line">after closing Blender</div>
+<div class="foot"><div class="name">History Timeline</div>%s</div>
+""" % strip(6, 3), THUMB_CSS + """
+body { background: radial-gradient(900px 700px at 50% 30%, #1d2129, var(--bg)); }
+.glow { position: absolute; left: 50%; top: 300px; width: 700px; height: 300px; transform: translateX(-50%);
+        background: radial-gradient(closest-side, rgba(255,122,26,.25), transparent); }
+.keys { position: absolute; left: 0; right: 0; top: 150px; display: flex; justify-content: center; align-items: center; gap: 34px; }
+kbd { font-family: Inter, sans-serif; font-size: 150px; font-weight: 650; color: var(--ink); line-height: 1;
+      padding: 60px 70px 70px; border-radius: 48px; background: linear-gradient(#262b35, #1a1e26);
+      border: 3px solid #3a414f; box-shadow: 0 18px 0 #07080b, 0 30px 60px rgba(0,0,0,.5); }
+kbd.z { border-color: var(--accent); box-shadow: 0 18px 0 #5a2a08, 0 0 70px rgba(255,122,26,.45); }
+.keys b { font-size: 110px; color: var(--ink-3); font-weight: 500; }
+.line { position: absolute; left: 0; right: 0; top: 590px; text-align: center; font-size: 82px; font-weight: 650;
+        letter-spacing: -.035em; color: var(--ink); }
+.foot { position: absolute; left: 0; right: 0; bottom: 100px; display: flex; flex-direction: column; align-items: center; gap: 44px; }
+.foot .name { font-size: 64px; font-weight: 600; color: var(--ink-2); letter-spacing: -.02em; }
+""", width=1200, height=1200))
+
+# C: before -> after with the restore arrow
+built.append(page("thumb-c", """
+<div class="h"><h1>History Timeline</h1></div>
+<div class="pair">
+  <div class="card past"><img src="%s"></div>
+  <div class="arrow">%s</div>
+  <div class="card"><img src="%s"></div>
+</div>
+<div class="foot">%s</div>
+""" % (S2, icon("restore"), S5, strip(6, 5)), THUMB_CSS + """
+body { background: radial-gradient(1000px 700px at 50% 45%, #1b1f27, var(--bg)); }
+.h { position: absolute; left: 0; right: 0; top: 90px; text-align: center; }
+.h h1 { font-size: 112px; letter-spacing: -.04em; }
+.pair { position: absolute; left: 70px; right: 70px; top: 300px; display: flex; align-items: center; gap: 24px; }
+.card { flex: 1; height: 520px; border-radius: 40px; overflow: hidden; border: 3px solid var(--accent);
+        box-shadow: 0 0 60px rgba(255,122,26,.35); }
+.card.past { border-color: #343b49; box-shadow: none; }
+.card img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
+.arrow { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center; flex: none;
+         background: #2a1a0e; border: 3px solid var(--accent); color: var(--accent); font-size: 60px; }
+.foot { position: absolute; left: 0; right: 0; bottom: 100px; display: flex; justify-content: center; }
+""", width=1200, height=1200))
+
 # ------------------------------------------------------------------ icon
 built.append(page("icon", """<div class="ic"><svg viewBox="0 0 24 24">%s</svg></div>""" % ICONS["logo"], """
 body { background: transparent; }
