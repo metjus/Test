@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "bambu_color_export"
-version = "1.0.0"
+version = "1.1.0"
 name = "Bambu Color Export"
 tagline = "Export material colours as painted 3MF for Bambu Studio"
 maintainer = "Matus Sturdik"

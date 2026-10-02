@@ -400,6 +400,14 @@ class VIEW3D_PT_bambu_colors(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
+        paint.draw_error_box(layout)
+        try:
+            self._draw(context, layout)
+        except Exception:
+            paint.record_error("export panel")
+            layout.label(text="Panel error, see Copy Error above", icon="ERROR")
+
+    def _draw(self, context, layout):
         objects, palette, index_of = _panel_palette(context)
         layout.label(text="%s: %d object(s)" % ("Selected" if context.selected_objects else "Visible",
                                                  len(objects)))

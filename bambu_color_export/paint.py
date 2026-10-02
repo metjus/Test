@@ -49,9 +49,23 @@ NEW_COLORS = [
     (0.0, 0.0, 0.0), (0.5, 0.05, 0.6), (0.9, 0.25, 0.4), (0.3, 0.13, 0.03),
 ]
 
+def _read_version():
+    import os
+    try:
+        import tomllib
+        path = os.path.join(os.path.dirname(__file__), "blender_manifest.toml")
+        with open(path, "rb") as f:
+            return tomllib.load(f).get("version", "?")
+    except Exception:
+        return "?"
+
+
+VERSION = _read_version()
+
 _running = None  # the active BAMBU_OT_paint operator, if any
 _draw_handle = None  # its viewport draw callback
 ERROR_TEXT = "Bambu Paint Error"
+_last_error = None  # kept in memory too: text blocks can't be created while drawing
 
 
 def tool_label(s):
@@ -276,9 +290,12 @@ def stop_painting():
                 area.tag_redraw()
 
 
-def record_error():
+def record_error(where=""):
     """Save the current traceback to a text block (and the console) so it can be copied."""
-    tb = traceback.format_exc()
+    tb = "Bambu Color Export %s, Blender %s%s\n%s" % (
+        VERSION, bpy.app.version_string, " (%s)" % where if where else "", traceback.format_exc())
+    global _last_error
+    _last_error = tb
     print(tb)
     try:
         text = bpy.data.texts.get(ERROR_TEXT) or bpy.data.texts.new(ERROR_TEXT)
@@ -332,7 +349,12 @@ class BAMBU_OT_paint_add_color(bpy.types.Operator):
         return obj is not None and obj.type == "MESH"
 
     def execute(self, context):
-        add_color(context.active_object)
+        try:
+            add_color(context.active_object)
+        except Exception:
+            record_error("add colour")
+            self.report({"ERROR"}, "Could not add a colour. Use 'Copy Error' in the Bambu Paint panel")
+            return {"CANCELLED"}
         return {"FINISHED"}
 
 
@@ -368,9 +390,9 @@ class BAMBU_OT_paint(bpy.types.Operator):
         try:
             return self._invoke(context)
         except Exception:
-            record_error()
+            record_error("start painting")
             stop_painting()
-            self.report({"ERROR"}, "Could not start painting. Details in the '%s' text" % ERROR_TEXT)
+            self.report({"ERROR"}, "Could not start painting. Use 'Copy Error' in the Bambu Paint panel")
             return {"CANCELLED"}
 
     def _invoke(self, context):
@@ -482,9 +504,9 @@ class BAMBU_OT_paint(bpy.types.Operator):
         try:
             return self._modal(context, event)
         except Exception:
-            record_error()
+            record_error("painting, event %s %s" % (event.type, event.value))
             stop_painting()
-            self.report({"ERROR"}, "Painting stopped after an error. Details in the '%s' text" % ERROR_TEXT)
+            self.report({"ERROR"}, "Painting stopped after an error. Use 'Copy Error' in the Bambu Paint panel")
             return {"CANCELLED"}
 
     def _modal(self, context, event):
@@ -589,7 +611,7 @@ def _draw_brush(op):
     try:
         _draw_brush_impl(op)
     except Exception:
-        record_error()
+        record_error("viewport drawing")
         stop_painting()
 
 
@@ -628,6 +650,52 @@ def _draw_brush_impl(op):
 # UI
 # ---------------------------------------------------------------------------
 
+class BAMBU_OT_copy_error(bpy.types.Operator):
+    """Copy the last Bambu Paint error to the clipboard, to paste it in a message"""
+    bl_idname = "bambu.copy_error"
+    bl_label = "Copy Error"
+
+    def execute(self, context):
+        error = last_error()
+        if not error:
+            return {"CANCELLED"}
+        context.window_manager.clipboard = error
+        self.report({"INFO"}, "Error copied to the clipboard")
+        return {"FINISHED"}
+
+
+class BAMBU_OT_clear_error(bpy.types.Operator):
+    """Forget the last Bambu Paint error"""
+    bl_idname = "bambu.clear_error"
+    bl_label = "Clear Error"
+
+    def execute(self, context):
+        global _last_error
+        _last_error = None
+        text = bpy.data.texts.get(ERROR_TEXT)
+        if text is not None:
+            bpy.data.texts.remove(text)
+        return {"FINISHED"}
+
+
+def last_error():
+    if _last_error:
+        return _last_error
+    text = bpy.data.texts.get(ERROR_TEXT)
+    return text.as_string() if text is not None else None
+
+
+def draw_error_box(layout):
+    """Error notice with Copy/Clear buttons, if an error was recorded."""
+    if not last_error():
+        return
+    box = layout.box()
+    box.label(text="An error was recorded", icon="ERROR")
+    row = box.row(align=True)
+    row.operator(BAMBU_OT_copy_error.bl_idname, icon="COPYDOWN")
+    row.operator(BAMBU_OT_clear_error.bl_idname, text="", icon="X")
+
+
 class BAMBU_OT_paint_stop(bpy.types.Operator):
     """Stop painting mode (also clears a stuck painting session)"""
     bl_idname = "bambu.paint_stop"
@@ -645,8 +713,21 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
     bl_category = "Bambu"
 
     def draw(self, context):
-        from . import material_color_source
         layout = self.layout
+        if _running is not None:
+            row = layout.row()
+            row.scale_y = 1.4
+            row.operator(BAMBU_OT_paint_stop.bl_idname, icon="CANCEL")
+        draw_error_box(layout)
+        try:
+            self._draw(context, layout)
+        except Exception:
+            record_error("paint panel")
+            layout.label(text="Panel error, see Copy Error above", icon="ERROR")
+        layout.label(text="Version %s" % VERSION)
+
+    def _draw(self, context, layout):
+        from . import material_color_source
         obj = context.active_object
         if obj is None or obj.type != "MESH":
             layout.label(text="Select a mesh object to paint", icon="INFO")
@@ -690,7 +771,6 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
 
         if _running is not None:
             layout.label(text="Painting… Esc/Enter to finish", icon="BRUSH_DATA")
-            layout.operator(BAMBU_OT_paint_stop.bl_idname, icon="CANCEL")
         else:
             layout.operator(BAMBU_OT_paint.bl_idname, text="Start Painting", icon="BRUSH_DATA")
         row = layout.row()
@@ -718,6 +798,8 @@ classes = (
     BAMBU_OT_paint_set_color,
     BAMBU_OT_paint,
     BAMBU_OT_paint_stop,
+    BAMBU_OT_copy_error,
+    BAMBU_OT_clear_error,
     VIEW3D_PT_bambu_paint,
 )
 
