@@ -212,6 +212,19 @@ def _base_depth(cap_pts: np.ndarray, center: np.ndarray, normal: np.ndarray, siz
     return float(np.clip(1.3 * sag + 0.4 * size, 0.6 * size, 1.2 * size))
 
 
+def flip_pins(pins) -> int:
+    """Prehodí stranu: kolík prejde na druhý diel a diera na ten, kde bol. Poloha ostáva."""
+    n = 0
+    for pin in pins:
+        a, b = pin.get("smartcut_pin_part"), pin.get("smartcut_pin_other")
+        if not a or not b:
+            continue
+        pin["smartcut_pin_part"], pin["smartcut_pin_other"] = b, a
+        pin.matrix_world = pin.matrix_world @ Matrix.Rotation(np.pi, 4, "X")  # otočí smer kolíka
+        n += 1
+    return n
+
+
 def remove_preview_pins(part, partner):
     """Zmaže náhľadové kolíky, ktoré patria tejto dvojici dielov."""
     names = {part.name, partner.name}

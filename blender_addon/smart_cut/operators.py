@@ -379,12 +379,36 @@ def _part_and_partner(context):
     return part, partner
 
 
+class SMARTCUT_OT_connectors_fit(bpy.types.Operator):
+    bl_idname = "smartcut.connectors_fit"
+    bl_label = "Fit to Cut"
+    bl_description = "Fill in a peg size that suits the current cut, so you have a number to start from"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        part, partner = _part_and_partner(context)
+        return part is not None and partner is not None
+
+    def execute(self, context):
+        part, partner = _part_and_partner(context)
+        info = connectors.cap_info(part, partner)
+        if info is None:
+            self.report({"ERROR"}, "No cut surface found between these parts.")
+            return {"CANCELLED"}
+        cap_pts, border_pts, _normal = info
+        _c, size, _ln, max_fit = connectors.plan_pins(cap_pts, border_pts, count=1)
+        settings.get(context).size = size
+        self.report({"INFO"}, f"Peg size set to {size:.2f} (this cut takes up to {max_fit:.2f})")
+        return {"FINISHED"}
+
+
 class SMARTCUT_OT_connectors_add(bpy.types.Operator):
     bl_idname = "smartcut.connectors_add"
-    bl_label = "Add / Update Pegs"
+    bl_label = "Add / Update Peg"
     bl_description = (
-        "Place glue pegs on the cut surface using the settings above. They appear as wireframe previews you can "
-        "move (G) or scale (S). Press again after changing a setting to rebuild them. Select one of the two cut parts"
+        "Place a square glue peg on the cut using the size above. It appears as a wireframe preview you can move "
+        "with G. Press again after changing a value to rebuild it. Select one of the two cut parts first"
     )
     bl_options = {"REGISTER", "UNDO"}
 
@@ -396,41 +420,51 @@ class SMARTCUT_OT_connectors_add(bpy.types.Operator):
     def execute(self, context):
         s = settings.get(context)
         part, partner = _part_and_partner(context)
-        connectors.remove_preview_pins(part, partner)  # opakované kliknutie kolíky prekreslí, nehromadí
+        connectors.remove_preview_pins(part, partner)  # opakované kliknutie kolík prekreslí, nehromadí
         try:
-            pins, info = connectors.add_pins(
-                part, partner, s.count, s.size, s.length, s.alternate, s.shape, s.taper
-            )
+            pins, info = connectors.add_pins(part, partner, count=1, diameter=s.size, taper=s.taper, shape="SQUARE")
         except ValueError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}
-        if info["requested"] and info["placed"] < info["requested"]:
-            self.report(
-                {"WARNING"},
-                f"Only {info['placed']} of {info['requested']} pegs fit at {info['size']:.2f}; use a smaller size.",
-            )
         if info["size"] > info["max_fit"] * 1.001:
             self.report(
                 {"WARNING"},
-                f"Peg {info['size']:.2f} is wider than the cut comfortably fits ({info['max_fit']:.2f}); "
-                "it may reach past the edge.",
+                f"Peg {info['size']:.2f} is wider than this cut takes ({info['max_fit']:.2f}); "
+                "use Fit to Cut or type a smaller size.",
             )
         for o in context.selected_objects:
             o.select_set(False)
-        for p in pins:
-            p.select_set(True)
+        pins[0].select_set(True)
         context.view_layer.objects.active = pins[0]
         self.report(
             {"INFO"},
-            f"{len(pins)} peg(s) {info['size']:.2f} x {info['length']:.2f}, hole {info['size'] + 2 * s.clearance:.2f}",
+            f"Peg {info['size']:.2f}, hole {info['size'] + 2 * s.clearance:.2f}. Move it with G, then Apply Peg.",
         )
         return {"FINISHED"}
 
 
+class SMARTCUT_OT_connectors_flip(bpy.types.Operator):
+    bl_idname = "smartcut.connectors_flip"
+    bl_label = "Flip Side"
+    bl_description = "Swap the sides: the peg moves to the other part and the hole to this one. Position is kept"
+    bl_options = {"REGISTER", "UNDO"}
+
+    @classmethod
+    def poll(cls, context):
+        return any(o.get(connectors.PIN_PROP) for o in context.scene.objects)
+
+    def execute(self, context):
+        pins = [o for o in context.scene.objects if o.get(connectors.PIN_PROP)]
+        n = connectors.flip_pins(pins)
+        on = bpy.data.objects.get(pins[0].get("smartcut_pin_part", "")) if pins else None
+        self.report({"INFO"}, f"Peg now on {on.name}" if on else f"{n} peg(s) flipped")
+        return {"FINISHED"} if n else {"CANCELLED"}
+
+
 class SMARTCUT_OT_connectors_apply(bpy.types.Operator):
     bl_idname = "smartcut.connectors_apply"
-    bl_label = "Apply Pegs"
-    bl_description = "Join each peg to its part and cut a matching hole (peg + clearance on each side) into the other part"
+    bl_label = "Apply Peg"
+    bl_description = "Join the peg to its part and cut a matching hole (peg + clearance on each side) into the other part"
     bl_options = {"REGISTER", "UNDO"}
 
     @classmethod
@@ -468,26 +502,22 @@ class VIEW3D_PT_smart_cut(bpy.types.Panel):
         col.label(text="4. Cut")
         col.operator("smartcut.cut", icon="MOD_BUILD")
         col.separator()
-        col.label(text="5. Glue pegs (select a cut part)")
+        col.label(text="5. Glue peg (select a cut part)")
 
         box = self.layout.box()
         s = settings.get(context)
         c = box.column(align=True)
-        c.prop(s, "shape")
-        c.prop(s, "size")
-        c.prop(s, "length")
-        c.prop(s, "count")
+        row = c.row(align=True)
+        row.prop(s, "size")
+        row.operator("smartcut.connectors_fit", text="", icon="SHADERFX")
         c.prop(s, "taper")
-        c.prop(s, "alternate")
-        c.separator()
         c.prop(s, "clearance")
-        info = box.column(align=True)
-        if s.size > 0:
-            info.label(text=f"Peg {s.size:.2f} \u2192 hole {s.size + 2 * s.clearance:.2f} (gap {s.clearance:.3f}/side)")
-        else:
-            info.label(text=f"Hole = peg + {2 * s.clearance:.3f} (gap {s.clearance:.3f}/side)")
-        ops = self.layout.column(align=True)
+        c.label(text=f"Hole {s.size + 2 * s.clearance:.2f}  (peg {s.size:.2f})")
+
+        ops = box.column(align=True)
         ops.operator("smartcut.connectors_add", icon="PINNED")
+        ops.operator("smartcut.connectors_flip", icon="ARROW_LEFTRIGHT")
+        ops.label(text="Move the peg with G", icon="INFO")
         ops.operator("smartcut.connectors_apply", icon="CHECKMARK")
 
 
@@ -496,7 +526,9 @@ CLASSES = (
     SMARTCUT_OT_complete,
     SMARTCUT_OT_snap,
     SMARTCUT_OT_cut,
+    SMARTCUT_OT_connectors_fit,
     SMARTCUT_OT_connectors_add,
+    SMARTCUT_OT_connectors_flip,
     SMARTCUT_OT_connectors_apply,
     VIEW3D_PT_smart_cut,
 )
