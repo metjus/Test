@@ -17,12 +17,12 @@ Premenné prostredia (pozri `.env.example`): `SITE_URL` (kanonické odkazy, site
 
 | Adresa | Súbor |
 | --- | --- |
-| `/` | `src/pages/index.astro` (sekcie v `src/components/home/`) |
-| `/kontakt/` | `src/pages/kontakt.astro` |
-| `/zasady-ochrany-osobnych-udajov/` | `src/pages/zasady-ochrany-osobnych-udajov.astro` (text v `src/components/policy/`) |
+| `/` | `src/pages/index.astro` (výber riešenia a istič: `src/scripts/home.js`) |
+| `/kontakt/` | `src/pages/kontakt.astro` (formulár: `src/scripts/contact.js`) |
+| `/zasady-ochrany-osobnych-udajov/` | `src/pages/zasady-ochrany-osobnych-udajov.astro` |
 | 404 | `src/pages/404.astro` |
 
-Spoločný rám (hlavička, päta, spodná lišta na mobile, SEO údaje) je v `src/layouts/Base.astro`. Časté otázky sú v `src/data/faq.js`, odtiaľ ide aj JSON-LD `FAQPage`.
+Stránky vychádzajú z odsúhlaseného mockupu (Claude Design). Hlavička dokumentu (SEO údaje, písma, ikony) je v `src/layouts/Site.astro`, hlavička webu, päta a obsah sú priamo v stránkach. Odoslanie dopytu (domovská stránka aj Kontakt) rieši `src/scripts/send.js`. Súbory v `src/components/`, `src/layouts/Base.astro`, `src/styles/base.css`, `src/scripts/contact-form.js` a `public/js/env.js` patria k predchádzajúcej verzii a už sa nepoužívajú. Časté otázky sú v `src/data/faq.js`, odtiaľ ide aj JSON-LD `FAQPage`.
 
 ## Štýly
 
@@ -30,7 +30,7 @@ Presné farby, písma a rozmery sú v `docs/02-DIZAJN.md`. Štýly každej strá
 
 ## Animácie
 
-Animácie riadené skrolom sú CSS scroll-driven animácie (`animation-timeline`) v `@supports`. Prehliadače bez podpory dostanú záložné riešenie: `public/js/env.js` pridá triedu `io` a `src/scripts/reveal.js` odhaľuje prvky cez IntersectionObserver (a stará sa o hlavičku a pruh pokroku). Pri `prefers-reduced-motion` sa nič z toho nespúšťa a pri vypnutom JS je všetok obsah čitateľný.
+Sekcie sa odhaľujú pri skrolovaní: `src/scripts/reveal.js` cez IntersectionObserver pridá prvku `data-in`, keď sa objaví na obrazovke, a CSS spustí časovanú animáciu. Ako záloha bez JS slúžia CSS scroll-driven animácie (`animation-timeline`) v `@supports`. Pri `prefers-reduced-motion` sa nič z toho nespúšťa a pri vypnutom JS je všetok obsah čitateľný.
 
 Pozor: v `astro.config.mjs` je pre CSS nastavený `cssMinify: 'esbuild'`. Predvolený minifikátor prepíše `animation` spolu s `animation-timeline` do skráteného zápisu, ktorému súčasné prehliadače nerozumejú, a animácie viazané na skrol prestanú fungovať.
 

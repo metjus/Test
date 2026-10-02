@@ -1,19 +1,29 @@
 ---
-import Base from '../layouts/Base.astro';
-import Hero from '../components/home/Hero.astro';
-import Services from '../components/home/Services.astro';
-import When from '../components/home/When.astro';
-import Steps from '../components/home/Steps.astro';
-import Solution from '../components/home/Solution.astro';
-import Trust from '../components/home/Trust.astro';
-import Faq from '../components/home/Faq.astro';
-import Final from '../components/home/Final.astro';
+import Site from '../layouts/Site.astro';
 import { faq } from '../data/faq.js';
 import '../styles/home.css';
 
-const title = 'Revízne správy a projektová dokumentácia elektrických zariadení | GridFlow';
+// Bez PUBLIC_FORM_ENDPOINT beží dopyt v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
+const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
+
+const title = 'Elektro, fotovoltika a smart domácnosť od projektu po revíziu | GridFlow';
 const description =
-  'Revízne správy a projektová dokumentácia elektrických zariadení. OPaOS E1A, E1B pre domy, byty, rozvádzače, bleskozvody, fotovoltiku, NN prípojky a EV nabíjačky. Celé Slovensko.';
+  'Navrhneme, namontujeme aj zrevidujeme: NN prípojky, fotovoltika, elektroinštalácia rodinného domu, bleskozvody, nabíjačky pre elektromobily a smart domácnosť. Po častiach alebo na kľúč, celé Slovensko.';
+
+const stageDefs = [
+  { id: 'proj', title: 'Navrhnúť', sub: 'Projektová dokumentácia', href: '#i-blueprint', node: 'Projekt' },
+  { id: 'mont', title: 'Namontovať', sub: 'Realizácia a montáž', href: '#i-hardhat', node: 'Montáž' },
+  { id: 'rev', title: 'Zrevidovať', sub: 'Revízia a revízna správa', href: '#i-shield-check', node: 'Revízia' },
+  { id: 'kluc', title: 'Všetko na kľúč', sub: 'Od projektu po revíziu', href: '#i-key', node: '' },
+];
+const subjectDefs = [
+  { id: 'nn', label: 'NN elektrická prípojka', href: '#i-pole' },
+  { id: 'fve', label: 'Fotovoltika (malý / lokálny zdroj)', href: '#i-solar' },
+  { id: 'dom', label: 'Elektroinštalácia rodinného domu', href: '#i-house' },
+  { id: 'blesk', label: 'Bleskozvod', href: '#i-rod' },
+  { id: 'ev', label: 'Nabíjačka pre elektromobil (wallbox, AC)', href: '#i-ev' },
+  { id: 'smart', label: 'Smart domácnosť a automatizácie', href: '#i-smart' },
+];
 
 const business = {
   '@context': 'https://schema.org',
@@ -30,7 +40,7 @@ const business = {
     addressCountry: 'SK',
   },
   areaServed: { '@type': 'Country', name: 'Slovensko' },
-  knowsAbout: ['Revízne správy', 'OPaOS E1A, E1B', 'Projektová dokumentácia elektro'],
+  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Smart domácnosť', 'Revízie OPaOS E1A, E1B'],
 };
 
 // Do FAQPage idú len odpovede, ktoré sú aj na stránke a nie sú zástupným údajom.
@@ -39,20 +49,239 @@ const faqPage = {
   '@type': 'FAQPage',
   mainEntity: faq
     .filter((item) => item.a)
-    .map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a },
-    })),
+    .map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
 };
 ---
-<Base title={title} description={description} path="/" variant="home" mbar ld={[business, faqPage]}>
-<Hero />
-<Services />
-<When />
-<Steps />
-<Solution />
-<Trust />
-<Faq />
-<Final />
-</Base>
+<Site title={title} description={description} path="/" ld={[business, faqPage]}>
+<div class="gf">
+<a class="skip" href="#obsah">Preskočiť na obsah</a>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-house" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20M20 40V31h8v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="21" r="3.2"/></g></g></symbol><symbol id="i-flat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="11" y="6" width="26" height="36" rx="3.5"/><path d="M18 14h4M26 14h4M20 42v-8h8v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 23h4M26 23h4"/></g></g></symbol><symbol id="i-socket" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="11"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19.5 21v4M28.5 21v4M24 30.5v.5"/></g></g></symbol><symbol id="i-board" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="6" width="34" height="36" rx="4.5"/><path d="M14 14h8M14 24h8M14 34h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="31" cy="14" r="2.4"/><circle cx="31" cy="24" r="2.4"/><circle cx="31" cy="34" r="2.4"/></g></g></symbol><symbol id="i-rod" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M5 42h38M10 42V29l14-8 14 8v13M24 21V9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M34 3l-6 9h6l-6 9"/></g></g></symbol><symbol id="i-solar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 41 14 23h28l-6 18zM11 32h28M23.3 23l-6 18M32.7 23l-6 18"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="37" cy="11" r="4.5"/><path d="M37 2.5V4M45.5 11H44M28.5 11H30"/></g></g></symbol><symbol id="i-pole" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M17 6v38M7 13h20M17 20l-7 8M17 20l7 8M12 44h10"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M27 13c9 0 13 5 13 12"/><circle cx="40" cy="30" r="4"/></g></g></symbol><symbol id="i-ev" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="8" y="6" width="22" height="35" rx="4.5"/><path d="M5 43h28"/><rect x="13" y="11" width="12" height="9" rx="2"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 25l-4 6h5l-3 6M30 26h3a5 5 0 0 1 5 5v5"/><circle cx="38" cy="39" r="3"/></g></g></symbol><symbol id="i-blueprint" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M17 19h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 31h4l3-7 4 10 3-4h2"/></g></g></symbol><symbol id="i-hardhat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M9 33a15 15 0 0 1 30 0zM5 38h38"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M24 18v9"/></g></g></symbol><symbol id="i-wrench" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" transform="rotate(38 24 24)"><g style="stroke:var(--ic1,#022253)"><path d="M16 22V7h6v7h4V7h6v15a8 8 0 0 1-16 0zM21 29.5V41a3 3 0 0 0 6 0V29.5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="36" r="1.6"/></g></g></symbol><symbol id="i-shield-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 24l5 5 9-10"/></g></g></symbol><symbol id="i-shield-bolt" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M26 14l-7 11h6l-3 10"/></g></g></symbol><symbol id="i-permit" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M7 23 24 8l17 15M12 20v21h24V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 31l5 5 8-9"/></g></g></symbol><symbol id="i-phone" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="13" y="4" width="22" height="40" rx="6"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 38h8"/><circle cx="24" cy="17" r="3"/></g></g></symbol><symbol id="i-calendar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="10" width="34" height="32" rx="7"/><path d="M7 21h34M16 5v9M32 5v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="29" cy="31" r="3.5"/></g></g></symbol><symbol id="i-report" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M18 20h9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 34l4 4 9-9"/></g></g></symbol><symbol id="i-badge" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="19" r="12.5"/><path d="M17 30l-3 14 10-5 10 5-3-14"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19 19l4 4 7-8"/></g></g></symbol><symbol id="i-pin" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 44S9 30 9 19a15 15 0 0 1 30 0c0 11-15 25-15 25z"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="19" r="5"/></g></g></symbol><symbol id="i-person" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 43c0-9 7-15 16-15s16 6 16 15"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="15" r="8"/></g></g></symbol><symbol id="i-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 25l9 9 19-20"/></g></g></symbol><symbol id="i-arrow" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M14 34 34 14M17 14h17v17"/></g><g style="stroke:var(--ic2,#02ACC1)"></g></g></symbol><symbol id="i-stars" viewBox="0 0 120 24"><g style="fill:var(--ic2,#02ACC1);stroke:none"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(0 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(24 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(48 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(72 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(96 0)"/></g></symbol><symbol id="i-key" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="15" cy="24" r="8"/><path d="M23 24h19M35 24v7M42 24v5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="15" cy="24" r="2.6"/></g></g></symbol><symbol id="i-smart" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 29a8.5 8.5 0 0 1 12 0M21.2 33.2a4 4 0 0 1 5.6 0"/><circle cx="24" cy="37" r="1.2"/></g></g></symbol><symbol id="i-chip" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="12" y="12" width="24" height="24" rx="4"/><path d="M18 6v6M24 6v6M30 6v6M18 36v6M24 36v6M30 36v6M6 18h6M6 24h6M6 30h6M36 18h6M36 24h6M36 30h6"/></g><g style="stroke:var(--ic2,#02ACC1)"><rect x="19" y="19" width="10" height="10" rx="2"/></g></g></symbol><symbol id="i-leaf" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M10 38C10 20 22 10 40 8c0 18-10 30-26 30"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 38c4-10 10-16 18-20"/></g></g></symbol><symbol id="i-relay" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="14" y="14" width="20" height="26" rx="6"/><path d="M19 6v8M29 6v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 27h8M24 23v8"/></g></g></symbol><symbol id="i-hub" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="24" r="7"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="9" cy="12" r="3"/><circle cx="39" cy="12" r="3"/><circle cx="9" cy="37" r="3"/><circle cx="39" cy="37" r="3"/><path d="M12 14l6 6M36 14l-6 6M12 35l6-6M36 35l-6-6"/></g></g></symbol></defs></svg>
+<div class="progress"><i></i></div>
+<header class="nav" id="top">
+<div class="wrap navbar">
+<a class="brand" href="#top" aria-label="GridFlow – domov"><img src="/logo/gridflow-horizontal-reversed.svg" alt="GridFlow" width="190" height="37"></a>
+<nav class="links" aria-label="Hlavná navigácia">
+<a href="#vyber">Čo potrebujete</a>
+<a href="#postup">Postup</a>
+<a href="#smart">Smart domácnosť</a>
+<a href="#faq">Časté otázky</a>
+</nav>
+<div class="navcta">
+<a class="call" href="tel:+421910635595">0910 635 595</a>
+<a class="kbtn" href="/kontakt/">Kontakt</a>
+</div>
+</div>
+</header>
+<main id="obsah">
+
+<section class="hero">
+<svg class="hero-art" viewBox="0 0 900 600" preserveAspectRatio="xMinYMid slice" aria-hidden="true" focusable="false">
+<g><path class="trace" style="--td:0.00s" pathLength="1" d="M300 120C353.33 120 406.67 120 460 120C475.33 120 490.7 120.34 505.89 122.44C521.08 124.53 536.08 127.97 550.67 132.71C565.25 137.45 579.41 143.47 592.94 150.7C606.46 157.93 619.34 166.36 631.38 175.85C643.42 185.35 654.62 195.91 664.8 207.38C671.88 215.36 678.29 223.89 684.71 232.41C707.18 262.23 729.64 292.04 752.11 321.86C761.34 334.11 771.41 346.29 785.21 352.98C799.01 359.67 814.81 360 830.15 360C920.1 360 1010.05 360 1100 360"></path><path class="trace" style="--td:0.45s" pathLength="1" d="M220 180C299.67 180 379.33 180 459 180C474.33 180 489.72 180.35 504.83 182.99C519.93 185.63 534.73 190.02 548.83 196.04C562.94 202.05 576.35 209.7 588.71 218.77C601.07 227.84 612.38 238.34 622.35 249.99C627.77 256.32 632.68 263.07 637.69 269.72C659.96 299.27 682.23 328.82 704.5 358.37C713.72 370.62 723.36 382.73 735.41 392.2C747.47 401.68 761.21 409 775.8 413.71C790.4 418.42 805.81 420 821.15 420C823.81 420 826.48 420 829.15 420C919.43 420 1009.72 420 1100 420"></path><path class="trace" style="--td:0.90s" pathLength="1" d="M140 240C246.33 240 352.67 240 459 240C474.33 240 489.78 240.51 504.65 244.26C519.51 248.02 533.76 254.23 546.62 262.59C559.48 270.94 570.94 281.42 580.43 293.47C583.72 297.66 586.87 301.97 590.08 306.23C612.55 336.05 635.01 365.86 657.48 395.68C666.71 407.92 676.31 419.96 687.63 430.3C698.96 440.64 711.54 449.61 725.01 456.93C738.48 464.25 752.84 469.94 767.68 473.82C782.51 477.7 797.82 479.76 813.15 479.98C818.15 480.05 823.15 480 828.15 480C918.76 480 1009.38 480 1100 480"></path><path class="trace" style="--td:1.35s" pathLength="1" d="M60 300C192.67 300 325.33 300 458 300C473.33 300 489.02 300.71 503.02 306.97C517.02 313.22 528.42 324.11 537.65 336.35C539.25 338.48 540.86 340.61 542.46 342.74C564.93 372.56 587.4 402.37 609.87 432.19C619.09 444.43 628.63 456.49 639.5 467.3C650.38 478.11 662.25 487.92 674.92 496.56C687.59 505.19 701.05 512.66 715.09 518.84C729.12 525.01 743.73 529.89 758.66 533.39C773.58 536.89 788.83 539.02 804.15 539.73C811.81 540.09 819.48 540 827.15 540C918.1 540 1009.05 540 1100 540"></path></g>
+<g class="rings"><circle style="--rd:0.20s" cx="300" cy="120" r="13"></circle><circle style="--rd:0.65s" cx="220" cy="180" r="13"></circle><circle style="--rd:1.10s" cx="140" cy="240" r="13"></circle><circle style="--rd:1.55s" cx="60" cy="300" r="13"></circle></g>
+</svg>
+<div class="hero-main wrap">
+<div class="hero-copy">
+<h1><span class="w"><span class="wi" style="--i:0">Elektro,</span></span> <span class="w"><span class="wi" style="--i:1">solár</span></span> <span class="w"><span class="wi" style="--i:2">a smart</span></span> <span class="w"><span class="wi" style="--i:3">domácnosť.</span></span> <span class="w"><span class="wi" style="--i:4">Od projektu</span></span> <span class="w"><span class="wi" style="--i:5">po revíziu.</span></span></h1>
+<p class="lead hf" style="--d:700ms">Vieme to navrhnúť, namontovať aj zrevidovať. Po častiach, alebo celé na kľúč, od A po Z. A vieme z toho spraviť domácnosť, ktorá šetrí.</p>
+<div class="hero-actions hf" style="--d:900ms">
+<a class="btn btn-cyan" href="#vyber">Vybrať riešenie<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+<a class="btn btn-line" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Zavolať 0910 635 595</a>
+</div>
+<p class="hero-note hf" style="--d:1050ms">Neviete, čo presne potrebujete? Zavolajte, poradíme vám.</p>
+</div>
+<aside class="hero-card" aria-hidden="true">
+<div class="hc-main ef hf" style="--d:900ms">
+<div class="hc-head"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-smart"></use></svg></span><div><b>Dom, ktorý šetrí</b><small>Ilustračná ukážka</small></div></div>
+<svg class="ef-map" viewBox="0 0 360 290" aria-hidden="true" focusable="false">
+<path class="ef-link sun" d="M84 76 L156 128"></path>
+<path class="ef-link" d="M82 226 L156 172"></path>
+<path class="ef-link" d="M204 172 L276 226"></path>
+<path class="ef-link ctl" d="M276 76 L204 128"></path>
+<g class="ef-sun"><circle class="ef-node sun" cx="62" cy="58" r="28"></circle><use href="#i-solar" x="46" y="42" width="32" height="32"></use></g>
+<g><circle class="ef-node" cx="298" cy="58" r="28"></circle><use href="#i-smart" x="282" y="42" width="32" height="32"></use></g>
+<g><circle class="ef-node home" cx="180" cy="150" r="36"></circle><use href="#i-house" x="162" y="132" width="36" height="36"></use></g>
+<g><circle class="ef-node" cx="62" cy="244" r="28"></circle><use href="#i-pole" x="46" y="228" width="32" height="32"></use></g>
+<g><circle class="ef-node" cx="298" cy="244" r="28"></circle><use href="#i-ev" x="282" y="228" width="32" height="32"></use></g>
+<text class="ef-lab" x="62" y="104">Fotovoltika</text>
+<text class="ef-lab" x="298" y="104">Smart riadenie</text>
+<text class="ef-lab" x="180" y="204">Dom</text>
+<text class="ef-lab" x="62" y="290">Sieť</text>
+<text class="ef-lab" x="298" y="290">Nabíjačka EV</text>
+</svg>
+<ul class="auto">
+<li>Ohrev vody z prebytku fotovoltiky<span class="tg"></span></li>
+<li>Nabíjanie auta podľa výroby<span class="tg"></span></li>
+</ul>
+</div>
+<div class="hc-chip c2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg>Home Assistant · Shelly</div>
+</aside>
+</div>
+<div class="wrap">
+<dl class="facts hf" style="--d:1250ms">
+<div class="fact"><dt>Od projektu po revíziu</dt><dd>na kľúč</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-key"></use></svg></span></dd></div>
+<div class="fact"><dt>Elektro, solár aj smart pod jednou strechou</dt><dd>jeden dodávateľ</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span></dd></div>
+<div class="fact"><dt>Pôsobnosť</dt><dd>celé Slovensko</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg></span></dd></div>
+</dl>
+</div>
+</section>
+
+<section class="pick" id="vyber">
+<div class="wrap">
+<div class="pick-head">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Čo</span></span> <span class="w"><span class="wi" style="--i:1">potrebujete?</span></span></h2>
+<p class="sub rv">Vyberte, čo potrebujete. Zostavíme vám presne to, čo treba, alebo sa postaráme o všetko.</p>
+</div>
+
+<p class="stl rv"><b>1</b>Čo chcete, aby sme spravili? <small>(môžete vybrať viac)</small></p>
+<div class="opts" role="group" aria-label="Čo chcete, aby sme spravili">
+{stageDefs.map((o, n) => (
+<button type="button" class={`opt sa${o.id === 'kluc' ? ' on kl' : ''}`} style={`--n:${n}`} aria-pressed={o.id === 'kluc' ? 'true' : 'false'} data-stage={o.id}>
+<span class="chk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span>
+<span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href={o.href}></use></svg></span>
+<span><strong>{o.title}</strong><small>{o.sub}</small></span>
+</button>
+))}
+</div>
+
+<p class="stl rv"><b>2</b>Čoho sa to týka? <small>(môžete vybrať viac)</small></p>
+<div class="chips sub2" role="group" aria-label="Čoho sa to týka">
+{subjectDefs.map((s, n) => (
+<button type="button" class={`chip ci sa${s.id === 'fve' ? ' on' : ''}`} style={`--n:${n}`} aria-pressed={s.id === 'fve' ? 'true' : 'false'} data-subject={s.id} data-label={s.label} data-href={s.href}><svg class="ico" aria-hidden="true" focusable="false"><use href={s.href}></use></svg>{s.label}</button>
+))}
+</div>
+
+<div class="circ" data-circ aria-live="polite">
+<div class="circ-top">
+<p class="k">Schéma vašej zákazky</p>
+<h3 data-circ-title>Celý obvod ide cez nás. Vy už len zapnete svetlo.</h3>
+</div>
+<div class="wire-row" aria-label="Schéma zapojenia">
+<div class="cn src" style="--n:0"><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-house"></use></svg></span><b>Vy</b><small>zdroj nápadu</small></div>
+{stageDefs.filter((d) => d.id !== 'kluc').map((d, i) => (
+<>
+<span class="w-seg" style={`--n:${i + 1}`}></span>
+<div class="cn on" style={`--n:${i + 1}`} data-node={d.id}><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href={d.href}></use></svg></span><b>{d.node}</b><small>zapojené</small></div>
+</>
+))}
+<span class="w-seg" style="--n:4"></span>
+<div class="cn dst" style="--n:4"><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><b>GridFlow</b><small>tím na druhom konci</small></div>
+</div>
+<div class="loads">
+<span class="lk">Na obvode visí:</span>
+<span class="loads-list" data-loads><span class="load"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika (malý / lokálny zdroj)</span></span>
+</div>
+<div class="circ-bot">
+<div class="plate">
+<p class="plate-t">Komu to zapojíme?</p>
+<div class="two2">
+<label class="fld"><span>Meno</span><input class="inp" type="text" name="name" autocomplete="name" placeholder="Ako vás môžeme osloviť" required minlength="2" data-f-name></label>
+<label class="fld"><span>Telefón</span><input class="inp" type="tel" name="tel" inputmode="tel" autocomplete="tel" placeholder="Číslo na spätný hovor" required data-f-phone></label>
+</div>
+<input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" data-f-hp>
+<p class="fine2">Nezáväzne. Číslo použijeme len na to, aby sme sa vám ozvali. <a class="plink2" href="/zasady-ochrany-osobnych-udajov/">Ochrana údajov</a></p>
+</div>
+<div class="brk-wrap" data-brk-wrap data-endpoint={endpoint}>
+<button type="button" class="breaker" disabled aria-pressed="false" data-brk aria-label="Zapnúť istič a odoslať dopyt"><span class="brk-on">ZAP</span><span class="brk-lever"></span><span class="brk-off">VYP</span></button>
+<div class="brk-side">
+<p class="brk-txt" data-brk-txt aria-live="polite">Doplňte meno a číslo. Potom zapnete istič a dopyt je na ceste.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<section class="az" id="postup">
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Po častiach,</span></span> <span class="w"><span class="wi" style="--i:1">alebo</span></span> <span class="w"><span class="wi" style="--i:2">celé</span></span> <span class="w"><span class="wi" style="--i:3">na kľúč</span></span></h2>
+<p class="sub rv">Vieme poskytnúť aj čiastkové riešenie, ak potrebujete len jednu časť. Vieme vám to ale aj zastrešiť od A po Z, aby ste sa o nič nemuseli starať.</p>
+<div class="azbar rv"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-key"></use></svg>Na kľúč, od A po Z</div>
+<ol class="az-list">
+<li class="rv" style="--c:#022253;--n:0"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><h3>Projekt</h3><p>Projektová dokumentácia pre NN elektrickú prípojku, fotovoltiku (malý zdroj / lokálny zdroj), elektroinštaláciu rodinného domu, bleskozvod a nabíjačku pre elektromobil.</p></li>
+<li class="rv" style="--c:#0a5a85;--n:1"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></b><h3>Montáž</h3><p>Montáž všetkých týchto riešení, vrátane smart prvkov a automatizácií.</p></li>
+<li class="rv" style="--c:#0482a3;--n:2"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><h3>Revízia</h3><p>Odborná prehliadka a odborná skúška (OPaOS) v rozsahu E1A, E1B a revízna správa.</p></li>
+</ol>
+</div>
+</section>
+
+<section class="smart" id="smart">
+<div class="wrap">
+<div class="smart-top">
+<div>
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Smart</span></span> <span class="w"><span class="wi" style="--i:1">domácnosť,</span></span> <span class="w"><span class="wi" style="--i:2">ktorá</span></span> <span class="w"><span class="wi" style="--i:3">šetrí.</span></span></h2>
+<p class="sub rv">Dnes sa počíta každé euro. Vieme prepojiť elektroinštaláciu, fotovoltiku, nabíjačku aj spotrebiče tak, aby sa zbytočne neplytvalo, a aby ste mali dom pod kontrolou.</p>
+</div>
+<div>
+<p class="rules-t rv">Príklady automatizácií</p>
+<ul class="rules">
+<li class="sa-r" style="--n:0"><span>Ak fotovoltika vyrába viac, než dom spotrebuje</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">ohrejeme vodu a nabijeme auto</span></li>
+<li class="sa-r" style="--n:1"><span>Ak nikto nie je doma</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">zníži sa kúrenie a zhasnú svetlá</span></li>
+<li class="sa-r" style="--n:2"><span>Ak chcete vedieť, kde sa míňa energia</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">uvidíte spotrebu v jednej aplikácii</span></li>
+</ul>
+</div>
+</div>
+<ul class="sm4">
+<li class="sa" style="--n:0"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><h3>Home Assistant</h3><p>Celý dom riadený z jedného miesta. Vieme do neho integrovať rôzne smart prvky.</p></li>
+<li class="sa" style="--n:1"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-relay"></use></svg></span><h3>Shelly</h3><p>Smart prvky, ktoré vieme nainštalovať a prepojiť s Home Assistant.</p></li>
+<li class="sa" style="--n:2"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chip"></use></svg></span><h3>miniPLC</h3><p>Riadiaca jednotka od home-master. Všetko sa dá pekne zintegrovať do Home Assistant.</p></li>
+<li class="sa" style="--n:3"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-leaf"></use></svg></span><h3>Úspora v domácnosti</h3><p>Automatizácie, ktoré znižujú spotrebu a lepšie využijú vlastnú výrobu z fotovoltiky.</p></li>
+</ul>
+</div>
+</section>
+
+<section class="partners" id="partneri">
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Oficiálny</span></span> <span class="w"><span class="wi" style="--i:1">inštalatér</span></span> <span class="w"><span class="wi" style="--i:2">a partner</span></span></h2>
+<ul class="pgrid">
+<li class="sa" style="--n:0"><span class="lb">Fotovoltika</span><span class="wm">SolaX</span></li>
+<li class="sa" style="--n:1"><span class="lb">Fotovoltika</span><span class="wm">Deye</span></li>
+<li class="sa" style="--n:2"><span class="lb">Smart domácnosť, pre Slovensko</span><span class="wm">miniPLC</span></li>
+</ul>
+<div class="integ rv"><span>Integrujeme</span><b>Home Assistant</b><b>Shelly</b></div>
+</div>
+</section>
+
+<section class="faq" id="faq">
+<div class="wrap faq-grid">
+<div><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Časté</span></span> <span class="w"><span class="wi" style="--i:1">otázky</span></span></h2></div>
+<div>
+<details class="qa rv" style="--n:0"><summary>Viete urobiť všetko na kľúč?</summary><p class="ans">Áno. Navrhneme, namontujeme aj zrevidujeme. Ak potrebujete len jednu časť, spravíme len tú.</p></details>
+<details class="qa rv" style="--n:1"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details>
+<details class="qa rv" style="--n:2"><summary>Viete prepojiť smart prvky do jedného systému?</summary><p class="ans">Áno. Vieme integrovať smart prvky Shelly aj miniPLC do Home Assistant.</p></details>
+<details class="qa rv" style="--n:3"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobnosť je celé Slovensko.</p></details>
+<details class="qa rv" style="--n:4"><summary>Koľko to stojí?</summary><p class="ans">Cena závisí od rozsahu. <span class="ph">DOPLNIŤ: cenový rámec alebo spôsob výpočtu</span></p></details>
+</div>
+</div>
+</section>
+
+<section class="final">
+<div class="radar" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
+<div class="wrap">
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Ozvite</span></span> <span class="w"><span class="wi" style="--i:1">sa</span></span></h2>
+<p class="final-sub rv">Zavolajte alebo pošlite krátky dopyt.</p>
+<div class="final-actions rv" style="margin-top:36px">
+<a class="btn btn-cyan" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Zavolať 0910 635 595</a>
+<a class="btn btn-line" href="/kontakt/">Kontakt a dopyt<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+</div>
+</div>
+</section>
+
+</main>
+
+<footer class="foot-wrap">
+<div class="wrap foot">
+<img src="/logo/gridflow-horizontal-reversed.svg" alt="GridFlow" width="170" height="33">
+<p class="legal">GridFlow s.r.o.<br>IČO: 57813329<br>Buková ulica 1309/23, 951 12 Ivanka pri Nitre</p>
+<p class="legal r">© 2026 GridFlow s.r.o.<br><a class="flink" href="/zasady-ochrany-osobnych-udajov/">Zásady ochrany osobných údajov</a></p>
+</div>
+</footer>
+
+<div class="mbar">
+<a href="tel:+421910635595">Zavolať</a>
+<a class="mcta" href="#vyber">Vybrať riešenie</a>
+</div>
+</div>
+<script>
+  import '../scripts/home.js';
+</script>
+</Site>
