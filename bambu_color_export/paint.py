@@ -7,6 +7,7 @@ Symmetry mirrors each dab across the object's origin in local space.
 
 import itertools
 import math
+import traceback
 
 import blf
 import bpy
@@ -49,6 +50,8 @@ NEW_COLORS = [
 ]
 
 _running = None  # the active BAMBU_OT_paint operator, if any
+_draw_handle = None  # its viewport draw callback
+ERROR_TEXT = "Bambu Paint Error"
 
 
 def tool_label(s):
@@ -241,6 +244,52 @@ def _sync_handler(scene, depsgraph):
 
 
 # ---------------------------------------------------------------------------
+# Session lifecycle
+# ---------------------------------------------------------------------------
+
+def stop_painting():
+    """End painting mode and remove every handler. Safe to call at any time,
+    also when the session's data has become invalid."""
+    global _running, _draw_handle
+    op, _running = _running, None
+    if op is not None:
+        try:
+            op.session.end_stroke()
+            op.session.flush()
+        except Exception:
+            pass
+    if _draw_handle is not None:
+        try:
+            bpy.types.SpaceView3D.draw_handler_remove(_draw_handle, "WINDOW")
+        except Exception:
+            pass
+        _draw_handle = None
+    if _sync_handler in bpy.app.handlers.depsgraph_update_post:
+        bpy.app.handlers.depsgraph_update_post.remove(_sync_handler)
+    try:
+        bpy.context.workspace.status_text_set(None)
+    except Exception:
+        pass
+    for window in getattr(bpy.context.window_manager, "windows", []):
+        for area in window.screen.areas:
+            if area.type == "VIEW_3D":
+                area.tag_redraw()
+
+
+def record_error():
+    """Save the current traceback to a text block (and the console) so it can be copied."""
+    tb = traceback.format_exc()
+    print(tb)
+    try:
+        text = bpy.data.texts.get(ERROR_TEXT) or bpy.data.texts.new(ERROR_TEXT)
+        text.clear()
+        text.write(tb)
+    except Exception:
+        pass
+    return tb
+
+
+# ---------------------------------------------------------------------------
 # Settings and operators
 # ---------------------------------------------------------------------------
 
@@ -316,7 +365,16 @@ class BAMBU_OT_paint(bpy.types.Operator):
                 and obj is not None and obj.type == "MESH")
 
     def invoke(self, context, event):
-        global _running
+        try:
+            return self._invoke(context)
+        except Exception:
+            record_error()
+            stop_painting()
+            self.report({"ERROR"}, "Could not start painting. Details in the '%s' text" % ERROR_TEXT)
+            return {"CANCELLED"}
+
+    def _invoke(self, context):
+        global _running, _draw_handle
         obj = context.active_object
         if obj.mode != "OBJECT":
             bpy.ops.object.mode_set(mode="OBJECT")
@@ -341,7 +399,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         if shading.type == "SOLID":
             shading.color_type = "MATERIAL"
 
-        self._draw = bpy.types.SpaceView3D.draw_handler_add(_draw_brush, (self,), "WINDOW", "POST_PIXEL")
+        _draw_handle = bpy.types.SpaceView3D.draw_handler_add(_draw_brush, (self,), "WINDOW", "POST_PIXEL")
         bpy.app.handlers.depsgraph_update_post.append(_sync_handler)
         _running = self
         context.window_manager.modal_handler_add(self)
@@ -413,20 +471,24 @@ class BAMBU_OT_paint(bpy.types.Operator):
             % (tool_label(s), sym))
 
     def _finish(self, context):
-        global _running
-        self.session.end_stroke()
-        self.session.flush()
-        bpy.types.SpaceView3D.draw_handler_remove(self._draw, "WINDOW")
-        if _sync_handler in bpy.app.handlers.depsgraph_update_post:
-            bpy.app.handlers.depsgraph_update_post.remove(_sync_handler)
-        context.workspace.status_text_set(None)
-        _running = None
-        self.area.tag_redraw()
+        stop_painting()
         return {"FINISHED"}
 
     # -- event loop ----------------------------------------------------------
 
     def modal(self, context, event):
+        if _running is not self:
+            return {"CANCELLED"}  # stopped from the panel or by unregister
+        try:
+            return self._modal(context, event)
+        except Exception:
+            record_error()
+            stop_painting()
+            self.report({"ERROR"}, "Painting stopped after an error. Details in the '%s' text" % ERROR_TEXT)
+            return {"CANCELLED"}
+
+    def _modal(self, context, event):
+        self.session.obj.name  # raises ReferenceError if the object was reloaded or deleted
         self.area.tag_redraw()
         if event.type in NAV_EVENTS or (event.alt and event.type == "LEFTMOUSE"):
             return {"PASS_THROUGH"}
@@ -442,6 +504,11 @@ class BAMBU_OT_paint(bpy.types.Operator):
         press = event.value == "PRESS"
         if press and event.type in {"ESC", "RET", "NUMPAD_ENTER"}:
             return self._finish(context)
+        if event.type in {"Z", "Y"} and (event.ctrl or event.oskey):
+            # Never let Blender's own undo/redo run mid-session (it reloads the scene).
+            if press and event.type == "Z" and not event.shift and not self.session.undo():
+                self.report({"INFO"}, "Nothing to undo")
+            return {"RUNNING_MODAL"}
         if coord is None and not self.painting:
             return {"PASS_THROUGH"}  # clicks on the sidebar, header, etc.
 
@@ -461,10 +528,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         s = self.settings
         if event.type == "RIGHTMOUSE":
             return self._finish(context)
-        if event.type == "Z" and (event.ctrl or event.oskey):
-            if not self.session.undo():
-                self.report({"INFO"}, "Nothing to undo")
-        elif event.type == "LEFT_BRACKET":
+        if event.type == "LEFT_BRACKET":
             s.radius = max(2, int(s.radius / 1.2))
         elif event.type == "RIGHT_BRACKET":
             s.radius = min(500, int(s.radius * 1.2) + 1)
@@ -520,6 +584,16 @@ def _draw_controls(op):
 
 
 def _draw_brush(op):
+    if _running is not op:
+        return
+    try:
+        _draw_brush_impl(op)
+    except Exception:
+        record_error()
+        stop_painting()
+
+
+def _draw_brush_impl(op):
     _draw_controls(op)
     if op.mouse is None:
         return
@@ -553,6 +627,16 @@ def _draw_brush(op):
 # ---------------------------------------------------------------------------
 # UI
 # ---------------------------------------------------------------------------
+
+class BAMBU_OT_paint_stop(bpy.types.Operator):
+    """Stop painting mode (also clears a stuck painting session)"""
+    bl_idname = "bambu.paint_stop"
+    bl_label = "Stop Painting"
+
+    def execute(self, context):
+        stop_painting()
+        return {"FINISHED"}
+
 
 class VIEW3D_PT_bambu_paint(bpy.types.Panel):
     bl_label = "Bambu Paint"
@@ -606,6 +690,7 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
 
         if _running is not None:
             layout.label(text="Painting… Esc/Enter to finish", icon="BRUSH_DATA")
+            layout.operator(BAMBU_OT_paint_stop.bl_idname, icon="CANCEL")
         else:
             layout.operator(BAMBU_OT_paint.bl_idname, text="Start Painting", icon="BRUSH_DATA")
         row = layout.row()
@@ -632,6 +717,7 @@ classes = (
     BAMBU_OT_paint_add_color,
     BAMBU_OT_paint_set_color,
     BAMBU_OT_paint,
+    BAMBU_OT_paint_stop,
     VIEW3D_PT_bambu_paint,
 )
 
@@ -643,10 +729,7 @@ def register():
 
 
 def unregister():
-    global _running
-    if _sync_handler in bpy.app.handlers.depsgraph_update_post:
-        bpy.app.handlers.depsgraph_update_post.remove(_sync_handler)
-    _running = None
+    stop_painting()
     del bpy.types.Scene.bambu_paint
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

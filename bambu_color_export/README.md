@@ -60,6 +60,10 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    and at edges marked Sharp. Click a raised detail with it on to colour just that detail.
 4. Export as usual. Painted areas become separate filaments.
 
+If anything goes wrong, painting mode stops by itself and the full error is saved in a
+text block named **Bambu Paint Error** (open it in Blender's Text Editor to copy it).
+The panel's **Stop Painting** button also ends a session.
+
 Notes: painting colours whole faces, so edges follow the mesh. Subdivide (or remesh) low-poly
 models for finer detail. Symmetry mirrors across the object's origin, so keep the origin
 on the model's centre line.
