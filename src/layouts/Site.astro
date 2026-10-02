@@ -1,0 +1,47 @@
+---
+// Spoločná hlavička dokumentu (SEO, písma, ikony). Hlavička, päta a obsah sú priamo v stránkach.
+import '../styles/fonts.css';
+import soraLight from '../../assets/fonts/sora-latin-300.woff2?url';
+import soraRegular from '../../assets/fonts/sora-latin-400.woff2?url';
+import michroma from '../../assets/fonts/michroma-latin-400.woff2?url';
+
+const { title, description, path = '/', noindex = false, ld = [] } = Astro.props;
+
+const canonical = new URL(path, Astro.site).href;
+const ogImage = new URL('/logo/icon-512.png', Astro.site).href; // dočasne, kým klient nedodá obrázok 1200 × 630
+---
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{title}</title>
+<meta name="description" content={description}>
+{noindex ? <meta name="robots" content="noindex"> : <link rel="canonical" href={canonical}>}
+<meta name="theme-color" content="#022253">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="sk_SK">
+<meta property="og:site_name" content="GridFlow">
+<meta property="og:title" content={title}>
+<meta property="og:description" content={description}>
+<meta property="og:url" content={canonical}>
+<meta property="og:image" content={ogImage}>
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content={title}>
+<meta name="twitter:description" content={description}>
+<meta name="twitter:image" content={ogImage}>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="preload" href={soraLight} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={soraRegular} as="font" type="font/woff2" crossorigin>
+<link rel="preload" href={michroma} as="font" type="font/woff2" crossorigin>
+{ld.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
+</head>
+<body>
+<slot />
+<script>
+  import '../scripts/reveal.js';
+</script>
+</body>
+</html>
