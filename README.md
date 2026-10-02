@@ -22,11 +22,11 @@ Premenné prostredia (pozri `.env.example`): `SITE_URL` (kanonické odkazy, site
 | `/zasady-ochrany-osobnych-udajov/` | `src/pages/zasady-ochrany-osobnych-udajov.astro` |
 | 404 | `src/pages/404.astro` |
 
-Stránky vychádzajú z odsúhlaseného mockupu (Claude Design). Hlavička dokumentu (SEO údaje, písma, ikony) je v `src/layouts/Site.astro`, hlavička webu, päta a obsah sú priamo v stránkach. Odoslanie dopytu (domovská stránka aj Kontakt) rieši `src/scripts/send.js`. Súbory v `src/components/`, `src/layouts/Base.astro`, `src/styles/base.css`, `src/scripts/contact-form.js` a `public/js/env.js` patria k predchádzajúcej verzii a už sa nepoužívajú. Časté otázky sú v `src/data/faq.js`, odtiaľ ide aj JSON-LD `FAQPage`.
+Stránky vychádzajú z odsúhlaseného mockupu (Claude Design). Hlavička dokumentu (SEO údaje, písma, ikony) je v `src/layouts/Site.astro`, hlavička webu, päta a obsah sú priamo v stránkach. Odoslanie dopytu (domovská stránka aj Kontakt) rieši `src/scripts/send.js`. Časté otázky sú v `src/data/faq.js`, odtiaľ ide aj JSON-LD `FAQPage`.
 
 ## Štýly
 
-Presné farby, písma a rozmery sú v `docs/02-DIZAJN.md`. Štýly každej stránky sú v `src/styles/` (`home.css`, `contact.css`, `policy.css`), spoločné doplnky (dostupnosť, ikony, tlačidlá, záložné animácie) v `base.css`. Písma (Sora, Michroma) sa hosťujú lokálne z `assets/fonts/` (`fonts.css`), nič sa nenačítava z Googlu. Ikony sú sprite `assets/icons/sprite.svg` vložený do každej stránky.
+Presné farby, písma a rozmery sú v `docs/02-DIZAJN.md`. Štýly každej stránky sú v `src/styles/` (`home.css`, `contact.css`, `policy.css`, 404 používa `policy.css`); každý súbor je samostatný. Písma (Sora, Michroma) sa hosťujú lokálne z `assets/fonts/` (`fonts.css`), nič sa nenačítava z Googlu. Ikony domovskej stránky sú SVG sprite vložený priamo v `src/pages/index.astro`.
 
 ## Animácie
 
