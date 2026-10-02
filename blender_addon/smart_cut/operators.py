@@ -331,8 +331,9 @@ class SMARTCUT_OT_cut(bpy.types.Operator):
 
     refine_levels: IntProperty(
         name="Edge precision",
-        description="How many times faces along the cut are subdivided so the edge follows the curve closely",
-        default=3, min=0, max=5,
+        description="How many times faces along the cut are subdivided before the edge is snapped to the curve. "
+        "The edge follows the curve exactly at any value; higher values only add small triangles. 1 is usually best",
+        default=1, min=0, max=4,
     )
     keep_original: BoolProperty(name="Keep original (hidden)", default=True)
 

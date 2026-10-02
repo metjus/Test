@@ -19,8 +19,10 @@ V 3D okne stlač `N`, záložka **Smart Cut**.
    Ak zvolí zlú stranu, zapni **Other way round**.
 3. **Úprava (nepovinné)**: pri vybranej krivke stlač `Tab`, presuň body (`G`) a vráť sa do Object Mode.
    **Snap Curve to Surface** vráti body späť na povrch modelu.
-4. **Cut**: model sa rozreže na dva uzavreté diely. **Edge precision** určuje, ako presne hrana rezu sleduje krivku
-   (viac = presnejšie, ale viac plôch pri rezu). Pôvodný model sa skryje (nezmaže).
+4. **Cut**: model sa rozreže na dva uzavreté diely. Hrana rezu sa prichytí presne na krivku. Plocha rezu je mriežka
+   štvoruholníkov s hustotou ako okolitá sieť a je na oboch dieloch identická, takže do seba presne lícujú.
+   **Edge precision** (predvolene 1) určuje, koľkokrát sa plochy pri reze delia pred prichytením hrany; vyššie
+   hodnoty zlepšenie nepridajú, len pribudnú drobné trojuholníky. Pôvodný model sa skryje (nezmaže).
 
 ## Zatiaľ nie je
 - Kolíky a otvory na spájanie dielov.

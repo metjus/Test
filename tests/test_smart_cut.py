@@ -72,6 +72,25 @@ def volume_and_open_edges(obj):
     return vol, open_edges
 
 
+
+def cap_mask(obj):
+    attr = obj.data.attributes.get("smartcut_cap")
+    mask = np.zeros(len(obj.data.polygons), dtype=int)
+    if attr is not None:
+        attr.data.foreach_get("value", mask)
+    return mask.astype(bool)
+
+
+def cut_border_vertices(obj):
+    """Súradnice vrcholov na hrane rezu: patria zároveň ploche rezu aj ploche povrchu."""
+    me = obj.data
+    cap = cap_mask(obj)
+    in_cap, in_surface = set(), set()
+    for poly in me.polygons:
+        (in_cap if cap[poly.index] else in_surface).update(poly.vertices)
+    return np.array([tuple(me.vertices[i].co) for i in in_cap & in_surface])
+
+
 def ring_curve(obj, z=0.0, wobble=0.0, n=16, radius=0.4):
     a = np.linspace(0, 2 * np.pi, n, endpoint=False)
     pts = np.stack([radius * np.cos(a), radius * np.sin(a), z + wobble * np.sin(2 * a)], axis=1)
@@ -125,15 +144,13 @@ def test_non_planar_cut_on_bent_limb_follows_the_curve():
         assert o == 0 and v > 0
         total += v
     assert abs(total - v0) / v0 < 0.03
-    # hrana rezu: vrcholy dielov ležiace na spoločnej hranici sedia na krivke
+    # hrana rezu: vrcholy hranice (patria aj ploche rezu aj povrchu) ležia na krivke
     dense, _ = surface.curve_points_world(curve, 16)
-    a_co = np.array([tuple(v.co) for v in parts[0].data.vertices])
-    b_co = np.array([tuple(v.co) for v in parts[1].data.vertices])
-    # vrcholy, ktoré existujú v oboch dieloch (zhodná poloha) tvoria hranu rezu
-    shared = [p for p in a_co if np.min(np.linalg.norm(b_co - p, axis=1)) < 1e-6]
-    assert len(shared) > 30
-    _, dist = geom.nearest_on_polyline(np.array(shared), dense, closed=True)
-    assert dist.mean() < 0.03 and dist.max() < 0.08
+    border = [cut_border_vertices(p) for p in parts]
+    assert all(len(b) >= 24 for b in border)
+    for b in border:
+        _, dist = geom.nearest_on_polyline(b, dense, closed=True)
+        assert dist.mean() < 0.03 and dist.max() < 0.08
 
 
 def test_complete_loop_closes_a_partial_arc_around_the_limb():
@@ -300,3 +317,48 @@ def test_stroke_builder_continues_an_existing_line():
     assert len(pts) > 25  # medzera sa premostila
     curve = operators.build_open_curve(bpy.context, limb, pts, 0.5, 12)[0]
     assert len(curve.data.splines[0].bezier_points) == 12
+
+
+def _cut_two_parts(limb, curve):
+    select(curve)
+    assert bpy.ops.smartcut.cut(refine_levels=3) == {"FINISHED"}
+    return [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.hide_get()]
+
+
+def test_cap_is_made_of_quads_with_even_cells():
+    limb = straight_tube()
+    parts = _cut_two_parts(limb, ring_curve(limb, z=0.3, wobble=0.1, n=20))
+    for p in parts:
+        mask = cap_mask(p)
+        sizes = np.array([len(poly.vertices) for poly in p.data.polygons])
+        assert mask.sum() > 20
+        assert (sizes[mask] == 4).all(), "plocha rezu je z štvoruholníkov"
+        co = np.array([tuple(v.co) for v in p.data.vertices])
+        aspect = []
+        for poly in p.data.polygons:
+            if mask[poly.index]:
+                v = co[list(poly.vertices)]
+                e = np.linalg.norm(np.roll(v, -1, axis=0) - v, axis=1)
+                aspect.append(e.max() / e.min())
+        assert np.median(aspect) < 1.8 and max(aspect) < 3.0
+        assert mask.sum() < 400, "mriežka nie je zbytočne hustá"
+
+
+def test_both_caps_are_identical_so_the_parts_fit():
+    limb = bent_tube()
+    a = np.linspace(0, 2 * np.pi, 20, endpoint=False)
+    centre = np.array([2 * np.sin(0.8), 0.0, 2 * np.cos(0.8) - 2])
+    tangent = np.array([np.cos(0.8), 0.0, -np.sin(0.8)])
+    side, other = np.array([0.0, 1.0, 0.0]), np.cross(tangent, np.array([0.0, 1.0, 0.0]))
+    pts = np.array([centre + 0.4 * (np.cos(t) * side + np.sin(t) * other) + 0.12 * np.sin(2 * t) * tangent for t in a])
+    parts = _cut_two_parts(limb, surface.make_curve_object("Loop", pts, True, limb, 1.0))
+    sets = []
+    for p in parts:
+        cap = cap_mask(p)
+        me = p.data
+        vs = {tuple(np.round(me.vertices[i].co, 6)) for poly in me.polygons if cap[poly.index] for i in poly.vertices}
+        sets.append(vs)
+    assert sets[0] == sets[1] and len(sets[0]) > 40
+    for p in parts:
+        v, o = volume_and_open_edges(p)
+        assert o == 0 and v > 0
