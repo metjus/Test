@@ -1,7 +1,7 @@
 import bpy
 import gpu
 import numpy as np
-from bpy.props import BoolProperty, FloatProperty, IntProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty
 from bpy_extras import view3d_utils
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
@@ -388,8 +388,18 @@ class SMARTCUT_OT_connectors_add(bpy.types.Operator):
     )
     bl_options = {"REGISTER", "UNDO"}
 
+    shape: EnumProperty(
+        name="Shape",
+        items=[("SQUARE", "Square", "Square peg, common for multi-part figurines"), ("ROUND", "Round", "Round peg")],
+        default="SQUARE",
+    )
+    taper: FloatProperty(
+        name="Taper",
+        description="Width of the tip relative to the base (1 = straight). A slightly tapered peg is easier to insert",
+        default=0.9, min=0.5, max=1.0,
+    )
     count: IntProperty(name="Pins", description="0 = automatic from the size of the cut", default=0, min=0, max=8)
-    diameter: FloatProperty(name="Diameter", description="In mm if 1 unit = 1 mm. 0 = automatic", default=0.0, min=0.0, max=50.0)
+    diameter: FloatProperty(name="Size", description="Width of the peg (side of the square or diameter), in mm if 1 unit = 1 mm. 0 = automatic", default=0.0, min=0.0, max=50.0)
     length: FloatProperty(name="Length", description="How far the pin sticks out. 0 = automatic", default=0.0, min=0.0, max=100.0)
     alternate: BoolProperty(
         name="Alternate sides", description="Put pins on both parts alternately instead of all on the active one", default=False
@@ -403,7 +413,7 @@ class SMARTCUT_OT_connectors_add(bpy.types.Operator):
     def execute(self, context):
         part, partner = _part_and_partner(context)
         try:
-            pins = connectors.add_pins(part, partner, self.count, self.diameter, self.length, self.alternate)
+            pins = connectors.add_pins(part, partner, self.count, self.diameter, self.length, self.alternate, self.shape, self.taper)
         except ValueError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}

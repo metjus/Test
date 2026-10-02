@@ -20,8 +20,10 @@ def _min_dist(points: np.ndarray, others: np.ndarray) -> np.ndarray:
     return out
 
 
-def plan_pins(cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diameter: float = 0.0, length: float = 0.0):
-    """Kde dať kolíky na plochu rezu. Vráti (stredy, priemer, dĺžka).
+def plan_pins(
+    cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diameter: float = 0.0, length: float = 0.0, shape: str = "ROUND"
+):
+    """Kde dať kolíky na plochu rezu. Vráti (stredy, rozmer, dĺžka). Rozmer je priemer (okrúhly) alebo strana (štvorcový).
 
     Stredy sú body plochy rezu najďalej od okraja (a od seba). Priemer a dĺžka sa pri 0 zvolia podľa veľkosti plochy.
     """
@@ -29,13 +31,15 @@ def plan_pins(cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diame
     d_border = _min_dist(cap_pts, np.asarray(border_pts, dtype=np.float64))
     r_in = float(d_border.max())  # polomer najväčšej vpísanej kružnice (približne)
     dia = float(diameter) if diameter > 0 else float(np.clip(0.35 * r_in, 2.0, 6.0))
-    dia = min(dia, max(r_in / 1.6, 0.3))  # aby sa kolík na malú plochu zmestil
+    square = shape == "SQUARE"
+    reach = 0.5 * (np.sqrt(2.0) if square else 1.0)  # vzdialenosť od stredu k najvzdialenejšiemu bodu kolíka / rozmer
+    dia = min(dia, max(r_in / (2.0 if square else 1.6), 0.3))  # aby sa kolík na malú plochu zmestil
     ln = float(length) if length > 0 else float(np.clip(2.5 * dia, 4.0, 12.0))
     ln = min(ln, 2.0 * r_in) if length <= 0 else ln
     margin = 0.8 * dia
     n = count if count > 0 else (1 if r_in < 3.0 * dia else 2 if r_in < 5.0 * dia else 3)
 
-    ok = d_border >= dia / 2 + margin
+    ok = d_border >= dia * reach + margin
     if not ok.any():
         ok = d_border >= d_border.max() * 0.999  # aspoň najlepší bod
     pool = np.nonzero(ok)[0]
@@ -56,12 +60,22 @@ def plan_pins(cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diame
 # --------------------------------------------------------------------------- meshe
 
 
-def _pin_mesh(name: str, radius: float, length: float, base: float, taper: float = 0.85):
-    """Valec od z = -base (vo vnútri dielu) po z = +length (špička, mierne zúžená)."""
+def _prism(bm, size: float, size_tip: float, length: float, shape: str):
+    """Hranol alebo valec od z = 0 po z = length; veľkosť dole `size`, hore `size_tip`."""
+    if shape == "SQUARE":
+        k = np.sqrt(2.0) / 2.0
+        bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=4, radius1=size * k, radius2=size_tip * k, depth=length)
+        bmesh.ops.rotate(bm, cent=(0, 0, 0), matrix=Matrix.Rotation(np.pi / 4, 3, "Z"), verts=bm.verts)  # strany rovnobežne s osami
+    else:
+        bmesh.ops.create_cone(
+            bm, cap_ends=True, cap_tris=False, segments=32, radius1=size / 2, radius2=size_tip / 2, depth=length
+        )
+
+
+def _pin_mesh(name: str, size: float, length: float, base: float, taper: float, shape: str):
+    """Kolík od z = -base (vo vnútri dielu) po z = +length. Smerom k špičke sa zužuje (taper = pomer špičky k základni)."""
     bm = bmesh.new()
-    bmesh.ops.create_cone(
-        bm, cap_ends=True, cap_tris=False, segments=32, radius1=radius, radius2=radius * taper, depth=length + base
-    )
+    _prism(bm, size, size * taper, length + base, shape)
     bmesh.ops.translate(bm, vec=(0, 0, (length - base) / 2.0), verts=bm.verts)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
@@ -69,10 +83,10 @@ def _pin_mesh(name: str, radius: float, length: float, base: float, taper: float
     return me
 
 
-def _socket_mesh(name: str, radius: float, depth: float, below: float):
-    """Priamy valec od z = -below (mimo dielu) po z = +depth."""
+def _socket_mesh(name: str, size: float, depth: float, below: float, shape: str):
+    """Priamy otvor od z = -below (mimo dielu) po z = +depth."""
     bm = bmesh.new()
-    bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=32, radius1=radius, radius2=radius, depth=depth + below)
+    _prism(bm, size, size, depth + below, shape)
     bmesh.ops.translate(bm, vec=(0, 0, (depth - below) / 2.0), verts=bm.verts)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
@@ -80,8 +94,31 @@ def _socket_mesh(name: str, radius: float, depth: float, below: float):
     return me
 
 
-def _rotation_to(axis: Vector) -> Matrix:
-    return axis.normalized().to_track_quat("Z", "Y").to_matrix().to_4x4()
+def _major_direction(cap_pts: np.ndarray, normal: np.ndarray) -> np.ndarray:
+    """Smer najdlhšieho rozmeru plochy rezu (kolmý na normálu). Pri takmer okrúhlej ploche pevný smer, nie náhodný."""
+    n = normal / np.linalg.norm(normal)
+    ref = np.array([1.0, 0.0, 0.0]) if abs(n[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u = ref - n * (ref @ n)
+    u /= np.linalg.norm(u)
+    v = np.cross(n, u)
+    xy = np.stack([(cap_pts - cap_pts.mean(axis=0)) @ u, (cap_pts - cap_pts.mean(axis=0)) @ v], axis=1)
+    w, vec = np.linalg.eigh(np.cov(xy.T))
+    if w[1] < 1.15 * w[0]:
+        return u  # takmer okrúhla plocha
+    d = vec[:, 1]
+    return u * d[0] + v * d[1]
+
+
+def _frame(axis: Vector, major: Vector) -> Matrix:
+    """Os Z = smer kolíka, os X = najdlhší rozmer plochy rezu."""
+    z = axis.normalized()
+    x = (major - z * major.dot(z))
+    if x.length < 1e-9:
+        x = z.orthogonal()
+    x.normalize()
+    y = z.cross(x)
+    m = Matrix((x, y, z)).transposed()
+    return m.to_4x4()
 
 
 # --------------------------------------------------------------------------- dáta o reze
@@ -142,29 +179,30 @@ def cap_info(part, partner):
 # --------------------------------------------------------------------------- vytvorenie
 
 
-def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False):
+def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, shape="SQUARE", taper=0.9):
     """Vytvorí náhľadové kolíky (obyčajné objekty, ktoré sa dajú presúvať). Vráti zoznam objektov."""
     info = cap_info(part, partner)
     if info is None:
         raise ValueError("No cut surface found between these parts.")
     cap_pts, border_pts, normal = info
-    centers, dia, ln = plan_pins(cap_pts, border_pts, count, diameter, length)
-    radius = dia / 2.0
-    base = max(1.5 * dia, 2.0)
+    centers, size, ln = plan_pins(cap_pts, border_pts, count, diameter, length, shape)
+    major = Vector(_major_direction(cap_pts, normal))
+    base = max(1.5 * size, 2.0)
     pins = []
     for i, c in enumerate(centers):
         on_part, other = (part, partner) if (not alternate or i % 2 == 0) else (partner, part)
         axis = Vector(normal) if on_part is part else Vector(-normal)  # kolík smeruje z dielu von, k druhému dielu
-        me = _pin_mesh(f"Pin{i + 1}", radius, ln, base)
+        me = _pin_mesh(f"Pin{i + 1}", size, ln, base, taper, shape)
         ob = bpy.data.objects.new(f"Pin{i + 1}", me)
-        ob.matrix_world = Matrix.Translation(Vector(c)) @ _rotation_to(axis)
+        ob.matrix_world = Matrix.Translation(Vector(c)) @ _frame(axis, major)
         ob.display_type = "SOLID"
         ob.show_in_front = True
         ob[PIN_PROP] = 1
         ob["smartcut_pin_part"] = on_part.name
         ob["smartcut_pin_other"] = other.name
-        ob["smartcut_pin_radius"] = radius
+        ob["smartcut_pin_size"] = size
         ob["smartcut_pin_length"] = ln
+        ob["smartcut_pin_shape"] = shape
         for coll in part.users_collection:
             coll.objects.link(ob)
         pins.append(ob)
@@ -199,9 +237,12 @@ def apply_pins(pins, clearance: float = 0.2, socket_extra: float = 0.0) -> int:
         if part is None or other is None:
             continue
         sx = (abs(pin.scale.x) + abs(pin.scale.y)) / 2.0
-        radius = pin["smartcut_pin_radius"] * sx
+        size = pin["smartcut_pin_size"] * sx
         length = pin["smartcut_pin_length"] * abs(pin.scale.z)
-        sock = bpy.data.objects.new("socket_tmp", _socket_mesh("socket_tmp", radius + clearance, length + clearance + socket_extra, max(2.0 * radius, 1.0)))
+        shape = pin.get("smartcut_pin_shape", "ROUND")
+        sock = bpy.data.objects.new(
+            "socket_tmp", _socket_mesh("socket_tmp", size + 2.0 * clearance, length + clearance + socket_extra, max(size, 1.0), shape)
+        )
         sock.matrix_world = pin.matrix_world @ Matrix.Diagonal((1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0))
         for coll in other.users_collection:
             coll.objects.link(sock)

@@ -105,7 +105,7 @@ def test_apply_adds_pin_and_cuts_a_hole_with_clearance_and_keeps_parts_closed():
     v_top0, _ = volume_and_open_edges(top)
     v_bot0, _ = volume_and_open_edges(bottom)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)
+    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, shape="ROUND", taper=0.85)
     pin = _pins()[0]
     axis_dir = np.array(pin.matrix_world.to_3x3() @ __import__("mathutils").Vector((0, 0, 1)))
     origin = np.array(pin.location)
@@ -181,3 +181,57 @@ def test_add_without_a_cut_pair_is_not_available():
     limb = tube(np.stack([0 * zs, 0 * zs, zs], axis=1), radius=R, sides=40)
     select(limb)
     assert not bpy.ops.smartcut.connectors_add.poll()
+
+
+def test_square_pin_is_keyed_to_the_cut_and_fits_with_clearance():
+    top, bottom = limb_cut()
+    v_top0, _ = volume_and_open_edges(top)
+    v_bot0, _ = volume_and_open_edges(bottom)
+    select(top)
+    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)  # štvorcový je predvolený
+    pin = _pins()[0]
+    assert pin["smartcut_pin_shape"] == "SQUARE"
+    frame = np.array(pin.matrix_world)
+    origin = frame[:3, 3]
+    assert bpy.ops.smartcut.connectors_apply(clearance=0.3) == {"FINISHED"}
+    v_top, o_top = volume_and_open_edges(top)
+    v_bot, o_bot = volume_and_open_edges(bottom)
+    assert o_top == 0 and o_bot == 0
+    s_, k, ln, c = 4.0, 0.9, 8.0, 0.3
+    pin_vol = ln * (s_ * s_ + s_ * s_ * k + (s_ * k) ** 2) / 3.0
+    hole_vol = (s_ + 2 * c) ** 2 * (ln + c)
+    assert (v_top - v_top0) == pytest.approx(pin_vol, rel=0.12)
+    assert (v_bot0 - v_bot) == pytest.approx(hole_vol, rel=0.12)
+
+    def local(obj):
+        m = np.array(obj.matrix_world)
+        co = np.array([tuple(v.co) for v in obj.data.vertices]) @ m[:3, :3].T + m[:3, 3] - origin
+        return co @ frame[:3, 0], co @ frame[:3, 1], co @ frame[:3, 2]
+
+    x, y, z = local(top)
+    tip = np.maximum(abs(x), abs(y))[(z > 0.5 * ln) & (np.maximum(abs(x), abs(y)) < s_)]
+    x, y, z = local(bottom)
+    hole = np.maximum(abs(x), abs(y))[(z > 0.5 * ln) & (np.maximum(abs(x), abs(y)) > s_ / 2) & (np.maximum(abs(x), abs(y)) < s_)]
+    assert len(tip) >= 4 and len(hole) >= 4
+    assert tip.max() == pytest.approx(s_ * k / 2, abs=0.02)  # špička je zúžená
+    assert hole.min() == pytest.approx(s_ / 2 + c, abs=0.02)  # otvor je štvorcový, o vôľu väčší než základňa
+
+
+def test_square_pin_aligns_with_the_long_side_of_an_elongated_cut():
+    zs = np.linspace(-HALF, HALF, 41)
+    limb = tube(np.stack([0 * zs, 0 * zs, zs], axis=1), radius=R, sides=60)
+    for v in limb.data.vertices:
+        v.co.x *= 1.8  # eliptický prierez, dlhšia strana pozdĺž X
+    a = np.linspace(0, 2 * np.pi, 24, endpoint=False)
+    pts = np.stack([1.8 * R * np.cos(a), R * np.sin(a), 3.0 + 0 * a], axis=1)
+    curve = surface.make_curve_object("Loop", pts, True, limb, 40.0)
+    select(curve)
+    assert bpy.ops.smartcut.cut() == {"FINISHED"}
+    parts = [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.hide_get()]
+    select(parts[0])
+    bpy.ops.smartcut.connectors_add(count=2, diameter=4.0, length=8.0)
+    for p in _pins():
+        x_axis = np.array(p.matrix_world.to_3x3() @ __import__("mathutils").Vector((1, 0, 0)))
+        assert abs(x_axis[0]) > 0.95  # strana kolíka je rovnobežná s dlhou stranou plochy rezu
+    centers = np.array([tuple(p.location) for p in _pins()])
+    assert np.ptp(centers[:, 0]) > np.ptp(centers[:, 1])  # dva kolíky ležia pozdĺž dlhšej strany
