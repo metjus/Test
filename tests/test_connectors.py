@@ -50,7 +50,7 @@ def _disc(radius, step=0.5):
 
 def test_small_cut_gets_one_pin_in_the_middle():
     cap, border = _disc(8.0)
-    centers, dia, ln = connectors.plan_pins(cap, border)
+    centers, dia, ln, _fit = connectors.plan_pins(cap, border)
     assert len(centers) == 1
     assert np.linalg.norm(centers[0][:2]) < 1.0
     assert 2.0 <= dia <= 6.0 and ln >= dia
@@ -58,7 +58,7 @@ def test_small_cut_gets_one_pin_in_the_middle():
 
 def test_big_cut_gets_several_separated_pins_away_from_the_edge():
     cap, border = _disc(30.0)
-    centers, dia, ln = connectors.plan_pins(cap, border)
+    centers, dia, ln, _fit = connectors.plan_pins(cap, border)
     assert len(centers) >= 2
     d_edge = 30.0 - np.linalg.norm(centers[:, :2], axis=1)
     assert (d_edge >= dia / 2 + 0.8 * dia - 0.6).all()
@@ -68,14 +68,21 @@ def test_big_cut_gets_several_separated_pins_away_from_the_edge():
 
 def test_manual_count_and_diameter():
     cap, border = _disc(30.0)
-    centers, dia, ln = connectors.plan_pins(cap, border, count=4, diameter=5.0, length=9.0)
+    centers, dia, ln, _fit = connectors.plan_pins(cap, border, count=4, diameter=5.0, length=9.0)
     assert len(centers) == 4 and dia == 5.0 and ln == 9.0
 
 
-def test_pin_never_larger_than_the_cut_allows():
+def test_explicit_size_is_respected_but_the_fit_limit_is_reported():
     cap, border = _disc(3.0, 0.2)
-    centers, dia, ln = connectors.plan_pins(cap, border, diameter=6.0)
-    assert dia <= 3.0 / 1.6 + 1e-9 and len(centers) >= 1
+    centers, dia, ln, max_fit = connectors.plan_pins(cap, border, diameter=6.0)
+    assert dia == 6.0 and len(centers) >= 1  # moja hodnota sa nemení
+    assert max_fit < 6.0  # ale addon vie, že je väčšia než sa pohodlne zmestí
+
+
+def test_automatic_size_stays_within_the_fit_limit():
+    cap, border = _disc(3.0, 0.2)
+    _centers, dia, _ln, max_fit = connectors.plan_pins(cap, border)
+    assert dia <= max_fit + 1e-9
 
 
 # --------------------------------------------------------------------------- v Blenderi
@@ -85,10 +92,28 @@ def _pins():
     return [o for o in bpy.context.scene.objects if o.get(connectors.PIN_PROP)]
 
 
+def _set(**kw):
+    """Nastaví hodnoty v paneli (Scene.smartcut), tak ako to robí používateľ."""
+    s = bpy.context.scene.smartcut
+    for k, v in kw.items():
+        setattr(s, k, v)
+    return s
+
+
+def add_pegs(**kw):
+    _set(**kw)
+    return bpy.ops.smartcut.connectors_add()
+
+
+def apply_pegs(**kw):
+    _set(**kw)
+    return bpy.ops.smartcut.connectors_apply()
+
+
 def test_add_places_pins_on_the_cut_pointing_into_the_other_part():
     top, bottom = limb_cut()
     select(top)
-    assert bpy.ops.smartcut.connectors_add() == {"FINISHED"}
+    assert add_pegs() == {"FINISHED"}
     pins = _pins()
     assert len(pins) >= 1
     for p in pins:
@@ -105,11 +130,11 @@ def test_apply_adds_pin_and_cuts_a_hole_with_clearance_and_keeps_parts_closed():
     v_top0, _ = volume_and_open_edges(top)
     v_bot0, _ = volume_and_open_edges(bottom)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, shape="ROUND", taper=0.85)
+    add_pegs(count=1, size=4.0, length=8.0, shape="ROUND", taper=0.85)
     pin = _pins()[0]
     axis_dir = np.array(pin.matrix_world.to_3x3() @ __import__("mathutils").Vector((0, 0, 1)))
     origin = np.array(pin.location)
-    assert bpy.ops.smartcut.connectors_apply(clearance=0.3) == {"FINISHED"}
+    assert apply_pegs(clearance=0.3) == {"FINISHED"}
     assert not _pins()
 
     v_top, o_top = volume_and_open_edges(top)
@@ -146,8 +171,8 @@ def test_clearance_is_adjustable_at_apply_time():
         top, bottom = limb_cut()
         v0, _ = volume_and_open_edges(bottom)
         select(top)
-        bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)
-        bpy.ops.smartcut.connectors_apply(clearance=clearance)
+        add_pegs(count=1, size=4.0, length=8.0)
+        apply_pegs(clearance=clearance)
         results.append(v0 - volume_and_open_edges(bottom)[0])
     assert results[1] > results[0] * 1.2  # väčšia vôľa = väčší otvor
 
@@ -155,11 +180,11 @@ def test_clearance_is_adjustable_at_apply_time():
 def test_pins_on_a_curved_cut_still_give_closed_parts_and_alternate_sides():
     top, bottom = limb_cut(wobble=1.5, radius=14.0)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=2, diameter=3.0, length=6.0, alternate=True)
+    add_pegs(count=2, size=3.0, length=6.0, alternate=True)
     pins = _pins()
     assert len(pins) == 2
     assert {p["smartcut_pin_part"] for p in pins} == {top.name, bottom.name}
-    assert bpy.ops.smartcut.connectors_apply(clearance=0.2) == {"FINISHED"}
+    assert apply_pegs(clearance=0.2) == {"FINISHED"}
     for part in (top, bottom):
         v, o = volume_and_open_edges(part)
         assert o == 0 and v > 0
@@ -168,11 +193,11 @@ def test_pins_on_a_curved_cut_still_give_closed_parts_and_alternate_sides():
 def test_pin_can_be_moved_before_applying():
     top, bottom = limb_cut(radius=14.0)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=3.0, length=6.0)
+    add_pegs(count=1, size=3.0, length=6.0)
     pin = _pins()[0]
     pin.location.x += 4.0
     v0, _ = volume_and_open_edges(bottom)
-    assert bpy.ops.smartcut.connectors_apply(clearance=0.2) == {"FINISHED"}
+    assert apply_pegs(clearance=0.2) == {"FINISHED"}
     assert volume_and_open_edges(bottom)[0] < v0
 
 
@@ -188,12 +213,12 @@ def test_square_pin_is_keyed_to_the_cut_and_fits_with_clearance():
     v_top0, _ = volume_and_open_edges(top)
     v_bot0, _ = volume_and_open_edges(bottom)
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, taper=0.9)  # štvorcový je predvolený
+    add_pegs(count=1, size=4.0, length=8.0, taper=0.9)  # štvorcový je predvolený
     pin = _pins()[0]
     assert pin["smartcut_pin_shape"] == "SQUARE"
     frame = np.array(pin.matrix_world)
     origin = frame[:3, 3]
-    assert bpy.ops.smartcut.connectors_apply(clearance=0.3) == {"FINISHED"}
+    assert apply_pegs(clearance=0.3) == {"FINISHED"}
     v_top, o_top = volume_and_open_edges(top)
     v_bot, o_bot = volume_and_open_edges(bottom)
     assert o_top == 0 and o_bot == 0
@@ -229,7 +254,7 @@ def test_square_pin_aligns_with_the_long_side_of_an_elongated_cut():
     assert bpy.ops.smartcut.cut() == {"FINISHED"}
     parts = [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.hide_get()]
     select(parts[0])
-    bpy.ops.smartcut.connectors_add(count=2, diameter=4.0, length=8.0)
+    add_pegs(count=2, size=4.0, length=8.0)
     for p in _pins():
         x_axis = np.array(p.matrix_world.to_3x3() @ __import__("mathutils").Vector((1, 0, 0)))
         assert abs(x_axis[0]) > 0.95  # strana kolíka je rovnobežná s dlhou stranou plochy rezu
@@ -253,7 +278,7 @@ def _sphere_cut(radius):
 @pytest.mark.parametrize("radius", [1.0, 5.0, 25.0])
 def test_automatic_size_follows_the_size_of_the_model(radius):
     ball, parts = _sphere_cut(radius)
-    assert bpy.ops.smartcut.connectors_add() == {"FINISHED"}
+    assert add_pegs() == {"FINISHED"}
     for pin in _pins():
         # celý kolík (so základňou) je o dosť menší než model, nikdy nepreráža cez celú guľu
         assert max(pin.dimensions) < 1.1 * radius, (radius, tuple(pin.dimensions))
@@ -263,7 +288,7 @@ def test_automatic_size_follows_the_size_of_the_model(radius):
 def test_preview_pins_are_wireframe_and_visible_through_the_model():
     top, bottom = limb_cut()
     select(top)
-    bpy.ops.smartcut.connectors_add()
+    add_pegs()
     for pin in _pins():
         assert pin.display_type == "WIRE" and pin.show_in_front
     assert not top.hide_get() and not bottom.hide_get()  # oba diely ostávajú viditeľné
@@ -282,11 +307,11 @@ def _rings(obj, frame, origin, zmin):
 def test_side_gap_equals_the_clearance_setting(clearance):
     top, bottom = limb_cut()
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0, taper=1.0)  # rovný kolík: vôľa je všade rovnaká
+    add_pegs(count=1, size=4.0, length=8.0, taper=1.0)  # rovný kolík: vôľa je všade rovnaká
     pin = _pins()[0]
     frame = np.array(pin.matrix_world)
     origin = frame[:3, 3]
-    assert bpy.ops.smartcut.connectors_apply(clearance=clearance) == {"FINISHED"}
+    assert apply_pegs(clearance=clearance) == {"FINISHED"}
     peg = _rings(top, frame, origin, 4.0)
     hole = _rings(bottom, frame, origin, 4.0)
     assert len(peg) >= 4 and len(hole) >= 4
@@ -297,12 +322,84 @@ def test_side_gap_equals_the_clearance_setting(clearance):
 def test_defaults_are_a_snug_glue_fit():
     top, bottom = limb_cut()
     select(top)
-    bpy.ops.smartcut.connectors_add(count=1, diameter=4.0, length=8.0)  # predvolené zúženie
+    add_pegs(count=1, size=4.0, length=8.0)  # predvolené zúženie
     pin = _pins()[0]
     frame = np.array(pin.matrix_world)
     origin = frame[:3, 3]
-    assert bpy.ops.smartcut.connectors_apply() == {"FINISHED"}  # predvolená vôľa
+    assert apply_pegs() == {"FINISHED"}  # predvolená vôľa
     hole = _rings(bottom, frame, origin, 4.0).max()
     tip = _rings(top, frame, origin, 4.0).max()
     assert hole - 2.0 == pytest.approx(0.05, abs=0.01)  # tesné, nie plávajúce
     assert 2.0 - tip < 0.12  # zúženie len na zavedenie, kolík dosadá takmer po celej dĺžke
+
+
+# --------------------------------------------------------------------------- nastavenia v paneli
+
+
+def test_panel_settings_exist_with_snug_defaults():
+    s = bpy.context.scene.smartcut
+    assert s.clearance == pytest.approx(0.05)
+    assert s.shape == "SQUARE" and s.size == 0.0 and s.count == 0
+    assert s.taper == pytest.approx(0.96)
+
+
+def test_panel_settings_are_used_when_the_button_is_pressed():
+    top, bottom = limb_cut()
+    select(top)
+    assert add_pegs(size=5.0, length=9.0, count=1, shape="ROUND", clearance=0.12) == {"FINISHED"}
+    pins = _pins()
+    assert len(pins) == 1
+    pin = pins[0]
+    assert pin["smartcut_pin_size"] == pytest.approx(5.0)  # moja hodnota, bez orezania
+    assert pin["smartcut_pin_length"] == pytest.approx(9.0)
+    assert pin["smartcut_pin_shape"] == "ROUND"
+    frame = np.array(pin.matrix_world)
+    origin = frame[:3, 3]
+    assert apply_pegs() == {"FINISHED"}
+    hole = _rings(bottom, frame, origin, 4.5).max()
+    assert hole == pytest.approx(2.5 + 0.12, abs=0.02)  # vôľa z panela
+
+
+def test_pressing_add_again_rebuilds_instead_of_stacking():
+    top, _bottom = limb_cut()
+    select(top)
+    add_pegs(count=2, size=4.0, length=8.0)
+    assert len(_pins()) == 2
+    select(top)
+    add_pegs(count=1, size=6.0)
+    pins = _pins()
+    assert len(pins) == 1  # staré náhľady sa nehromadia
+    assert pins[0]["smartcut_pin_size"] == pytest.approx(6.0)
+
+
+def test_settings_survive_between_steps():
+    top, _bottom = limb_cut()
+    _set(clearance=0.18, size=5.5)
+    select(top)
+    add_pegs()
+    s = bpy.context.scene.smartcut
+    assert s.clearance == pytest.approx(0.18) and s.size == pytest.approx(5.5)
+
+
+@pytest.mark.parametrize("count", [1, 2, 3])
+def test_requested_peg_count_is_honoured(count):
+    top, _bottom = limb_cut()
+    select(top)
+    assert add_pegs(count=count, size=4.0, length=8.0) == {"FINISHED"}
+    pins = _pins()
+    assert len(pins) == count
+    centers = np.array([tuple(p.location) for p in pins])
+    for i in range(count):
+        for j in range(i + 1, count):
+            assert np.linalg.norm(centers[i] - centers[j]) >= 1.25 * 4.0 - 1e-6  # kolíky sa neprekrývajú
+
+
+def test_big_explicit_size_is_used_even_if_it_barely_fits():
+    top, bottom = limb_cut()
+    select(top)
+    assert add_pegs(count=1, size=12.0, length=10.0) == {"FINISHED"}  # širší, než sa pohodlne zmestí
+    assert _pins()[0]["smartcut_pin_size"] == pytest.approx(12.0)
+    assert apply_pegs(clearance=0.05) == {"FINISHED"}
+    for part in (top, bottom):
+        v, o = volume_and_open_edges(part)
+        assert v > 0 and o == 0

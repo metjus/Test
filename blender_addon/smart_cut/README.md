@@ -4,7 +4,7 @@ Rozreže model podľa plynulej slučky, ktorú nakreslíš priamo na povrch. Hod
 diely tam, kde rez rovinou nestačí (ohyby rúk, krk). Rez ide po krivke, ktorú vidíš, a oba diely sa uzavrú.
 
 ## Inštalácia
-`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.4.0.zip`.
+`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.5.0.zip`.
 Blender: **Edit > Preferences > Get Extensions > (šípka vpravo hore) Install from Disk**.
 V 3D okne stlač `N`, záložka **Smart Cut**.
 
@@ -24,18 +24,20 @@ V 3D okne stlač `N`, záložka **Smart Cut**.
    **Edge precision** (predvolene 1) určuje, koľkokrát sa plochy pri reze delia pred prichytením hrany; vyššie
    hodnoty zlepšenie nepridajú, len pribudnú drobné trojuholníky. Pôvodný model sa skryje (nezmaže).
 
-5. **Kolíky na lepenie** (vyber jeden z dvoch dielov):
-   - Predvolený tvar je **štvorcový kolík, ktorý sa smerom k špičke mierne zužuje** (**Taper**, predvolene 0,96 — len na zavedenie, aby kolík dosadal po celej dĺžke),
-     ako sa používa pri figúrkach tlačených po častiach. Štvorec sa natočí podľa dlhšej strany plochy rezu, takže
-     nemôže byť zasunutý otočený. Voľba **Shape** prepne na okrúhly kolík.
-   - **Add Connectors** umiestni kolíky na plochu rezu ako **drôtové obrysy viditeľné cez model**, ktoré vidíš a môžeš posunúť (`G`)
-     alebo zmeniť ich veľkosť (`S`) ešte pred aplikovaním. Počet, priemer a dĺžka sa dajú nastaviť v paneli
-     „Adjust Last Operation" (0 = automaticky podľa veľkosti rezu). **Alternate sides** dá kolíky striedavo na oba diely.
-   - **Apply Connectors** pripojí každý kolík k jeho dielu a do druhého dielu vyreže otvor s vôľou **Clearance**
-     **na každej strane** (predvolene 0,05; mm, ak 1 jednotka = 1 mm). Pri 4 mm kolíku má otvor 4,10 mm, čiže spoj je
-     tesný a ostane v ňom len film na CA lepidlo. Ak diely po tlači nejdú spolu, zvýš vôľu po 0,02.
-     Otvor je na dne o niečo hlbší, aby kolík nedosadol skôr, než sa stretnú plochy rezu.
-   - Kolíky smerujú v smere osi rezu a sú rovnobežné, takže sa diely zasunú jedným pohybom.
+5. **Kolíky na lepenie** (vyber jeden z dvoch dielov): všetky hodnoty sa zadávajú **priamo v paneli** a ostanú
+   zapamätané v scéne. Panel pod nastaveniami rovno ukazuje, aký bude otvor.
+   - **Shape**: štvorcový (predvolený, ako pri figúrkach tlačených po častiach) alebo okrúhly. Štvorec sa natočí
+     podľa dlhšej strany plochy rezu, takže ho nezasunieš otočený.
+   - **Peg size** a **Peg length**: šírka a dĺžka kolíka v mm (ak 1 jednotka = 1 mm). 0 = automaticky podľa veľkosti
+     rezu. Zadaná hodnota sa **rešpektuje presne**; ak je širšia, než sa na rez pohodlne zmestí, addon len upozorní.
+   - **Pegs**: počet. 0 = automaticky. Zadaný počet má prednosť pred pohodlným odstupom, kolíky sa len nesmú prekrývať.
+   - **Taper**: šírka špičky voči základni (predvolene 0,96) — len na zavedenie, aby kolík dosadal po celej dĺžke.
+   - **Hole clearance**: vôľa **na každej strane** medzi kolíkom a otvorom (predvolene 0,05). Pri 4 mm kolíku má otvor
+     4,10 mm, čiže spoj je tesný a ostane v ňom len film na CA lepidlo. Ak diely po tlači nejdú spolu, zvýš ju po 0,02.
+   - **Add / Update Pegs** umiestni kolíky ako **drôtové obrysy viditeľné cez model**. Môžeš ich posunúť (`G`) alebo
+     zmeniť veľkosť (`S`). Keď zmeníš hodnotu v paneli a klikneš znova, kolíky sa prekreslia (nehromadia sa).
+   - **Apply Pegs** pripojí každý kolík k jeho dielu a do druhého vyreže otvor s nastavenou vôľou. Otvor je na dne
+     o niečo hlbší, aby kolík nedosadol skôr, než sa stretnú plochy rezu.
 
 ## Zatiaľ nie je
 - Voliteľná medzera medzi dielmi (ako pri rezaní rovinou s hrúbkou).

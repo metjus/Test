@@ -23,37 +23,62 @@ def _min_dist(points: np.ndarray, others: np.ndarray) -> np.ndarray:
 def plan_pins(
     cap_pts: np.ndarray, border_pts: np.ndarray, count: int = 0, diameter: float = 0.0, length: float = 0.0, shape: str = "ROUND"
 ):
-    """Kde dať kolíky na plochu rezu. Vráti (stredy, rozmer, dĺžka). Rozmer je priemer (okrúhly) alebo strana (štvorcový).
+    """Kde dať kolíky na plochu rezu. Vráti (stredy, rozmer, dĺžka, najväčší rozmer, ktorý sa na rez zmestí).
+
+    Rozmer je priemer (okrúhly) alebo strana (štvorcový). Ak je `diameter` zadaný, použije sa presne tak,
+    ako ho používateľ chce; obmedzí sa len automatická voľba.
 
     Stredy sú body plochy rezu najďalej od okraja (a od seba). Priemer a dĺžka sa pri 0 zvolia podľa veľkosti plochy.
     """
     cap_pts = np.asarray(cap_pts, dtype=np.float64)
     d_border = _min_dist(cap_pts, np.asarray(border_pts, dtype=np.float64))
     r_in = float(d_border.max())  # polomer najväčšej vpísanej kružnice (približne)
-    dia = float(diameter) if diameter > 0 else float(np.clip(0.38 * r_in, min(1.5, 0.38 * r_in), 7.0))
     square = shape == "SQUARE"
     reach = 0.5 * (np.sqrt(2.0) if square else 1.0)  # vzdialenosť od stredu k najvzdialenejšiemu bodu kolíka / rozmer
-    dia = min(dia, max(r_in / (2.0 if square else 1.6), 0.05))  # aby sa kolík na malú plochu zmestil
+    max_fit = max(r_in / (2.0 if square else 1.6), 0.05)  # najväčší rozmer, ktorý sa na plochu rezu zmestí
+    if diameter > 0:
+        dia = float(diameter)  # zadané používateľom: rešpektuj presne
+    else:
+        dia = min(float(np.clip(0.38 * r_in, min(1.5, 0.38 * r_in), 7.0)), max_fit)
     ln = float(length) if length > 0 else float(min(2.2 * dia, 1.4 * r_in, 12.0))
-    margin = 0.8 * dia
     n = count if count > 0 else (1 if r_in < 3.0 * dia else 2 if r_in < 5.0 * dia else 3)
 
-    ok = d_border >= dia * reach + margin
-    if not ok.any():
-        ok = d_border >= d_border.max() * 0.999  # aspoň najlepší bod
-    pool = np.nonzero(ok)[0]
-    first = pool[int(d_border[pool].argmax())]
-    chosen = [first]
-    min_sep = 2.5 * dia
-    while len(chosen) < n:
-        dist = _min_dist(cap_pts[pool], cap_pts[chosen])
-        # najďalej od už zvolených, pri rovnosti radšej bližšie ku stredu plochy
-        score = dist + 0.15 * d_border[pool]
-        k = int(score.argmax())
-        if dist[k] < min_sep:
-            break
-        chosen.append(pool[k])
-    return cap_pts[chosen], dia, ln
+    def candidates(margin: float):
+        ok = d_border >= dia * reach + margin
+        if not ok.any():
+            ok = d_border >= d_border.max() * 0.999  # aspoň najlepší bod
+        return np.nonzero(ok)[0]
+
+    def farthest_pair(idx):
+        """Dvojica bodov s najväčším odstupom (pri veľkom výbere sa hľadá na vzorke)."""
+        sub = idx if len(idx) <= 400 else idx[:: max(1, len(idx) // 400)]
+        P = cap_pts[sub]
+        d = np.linalg.norm(P[:, None, :] - P[None], axis=2)
+        i, j = np.unravel_index(int(d.argmax()), d.shape)
+        return [int(sub[i]), int(sub[j])], float(d[i, j])
+
+    def pick(margin: float, min_sep: float):
+        pool = candidates(margin)
+        if n <= 1:
+            return [pool[int(d_border[pool].argmax())]]
+        # pri dvoch a viacerých kolíkoch nezačínaj v strede: od neho sa druhý nemá kam vzdialiť
+        pair, gap = farthest_pair(pool)
+        chosen = pair if gap >= min_sep else [pool[int(d_border[pool].argmax())]]
+        while len(chosen) < n:
+            dist = _min_dist(cap_pts[pool], cap_pts[chosen])
+            for k in np.argsort(-(dist + 0.15 * d_border[pool])):
+                if dist[k] >= min_sep:
+                    chosen.append(pool[k])
+                    break
+            else:
+                break
+        return chosen
+
+    chosen = pick(0.8 * dia, 2.5 * dia)  # pohodlný odstup od okraja aj medzi kolíkmi
+    if count > 0 and len(chosen) < n:
+        # zadaný počet má prednosť: kolíky smú ísť bližšie k okraju aj k sebe, len sa nesmú prekrývať
+        chosen = pick(0.25 * dia, 1.25 * dia)
+    return cap_pts[chosen], dia, ln, max_fit
 
 
 # --------------------------------------------------------------------------- meshe
@@ -187,13 +212,24 @@ def _base_depth(cap_pts: np.ndarray, center: np.ndarray, normal: np.ndarray, siz
     return float(np.clip(1.3 * sag + 0.4 * size, 0.6 * size, 1.2 * size))
 
 
+def remove_preview_pins(part, partner):
+    """Zmaže náhľadové kolíky, ktoré patria tejto dvojici dielov."""
+    names = {part.name, partner.name}
+    for ob in [o for o in bpy.data.objects if o.get(PIN_PROP)]:
+        if {ob.get("smartcut_pin_part"), ob.get("smartcut_pin_other")} == names:
+            me = ob.data
+            bpy.data.objects.remove(ob, do_unlink=True)
+            if me.users == 0:
+                bpy.data.meshes.remove(me)
+
+
 def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, shape="SQUARE", taper=0.9):
     """Vytvorí náhľadové kolíky (obyčajné objekty, ktoré sa dajú presúvať). Vráti zoznam objektov."""
     info = cap_info(part, partner)
     if info is None:
         raise ValueError("No cut surface found between these parts.")
     cap_pts, border_pts, normal = info
-    centers, size, ln = plan_pins(cap_pts, border_pts, count, diameter, length, shape)
+    centers, size, ln, max_fit = plan_pins(cap_pts, border_pts, count, diameter, length, shape)
     major = Vector(_major_direction(cap_pts, normal))
     pins = []
     for i, c in enumerate(centers):
@@ -215,7 +251,7 @@ def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, 
         for coll in part.users_collection:
             coll.objects.link(ob)
         pins.append(ob)
-    return pins
+    return pins, {"size": size, "length": ln, "max_fit": max_fit, "placed": len(centers), "requested": count}
 
 
 # --------------------------------------------------------------------------- aplikovanie
