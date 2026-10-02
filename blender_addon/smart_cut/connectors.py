@@ -30,12 +30,11 @@ def plan_pins(
     cap_pts = np.asarray(cap_pts, dtype=np.float64)
     d_border = _min_dist(cap_pts, np.asarray(border_pts, dtype=np.float64))
     r_in = float(d_border.max())  # polomer najväčšej vpísanej kružnice (približne)
-    dia = float(diameter) if diameter > 0 else float(np.clip(0.35 * r_in, 2.0, 6.0))
+    dia = float(diameter) if diameter > 0 else float(np.clip(0.38 * r_in, min(1.5, 0.38 * r_in), 7.0))
     square = shape == "SQUARE"
     reach = 0.5 * (np.sqrt(2.0) if square else 1.0)  # vzdialenosť od stredu k najvzdialenejšiemu bodu kolíka / rozmer
-    dia = min(dia, max(r_in / (2.0 if square else 1.6), 0.3))  # aby sa kolík na malú plochu zmestil
-    ln = float(length) if length > 0 else float(np.clip(2.5 * dia, 4.0, 12.0))
-    ln = min(ln, 2.0 * r_in) if length <= 0 else ln
+    dia = min(dia, max(r_in / (2.0 if square else 1.6), 0.05))  # aby sa kolík na malú plochu zmestil
+    ln = float(length) if length > 0 else float(min(2.2 * dia, 1.4 * r_in, 12.0))
     margin = 0.8 * dia
     n = count if count > 0 else (1 if r_in < 3.0 * dia else 2 if r_in < 5.0 * dia else 3)
 
@@ -179,6 +178,15 @@ def cap_info(part, partner):
 # --------------------------------------------------------------------------- vytvorenie
 
 
+def _base_depth(cap_pts: np.ndarray, center: np.ndarray, normal: np.ndarray, size: float) -> float:
+    """Ako hlboko do dielu siaha základňa kolíka: o zakrivenie plochy rezu pod kolíkom a rezervu, najviac 1,2 šírky.
+    Základňa musí prekryť teleso dielu, ale nesmie prerážať na druhú stranu."""
+    near = np.linalg.norm(cap_pts - center, axis=1) <= 1.5 * size
+    z = (cap_pts[near] - center) @ normal if near.any() else np.zeros(1)
+    sag = float(np.ptp(z))
+    return float(np.clip(1.3 * sag + 0.4 * size, 0.6 * size, 1.2 * size))
+
+
 def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, shape="SQUARE", taper=0.9):
     """Vytvorí náhľadové kolíky (obyčajné objekty, ktoré sa dajú presúvať). Vráti zoznam objektov."""
     info = cap_info(part, partner)
@@ -187,16 +195,17 @@ def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, 
     cap_pts, border_pts, normal = info
     centers, size, ln = plan_pins(cap_pts, border_pts, count, diameter, length, shape)
     major = Vector(_major_direction(cap_pts, normal))
-    base = max(1.5 * size, 2.0)
     pins = []
     for i, c in enumerate(centers):
         on_part, other = (part, partner) if (not alternate or i % 2 == 0) else (partner, part)
         axis = Vector(normal) if on_part is part else Vector(-normal)  # kolík smeruje z dielu von, k druhému dielu
+        base = _base_depth(cap_pts, c, normal, size)
         me = _pin_mesh(f"Pin{i + 1}", size, ln, base, taper, shape)
         ob = bpy.data.objects.new(f"Pin{i + 1}", me)
         ob.matrix_world = Matrix.Translation(Vector(c)) @ _frame(axis, major)
-        ob.display_type = "SOLID"
-        ob.show_in_front = True
+        ob.display_type = "WIRE"  # drôtový obrys, model pod ním ostane viditeľný
+        ob.show_in_front = True  # a kolík je vidieť aj cez model (X-ray)
+        ob.color = (1.0, 0.55, 0.05, 1.0)
         ob[PIN_PROP] = 1
         ob["smartcut_pin_part"] = on_part.name
         ob["smartcut_pin_other"] = other.name
@@ -241,7 +250,7 @@ def apply_pins(pins, clearance: float = 0.2, socket_extra: float = 0.0) -> int:
         length = pin["smartcut_pin_length"] * abs(pin.scale.z)
         shape = pin.get("smartcut_pin_shape", "ROUND")
         sock = bpy.data.objects.new(
-            "socket_tmp", _socket_mesh("socket_tmp", size + 2.0 * clearance, length + clearance + socket_extra, max(size, 1.0), shape)
+            "socket_tmp", _socket_mesh("socket_tmp", size + 2.0 * clearance, length + clearance + socket_extra, size, shape)
         )
         sock.matrix_world = pin.matrix_world @ Matrix.Diagonal((1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0))
         for coll in other.users_collection:

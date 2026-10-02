@@ -235,3 +235,35 @@ def test_square_pin_aligns_with_the_long_side_of_an_elongated_cut():
         assert abs(x_axis[0]) > 0.95  # strana kolíka je rovnobežná s dlhou stranou plochy rezu
     centers = np.array([tuple(p.location) for p in _pins()])
     assert np.ptp(centers[:, 0]) > np.ptp(centers[:, 1])  # dva kolíky ležia pozdĺž dlhšej strany
+
+
+def _sphere_cut(radius):
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=48, ring_count=24, radius=radius)
+    ball = bpy.context.active_object
+    a = np.linspace(0, 2 * np.pi, 24, endpoint=False)
+    pts = np.stack([radius * np.cos(a), radius * np.sin(a), 0.1 * radius * np.sin(2 * a)], axis=1)
+    curve = surface.make_curve_object("Loop", pts, True, ball, 2 * radius)
+    select(curve)
+    assert bpy.ops.smartcut.cut() == {"FINISHED"}
+    parts = [o for o in bpy.context.scene.objects if o.type == "MESH" and not o.hide_get()]
+    select(parts[0])
+    return ball, parts
+
+
+@pytest.mark.parametrize("radius", [1.0, 5.0, 25.0])
+def test_automatic_size_follows_the_size_of_the_model(radius):
+    ball, parts = _sphere_cut(radius)
+    assert bpy.ops.smartcut.connectors_add() == {"FINISHED"}
+    for pin in _pins():
+        # celý kolík (so základňou) je o dosť menší než model, nikdy nepreráža cez celú guľu
+        assert max(pin.dimensions) < 1.1 * radius, (radius, tuple(pin.dimensions))
+        assert min(pin.dimensions) < 0.5 * radius
+
+
+def test_preview_pins_are_wireframe_and_visible_through_the_model():
+    top, bottom = limb_cut()
+    select(top)
+    bpy.ops.smartcut.connectors_add()
+    for pin in _pins():
+        assert pin.display_type == "WIRE" and pin.show_in_front
+    assert not top.hide_get() and not bottom.hide_get()  # oba diely ostávajú viditeľné
