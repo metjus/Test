@@ -96,22 +96,66 @@ def _prism(bm, size: float, size_tip: float, length: float, shape: str):
         )
 
 
-def _pin_mesh(name: str, size: float, length: float, base: float, taper: float, shape: str):
-    """Kolík od z = -base (vo vnútri dielu) po z = +length. Smerom k špičke sa zužuje (taper = pomer špičky k základni)."""
+def _shell(bm, size: float, size_tip: float, z0: float, z1: float, shape: str):
+    """Pridá do bmeshu hranol/valec od z0 po z1; šírka dole `size`, hore `size_tip`."""
+    tmp = bmesh.new()
+    _prism(tmp, size, size_tip, z1 - z0, shape)
+    bmesh.ops.translate(tmp, vec=(0, 0, (z0 + z1) / 2.0), verts=tmp.verts)
+    me = bpy.data.meshes.new("tmp_shell")
+    tmp.to_mesh(me)
+    tmp.free()
+    bm.from_mesh(me)
+    bpy.data.meshes.remove(me)
+
+
+def peg_width_at(z: float, size: float, length: float, base: float, taper: float) -> float:
+    """Šírka kolíka vo výške z (kolík je zrezaný ihlan od -base po +length)."""
+    t = (z + base) / max(length + base, 1e-9)
+    return size + (size * taper - size) * t
+
+
+def peg_span(length: float, base: float):
+    """Kolík siaha od -base (vo vnútri svojho dielu) po +length (do druhého dielu)."""
+    return -base, length
+
+
+def hole_span(length: float, size: float, clearance: float):
+    """Otvor je o kúsok hlbší, aby kolík nedosadol skôr, než sa stretnú plochy rezu."""
+    return 0.0, length + max(2.0 * clearance, 0.08 * size)
+
+
+def peg_mesh(name: str, size: float, length: float, base: float, taper: float, shape: str):
     bm = bmesh.new()
-    _prism(bm, size, size * taper, length + base, shape)
-    bmesh.ops.translate(bm, vec=(0, 0, (length - base) / 2.0), verts=bm.verts)
+    z0, z1 = peg_span(length, base)
+    _shell(bm, size, size * taper, z0, z1, shape)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
     return me
 
 
-def _socket_mesh(name: str, size: float, depth: float, below: float, shape: str):
-    """Priamy otvor od z = -below (mimo dielu) po z = +depth."""
+def hole_mesh(name: str, size: float, length: float, base: float, taper: float, shape: str, clearance: float):
+    """Otvor kopíruje skosenie kolíka: o `clearance` širší na každej strane po celej dĺžke."""
     bm = bmesh.new()
-    _prism(bm, size, size, depth + below, shape)
-    bmesh.ops.translate(bm, vec=(0, 0, (depth - below) / 2.0), verts=bm.verts)
+    z0, z1 = hole_span(length, size, clearance)
+    k = 2.0 * clearance
+    lo = z0 - size  # kúsok pod rovinu rezu, aby rez prešiel povrchom
+    _shell(bm, peg_width_at(lo, size, length, base, taper) + k, peg_width_at(z1, size, length, base, taper) + k, lo, z1, shape)
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    return me
+
+
+def preview_mesh(name: str, size: float, length: float, base: float, taper: float, shape: str, clearance: float):
+    """Náhľad: kolík a okolo neho obrys diery, aby bola vôľa aj skosenie vidieť naraz."""
+    bm = bmesh.new()
+    pz0, pz1 = peg_span(length, base)
+    _shell(bm, size, size * taper, pz0, pz1, shape)
+    hz0, hz1 = hole_span(length, size, clearance)
+    k = 2.0 * clearance
+    if k > 1e-9:
+        _shell(bm, peg_width_at(hz0, size, length, base, taper) + k, peg_width_at(hz1, size, length, base, taper) + k, hz0, hz1, shape)
     me = bpy.data.meshes.new(name)
     bm.to_mesh(me)
     bm.free()
@@ -212,6 +256,31 @@ def _base_depth(cap_pts: np.ndarray, center: np.ndarray, normal: np.ndarray, siz
     return float(np.clip(1.3 * sag + 0.4 * size, 0.6 * size, 1.2 * size))
 
 
+def auto_length(size: float, r_in: float) -> float:
+    return float(min(2.2 * size, 1.4 * r_in, 12.0))
+
+
+def refresh_previews(size: float, taper: float, clearance: float) -> int:
+    """Prekreslí náhľady podľa aktuálnych hodnôt. Mení len mesh, takže poloha a posun ostanú."""
+    n = 0
+    for pin in [o for o in bpy.data.objects if o.get(PIN_PROP)]:
+        shape = pin.get("smartcut_pin_shape", "SQUARE")
+        r_in = float(pin.get("smartcut_pin_rin", size))
+        old_size = float(pin.get("smartcut_pin_size", size)) or size
+        base = float(pin.get("smartcut_pin_base", size)) * (size / old_size)  # základňa rastie s kolíkom
+        ln = auto_length(size, r_in)
+        old = pin.data
+        pin.data = preview_mesh(pin.name, size, ln, base, taper, shape, clearance)
+        if old.users == 0:
+            bpy.data.meshes.remove(old)
+        pin["smartcut_pin_size"] = size
+        pin["smartcut_pin_length"] = ln
+        pin["smartcut_pin_base"] = base
+        pin["smartcut_pin_taper"] = taper
+        n += 1
+    return n
+
+
 def flip_pins(pins) -> int:
     """Prehodí stranu: kolík prejde na druhý diel a diera na ten, kde bol. Poloha ostáva."""
     n = 0
@@ -236,21 +305,22 @@ def remove_preview_pins(part, partner):
                 bpy.data.meshes.remove(me)
 
 
-def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, shape="SQUARE", taper=0.9):
+def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, shape="SQUARE", taper=0.9, clearance=0.0):
     """Vytvorí náhľadové kolíky (obyčajné objekty, ktoré sa dajú presúvať). Vráti zoznam objektov."""
     info = cap_info(part, partner)
     if info is None:
         raise ValueError("No cut surface found between these parts.")
     cap_pts, border_pts, normal = info
     centers, size, ln, max_fit = plan_pins(cap_pts, border_pts, count, diameter, length, shape)
+    r_in = float(_min_dist(cap_pts, border_pts).max())
     major = Vector(_major_direction(cap_pts, normal))
     pins = []
     for i, c in enumerate(centers):
         on_part, other = (part, partner) if (not alternate or i % 2 == 0) else (partner, part)
         axis = Vector(normal) if on_part is part else Vector(-normal)  # kolík smeruje z dielu von, k druhému dielu
         base = _base_depth(cap_pts, c, normal, size)
-        me = _pin_mesh(f"Pin{i + 1}", size, ln, base, taper, shape)
-        ob = bpy.data.objects.new(f"Pin{i + 1}", me)
+        me = preview_mesh(f"Peg{i + 1}", size, ln, base, taper, shape, clearance)
+        ob = bpy.data.objects.new(f"Peg{i + 1}", me)
         ob.matrix_world = Matrix.Translation(Vector(c)) @ _frame(axis, major)
         ob.display_type = "WIRE"  # drôtový obrys, model pod ním ostane viditeľný
         ob.show_in_front = True  # a kolík je vidieť aj cez model (X-ray)
@@ -261,6 +331,9 @@ def add_pins(part, partner, count=0, diameter=0.0, length=0.0, alternate=False, 
         ob["smartcut_pin_size"] = size
         ob["smartcut_pin_length"] = ln
         ob["smartcut_pin_shape"] = shape
+        ob["smartcut_pin_base"] = base
+        ob["smartcut_pin_taper"] = taper
+        ob["smartcut_pin_rin"] = r_in
         for coll in part.users_collection:
             coll.objects.link(ob)
         pins.append(ob)
@@ -286,11 +359,8 @@ def _boolean(obj, operand, operation: str):
     new.name = obj.name
 
 
-def apply_pins(pins, clearance: float = 0.05, socket_extra: float = 0.0) -> int:
-    """Kolík sa pridá k dielu, na ktorom je, a do druhého dielu sa vyreže otvor s vôľou `clearance` na každej strane.
-
-    Otvor je na dne o niečo hlbší, aby kolík nedosadol skôr, než sa stretnú plochy rezu.
-    """
+def apply_pins(pins, clearance: float = 0.05) -> int:
+    """Kolík sa pridá k dielu, na ktorom je, a do druhého sa vyreže otvor s rovnakým skosením a vôľou `clearance`."""
     done = 0
     for pin in list(pins):
         part = bpy.data.objects.get(pin.get("smartcut_pin_part", ""))
@@ -298,21 +368,25 @@ def apply_pins(pins, clearance: float = 0.05, socket_extra: float = 0.0) -> int:
         if part is None or other is None:
             continue
         sx = (abs(pin.scale.x) + abs(pin.scale.y)) / 2.0
-        size = pin["smartcut_pin_size"] * sx
-        length = pin["smartcut_pin_length"] * abs(pin.scale.z)
-        shape = pin.get("smartcut_pin_shape", "ROUND")
-        sock = bpy.data.objects.new(
-            "socket_tmp",
-            _socket_mesh(
-                "socket_tmp", size + 2.0 * clearance, length + max(2.0 * clearance, 0.08 * size) + socket_extra, size, shape
-            ),
+        size = float(pin["smartcut_pin_size"]) * sx
+        length = float(pin["smartcut_pin_length"]) * abs(pin.scale.z)
+        base = float(pin.get("smartcut_pin_base", size)) * abs(pin.scale.z)
+        taper = float(pin.get("smartcut_pin_taper", 1.0))
+        shape = pin.get("smartcut_pin_shape", "SQUARE")
+        frame = pin.matrix_world @ Matrix.Diagonal(
+            (1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0)
         )
-        sock.matrix_world = pin.matrix_world @ Matrix.Diagonal((1 / max(abs(pin.scale.x), 1e-9), 1 / max(abs(pin.scale.y), 1e-9), 1 / max(abs(pin.scale.z), 1e-9), 1.0))
+        peg = bpy.data.objects.new("peg_tmp", peg_mesh("peg_tmp", size, length, base, taper, shape))
+        sock = bpy.data.objects.new("socket_tmp", hole_mesh("socket_tmp", size, length, base, taper, shape, clearance))
+        peg.matrix_world = frame
+        sock.matrix_world = frame
+        for coll in part.users_collection:
+            coll.objects.link(peg)
         for coll in other.users_collection:
             coll.objects.link(sock)
-        pin.hide_viewport = False
-        _boolean(part, pin, "UNION")
+        _boolean(part, peg, "UNION")
         _boolean(other, sock, "DIFFERENCE")
+        bpy.data.objects.remove(peg, do_unlink=True)
         bpy.data.objects.remove(sock, do_unlink=True)
         done += 1
     for pin in pins:

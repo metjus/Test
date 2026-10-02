@@ -2,25 +2,32 @@
 import bpy
 from bpy.props import FloatProperty
 
+from . import connectors
+
+
+def _refresh(self, context):
+    """Pri zmene hodnoty sa náhľad kolíka a diery prekreslí hneď, bez ďalšieho kliknutia."""
+    connectors.refresh_previews(self.size, self.taper, self.clearance)
+
 
 class SmartCutSettings(bpy.types.PropertyGroup):
     size: FloatProperty(
         name="Peg size",
         description="Width of the square peg, in mm if 1 unit = 1 mm. "
         "Use Fit to Cut to fill in a size that suits the current cut",
-        default=4.0, min=0.05, max=200.0, step=10, precision=2, unit="LENGTH",
+        default=4.0, min=0.05, max=200.0, step=10, precision=2, unit="LENGTH", update=_refresh,
     )
     taper: FloatProperty(
         name="Taper",
         description="Width of the peg tip relative to its base. 1.00 is a straight peg; "
         "a little taper guides it in without making the fit loose",
-        default=0.96, min=0.5, max=1.0,
+        default=0.96, min=0.5, max=1.0, update=_refresh,
     )
     clearance: FloatProperty(
         name="Hole clearance",
         description="Gap on EACH side between peg and hole, in mm if 1 unit = 1 mm. "
         "0.05 is a snug fit that still leaves a film for CA glue; raise it if the printed parts do not go together",
-        default=0.05, min=0.0, max=1.0, step=1, precision=3, unit="LENGTH",
+        default=0.05, min=0.0, max=1.0, step=1, precision=3, unit="LENGTH", update=_refresh,
     )
 
 

@@ -422,7 +422,9 @@ class SMARTCUT_OT_connectors_add(bpy.types.Operator):
         part, partner = _part_and_partner(context)
         connectors.remove_preview_pins(part, partner)  # opakované kliknutie kolík prekreslí, nehromadí
         try:
-            pins, info = connectors.add_pins(part, partner, count=1, diameter=s.size, taper=s.taper, shape="SQUARE")
+            pins, info = connectors.add_pins(
+                part, partner, count=1, diameter=s.size, taper=s.taper, shape="SQUARE", clearance=s.clearance
+            )
         except ValueError as e:
             self.report({"ERROR"}, str(e))
             return {"CANCELLED"}

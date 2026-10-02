@@ -4,7 +4,7 @@ Rozreže model podľa plynulej slučky, ktorú nakreslíš priamo na povrch. Hod
 diely tam, kde rez rovinou nestačí (ohyby rúk, krk). Rez ide po krivke, ktorú vidíš, a oba diely sa uzavrú.
 
 ## Inštalácia
-`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.6.0.zip`.
+`python scripts/build_addon.py smart_cut` vytvorí `dist-addon/smart_cut-0.7.0.zip`.
 Blender: **Edit > Preferences > Get Extensions > (šípka vpravo hore) Install from Disk**.
 V 3D okne stlač `N`, záložka **Smart Cut**.
 
@@ -27,11 +27,14 @@ V 3D okne stlač `N`, záložka **Smart Cut**.
 5. **Kolík na lepenie** (vyber jeden z dvoch dielov). Panel má tri hodnoty a tri tlačidlá:
    - **Peg size** — šírka štvorcového kolíka v mm (ak 1 jednotka = 1 mm). Predvolene 4,00. Ikonka vedľa poľa
      (**Fit to Cut**) ti doplní veľkosť vypočítanú z aktuálneho rezu, aby si mal od čoho začať.
-   - **Taper** — šírka špičky voči základni (predvolene 0,96). Len na zavedenie, kolík dosadá po celej dĺžke.
+   - **Taper** — šírka špičky voči základni (predvolene 0,96). **Otvor kopíruje rovnaké skosenie**, takže vôľa je
+     rovnaká po celej dĺžke, nielen pri základni.
    - **Hole clearance** — vôľa **na každej strane** medzi kolíkom a otvorom (predvolene 0,05). Riadok pod poľami
      rovno ukazuje výsledok, napríklad `Hole 4.10 (peg 4.00)`. Ak diely po tlači nejdú spolu, zvýš ju po 0,02.
-   - **Add / Update Peg** umiestni jeden kolík ako drôtový obrys viditeľný cez model. Po zmene hodnoty klikni znova
-     a kolík sa prekreslí (nehromadí sa).
+   - **Add / Update Peg** umiestni jeden kolík. Náhľad je drôtový obrys viditeľný cez model a ukazuje **dva tvary**:
+     vnútorný je kolík, vonkajší je otvor, takže vôľu aj skosenie vidíš ešte pred rezaním.
+   - **Zmena hodnoty v paneli sa prejaví okamžite** — náhľad sa prekreslí počas ťahania posuvníka, bez ďalšieho
+     kliknutia. Posunutý kolík ostane tam, kam si ho dal.
    - **Flip Side** prehodí strany: kolík prejde na druhý diel a diera na ten, kde bol. Poloha ostáva.
    - Kolík posunieš klávesom **G**, prípadne zmeníš veľkosť cez **S**.
    - **Apply Peg** pripojí kolík k jeho dielu a do druhého vyreže otvor s nastavenou vôľou. Otvor je na dne

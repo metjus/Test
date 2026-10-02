@@ -138,7 +138,7 @@ def test_size_from_the_panel_is_used_exactly():
     ln = pin["smartcut_pin_length"]
     assert apply_peg() == {"FINISHED"}
     hole = _rings(bottom, frame, origin, 0.5 * ln, wmax=5.0).max()
-    assert hole == pytest.approx(2.5 + 0.12, abs=0.02)
+    assert hole == pytest.approx(2.5 * 0.96 + 0.12, abs=0.02)  # na špičke: zúžený kolík + vôľa
 
 
 def test_only_one_peg_and_pressing_add_again_rebuilds_it():
@@ -239,8 +239,8 @@ def test_default_taper_keeps_the_fit_along_the_whole_peg():
     assert apply_peg() == {"FINISHED"}
     hole = _rings(bottom, frame, origin, 0.5 * ln).max()
     tip = _rings(top, frame, origin, 0.5 * ln).max()
-    assert hole - 2.0 == pytest.approx(0.05, abs=0.01)  # tesné, nie plávajúce
-    assert 2.0 - tip < 0.12  # špička je len mierne zúžená
+    assert tip == pytest.approx(0.96 * 2.0, abs=0.02)  # špička je len mierne zúžená
+    assert hole - tip == pytest.approx(0.05, abs=0.01)  # diera kopíruje skosenie: vôľa je rovnaká aj na špičke
 
 
 def test_taper_setting_changes_the_tip():
@@ -334,7 +334,8 @@ def test_fit_to_cut_works_at_any_model_scale(radius):
     bpy.ops.smartcut.connectors_fit()
     assert add_peg() == {"FINISHED"}
     pin = _pins()[0]
-    assert max(pin.dimensions) < 1.1 * radius  # kolík nikdy nepreráža cez celý model
+    reach = pin["smartcut_pin_base"] + pin["smartcut_pin_length"]
+    assert reach < 1.1 * radius  # kolík nikdy nepreráža cez celý model
     assert bpy.context.scene.smartcut.size < radius
 
 
@@ -353,3 +354,66 @@ def test_add_without_a_cut_pair_is_not_available():
     select(limb)
     assert not bpy.ops.smartcut.connectors_add.poll()
     assert not bpy.ops.smartcut.connectors_flip.poll()
+
+
+def test_hole_follows_the_taper_so_the_gap_is_the_same_everywhere():
+    top, bottom = limb_cut()
+    select(top)
+    add_peg(size=4.0, taper=0.8)  # výrazné skosenie, aby bol rozdiel jasný
+    pin = _pins()[0]
+    frame, origin = _frame_of(pin)
+    ln = pin["smartcut_pin_length"]
+    assert apply_peg(clearance=0.1) == {"FINISHED"}
+
+    def widths(obj, zmin, zmax):
+        m = np.array(obj.matrix_world)
+        co = np.array([tuple(v.co) for v in obj.data.vertices]) @ m[:3, :3].T + m[:3, 3] - origin
+        x, y, z = co @ frame[:3, 0], co @ frame[:3, 1], co @ frame[:3, 2]
+        w = np.maximum(abs(x), abs(y))
+        return w[(z > zmin) & (z < zmax) & (w < 4.0)]
+
+    tip_peg = widths(top, 0.5 * ln, ln + 1.0).max()
+    tip_hole = widths(bottom, 0.5 * ln, ln + 1.0).max()
+    assert tip_peg == pytest.approx(0.8 * 2.0, abs=0.02)  # kolík je na špičke zúžený
+    assert tip_hole - tip_peg == pytest.approx(0.1, abs=0.02)  # a diera tam má rovnakú vôľu
+    # pri rovine rezu musí byť vôľa tá istá, hoci sú oba tvary širšie
+    base_peg = widths(top, -0.05, 0.05).min()
+    base_hole = widths(bottom, -0.05, 0.05).min()
+    assert base_peg > tip_peg  # kolík je dole naozaj širší
+    assert base_hole - base_peg == pytest.approx(0.1, abs=0.02)
+
+
+def test_preview_shows_both_the_peg_and_the_hole():
+    top, _bottom = limb_cut()
+    select(top)
+    add_peg(size=4.0, taper=1.0, clearance=0.4)  # veľká vôľa, aby bol obrys diery jasne väčší
+    pin = _pins()[0]
+    co = np.array([tuple(v.co) for v in pin.data.vertices])
+    w = np.maximum(abs(co[:, 0]), abs(co[:, 1]))
+    assert w.max() == pytest.approx(2.0 + 0.4, abs=0.02)  # vonkajší obrys = diera
+    assert w.min() < 2.01  # vnútorný obrys = kolík
+
+
+def test_changing_a_value_redraws_the_preview_immediately():
+    top, _bottom = limb_cut()
+    select(top)
+    add_peg(size=4.0, clearance=0.05)
+    pin = _pins()[0]
+    before = np.array([tuple(v.co) for v in pin.data.vertices])
+    pos = np.array(pin.matrix_world)
+    _set(size=7.0)  # len zmena hodnoty v paneli, žiadne tlačidlo
+    after = np.array([tuple(v.co) for v in pin.data.vertices])
+    assert np.abs(after[:, :2]).max() > np.abs(before[:, :2]).max() * 1.5
+    assert pin["smartcut_pin_size"] == pytest.approx(7.0)
+    assert np.allclose(np.array(pin.matrix_world), pos)  # poloha ostáva
+
+
+def test_moving_the_peg_then_changing_a_value_keeps_the_new_position():
+    top, _bottom = limb_cut(radius=14.0)
+    select(top)
+    add_peg(size=4.0)
+    pin = _pins()[0]
+    pin.location.x += 3.0
+    moved = np.array(pin.location)
+    _set(clearance=0.3)
+    assert np.allclose(np.array(_pins()[0].location), moved)

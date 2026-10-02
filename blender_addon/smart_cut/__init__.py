@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Smart Cut",
     "author": "metjus",
-    "version": (0, 6, 0),
+    "version": (0, 7, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Smart Cut",
     "description": "Cut a model along a smooth hand-drawn loop into printable parts",
