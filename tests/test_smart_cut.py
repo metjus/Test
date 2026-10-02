@@ -239,3 +239,64 @@ def test_drawn_stroke_is_smoothed():
     smooth = operators.build_open_curve(bpy.context, limb, surface.to_world(limb, arc), 0.8, 14)[0]
     pts, _ = surface.curve_points_world(smooth, 12)
     assert pts[:, 2].std() < 0.03
+
+
+# --------------------------------------------------------------------------- kreslenie po častiach
+
+
+def _hits_on_tube(angles, z=0.0, r=0.4):
+    from mathutils import Vector
+
+    return [(Vector((r * np.cos(a), r * np.sin(a), z)), Vector((np.cos(a), np.sin(a), 0.0))) for a in angles]
+
+
+def test_stroke_builder_bridges_a_gap_after_rotating_the_view():
+    from smart_cut import stroke
+
+    limb = straight_tube()
+    b = stroke.StrokeBuilder(limb)
+    b.begin(_hits_on_tube([0.0])[0])
+    for h in _hits_on_tube(np.linspace(0, 1.2, 15)[1:]):
+        b.add(h)
+    # po otočení pohľadu používateľ začne ďalší ťah ďaleko od konca prvého
+    b.begin(_hits_on_tube([2.6])[0])
+    for h in _hits_on_tube(np.linspace(2.6, 3.8, 15)[1:]):
+        b.add(h)
+    pts = np.array([tuple(p) for p, _ in b.points()])
+    # medzera medzi 1,2 a 2,6 rad je vyplnená bodmi po povrchu
+    assert len(pts) > 30
+    assert np.allclose(np.linalg.norm(pts[:, :2], axis=1), 0.4, atol=0.03)
+    steps = np.linalg.norm(np.diff(pts, axis=0), axis=1)
+    assert steps.max() < 0.25, "čiara nemá skoky"
+    ang = np.unwrap(np.arctan2(pts[:, 1], pts[:, 0]))
+    assert ang.min() < 0.1 and ang.max() > 3.7 and (np.diff(ang) > -0.3).all()  # ide jedným smerom
+
+
+def test_stroke_builder_does_not_bridge_a_short_gap_and_undo_removes_last_piece():
+    from smart_cut import stroke
+
+    limb = straight_tube()
+    b = stroke.StrokeBuilder(limb)
+    b.begin(_hits_on_tube([0.0])[0])
+    b.add(_hits_on_tube([0.05])[0])
+    n1 = len(b.points())
+    b.begin(_hits_on_tube([0.06])[0])
+    assert len(b.points()) == n1 + 1  # žiadne premostenie
+    assert b.undo_piece() and len(b.points()) == n1
+    assert b.undo_piece() and len(b.points()) == 0
+    assert not b.undo_piece()
+
+
+def test_stroke_builder_continues_an_existing_line():
+    from smart_cut import stroke
+
+    limb = straight_tube()
+    first = _hits_on_tube(np.linspace(0, 1.0, 20))
+    b = stroke.StrokeBuilder(limb, first)
+    b.begin(_hits_on_tube([2.2])[0])
+    b.add(_hits_on_tube([2.4])[0])
+    pts = np.array([tuple(p) for p, _ in b.points()])
+    assert np.allclose(pts[:20, 0], [h[0].x for h in first])  # pôvodná čiara je zachovaná
+    assert len(pts) > 25  # medzera sa premostila
+    curve = operators.build_open_curve(bpy.context, limb, pts, 0.5, 12)[0]
+    assert len(curve.data.splines[0].bezier_points) == 12

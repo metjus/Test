@@ -6,7 +6,7 @@ from bpy_extras import view3d_utils
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
 
-from . import cutter, geom, surface
+from . import cutter, geom, stroke, surface
 
 COLOR_STROKE = (1.0, 0.55, 0.05, 1.0)
 
@@ -61,10 +61,34 @@ def build_open_curve(context, target, world_pts: np.ndarray, smooth: float, n_ct
 # --------------------------------------------------------------------------- 1. kreslenie
 
 
+NAV_EVENTS = {
+    "MIDDLEMOUSE", "WHEELUPMOUSE", "WHEELDOWNMOUSE", "WHEELINMOUSE", "WHEELOUTMOUSE",
+    "MOUSEROTATE", "MOUSEPAN", "MOUSEZOOM", "TRACKPADPAN", "TRACKPADZOOM",
+    "NDOF_MOTION", "NDOF_BUTTON_FIT", "NDOF_BUTTON_PANZOOM",
+}
+
+
+def _view_under_mouse(context, event):
+    """3D okno pod myšou: (area, WINDOW region, rv3d) alebo None. Funguje aj keď sa spustí z bočného panela."""
+    mx, my = event.mouse_x, event.mouse_y
+    for area in context.window.screen.areas:
+        if area.type != "VIEW_3D":
+            continue
+        if not (area.x <= mx < area.x + area.width and area.y <= my < area.y + area.height):
+            continue
+        for region in area.regions:
+            if region.type == "WINDOW" and region.x <= mx < region.x + region.width and region.y <= my < region.y + region.height:
+                return area, region, area.spaces.active.region_3d
+    return None
+
+
 class SMARTCUT_OT_draw(bpy.types.Operator):
     bl_idname = "smartcut.draw"
     bl_label = "Draw Cut Line"
-    bl_description = "Draw the cut line directly on the model. Left mouse drag draws, release finishes, Esc cancels"
+    bl_description = (
+        "Draw the cut line directly on the model. You can rotate the view and keep drawing. "
+        "Enter finishes, Backspace removes the last piece, Esc cancels"
+    )
     bl_options = {"REGISTER", "UNDO"}
 
     smooth: FloatProperty(
@@ -73,38 +97,70 @@ class SMARTCUT_OT_draw(bpy.types.Operator):
     control_points: IntProperty(
         name="Control points", description="Fewer points = smoother and easier to edit", default=12, min=4, max=64
     )
+    extend: BoolProperty(
+        name="Continue existing line",
+        description="Keep the selected open line and continue drawing from its end",
+        default=False,
+        options={"SKIP_SAVE", "HIDDEN"},
+    )
 
     @classmethod
     def poll(cls, context):
         o = context.active_object
-        return o is not None and o.type == "MESH" and context.mode == "OBJECT" and context.area and context.area.type == "VIEW_3D"
+        if o is None or context.mode != "OBJECT" or not context.area or context.area.type != "VIEW_3D":
+            return False
+        return o.type == "MESH" or (o.type == "CURVE" and bool(o.data.splines) and not o.data.splines[0].use_cyclic_u)
 
     def invoke(self, context, event):
-        self._obj = context.active_object
-        self._pts = []  # (svetový bod, normála)
+        active = context.active_object
+        self._old_curve = None
+        initial = None
+        if active.type == "CURVE":
+            target = _target_of(context, active)
+            if target is None:
+                self.report({"ERROR"}, "Target mesh not found for this line.")
+                return {"CANCELLED"}
+            if self.extend:
+                self._old_curve = active
+                pts_w, _ = surface.curve_points_world(active, 6)
+                mw, tree = target.matrix_world, surface.build_bvh(target.data)
+                inv = mw.inverted()
+                initial = []
+                for p in pts_w:
+                    hit = tree.find_nearest(inv @ Vector(p))
+                    initial.append((mw @ hit[0], (mw.to_3x3() @ hit[1]).normalized()))
+            self._obj = target
+        else:
+            self._obj = active
         self._drawing = False
+        self._builder = stroke.StrokeBuilder(self._obj, initial)
         self._handle = bpy.types.SpaceView3D.draw_handler_add(self._draw_overlay, (), "WINDOW", "POST_VIEW")
         context.window_manager.modal_handler_add(self)
         context.window.cursor_modal_set("PAINT_BRUSH")
-        context.workspace.status_text_set("Smart Cut: drag with left mouse on the model to draw  |  Esc cancel")
+        self._status(context)
         return {"RUNNING_MODAL"}
+
+    def _status(self, context):
+        context.workspace.status_text_set(
+            "Smart Cut:  LMB drag = draw (you can rotate the view with MMB and continue)  |  "
+            "Enter = finish  |  Backspace = remove last piece  |  Esc = cancel"
+        )
 
     def _cleanup(self, context):
         bpy.types.SpaceView3D.draw_handler_remove(self._handle, "WINDOW")
         context.window.cursor_modal_restore()
         context.workspace.status_text_set(None)
-        if context.area:
-            context.area.tag_redraw()
+        for a in context.window.screen.areas:
+            a.tag_redraw()
 
     def _hit(self, context, event):
-        region, rv3d = context.region, context.region_data
-        if region is None or rv3d is None or region.type != "WINDOW":
+        view = _view_under_mouse(context, event)
+        if view is None:
             return None
-        x, y = event.mouse_region_x, event.mouse_region_y
-        if not (0 <= x < region.width and 0 <= y < region.height):
-            return None
-        origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, (x, y))
-        direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, (x, y))
+        _area, region, rv3d = view
+        coord = (event.mouse_x - region.x, event.mouse_y - region.y)
+        origin = view3d_utils.region_2d_to_origin_3d(region, rv3d, coord)
+        direction = view3d_utils.region_2d_to_vector_3d(region, rv3d, coord)
         inv = self._obj.matrix_world.inverted()
         ok, loc, nrm, _ = self._obj.ray_cast(inv @ origin, (inv.to_3x3() @ direction).normalized())
         if not ok:
@@ -112,37 +168,50 @@ class SMARTCUT_OT_draw(bpy.types.Operator):
         mw = self._obj.matrix_world
         return mw @ loc, (mw.to_3x3() @ nrm).normalized()
 
-    def _add(self, context, event):
-        hit = self._hit(context, event)
-        if hit is None:
-            return
-        if self._pts and (hit[0] - self._pts[-1][0]).length < 1e-5 * max(self._obj.dimensions):
-            return
-        self._pts.append(hit)
+    def _finish(self, context):
+        pts = self._builder.points()
+        self._cleanup(context)
+        if len(pts) < 8:
+            self.report({"WARNING"}, "The line is too short, draw a longer stroke.")
+            return {"CANCELLED"}
+        _last_stroke["target"] = self._obj.name
+        _last_stroke["points"] = np.array([tuple(p) for p, _ in pts])
+        if self._old_curve is not None:
+            bpy.data.objects.remove(self._old_curve, do_unlink=True)
+        return self.execute(context)
 
     def modal(self, context, event):
-        if event.type in {"MIDDLEMOUSE", "WHEELUPMOUSE", "WHEELDOWNMOUSE"} or event.type.startswith("NUMPAD"):
-            return {"PASS_THROUGH"}  # otáčanie pohľadu počas kreslenia
-        if event.type in {"ESC", "RIGHTMOUSE"} and event.value == "PRESS":
+        if event.type in NAV_EVENTS or event.type.startswith("NUMPAD") or (event.alt and event.type == "LEFTMOUSE"):
+            return {"PASS_THROUGH"}  # otáčanie, posun a zoom pohľadu počas kreslenia
+        if event.type == "ESC" and event.value == "PRESS":
             self._cleanup(context)
             return {"CANCELLED"}
+        if event.type in {"RET", "NUMPAD_ENTER"} and event.value == "PRESS":
+            return self._finish(context)
+        if event.type in {"BACK_SPACE", "DEL"} or (event.type == "Z" and event.ctrl):
+            if event.value == "PRESS" and self._builder.undo_piece():
+                for a in context.window.screen.areas:
+                    a.tag_redraw()
+            return {"RUNNING_MODAL"}
         if event.type == "LEFTMOUSE":
             if event.value == "PRESS":
-                self._drawing, self._pts = True, []
-                self._add(context, event)
-            elif event.value == "RELEASE" and self._drawing:
+                hit = self._hit(context, event)
+                if hit is None:
+                    return {"PASS_THROUGH"}  # kliknutie mimo modelu alebo mimo 3D okna
+                self._drawing = True
+                self._builder.begin(hit)
+            elif event.value == "RELEASE":
                 self._drawing = False
-                self._cleanup(context)
-                if len(self._pts) < 8:
-                    self.report({"WARNING"}, "The line is too short, draw a longer stroke.")
-                    return {"CANCELLED"}
-                _last_stroke["target"] = self._obj.name
-                _last_stroke["points"] = np.array([tuple(p) for p, _ in self._pts])
-                return self.execute(context)
-        elif event.type == "MOUSEMOVE" and self._drawing:
-            self._add(context, event)
-        if context.area:
-            context.area.tag_redraw()
+            for a in context.window.screen.areas:
+                a.tag_redraw()
+            return {"RUNNING_MODAL"}
+        if event.type == "MOUSEMOVE" and self._drawing:
+            hit = self._hit(context, event)
+            last = self._builder.last_point()
+            if hit is not None and (last is None or (hit[0] - last[0]).length > 1e-5 * max(self._obj.dimensions)):
+                self._builder.add(hit)
+            for a in context.window.screen.areas:
+                a.tag_redraw()
         return {"RUNNING_MODAL"}
 
     def execute(self, context):
@@ -154,19 +223,28 @@ class SMARTCUT_OT_draw(bpy.types.Operator):
         return {"FINISHED"}
 
     def _draw_overlay(self):
-        pts = [p + n * 0.003 * max(self._obj.dimensions) for p, n in self._pts]
-        if len(pts) < 2:
+        size = max(self._obj.dimensions) or 1.0
+        pts = [tuple(p + n * 0.003 * size) for p, n in self._builder.points()]
+        if not pts:
             return
-        shader = gpu.shader.from_builtin("POLYLINE_UNIFORM_COLOR")
-        batch = batch_for_shader(shader, "LINE_STRIP", {"pos": [tuple(p) for p in pts]})
         gpu.state.blend_set("ALPHA")
         gpu.state.depth_test_set("LESS_EQUAL")
-        shader.bind()
-        shader.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
-        shader.uniform_float("lineWidth", 3.0)
-        shader.uniform_float("color", COLOR_STROKE)
-        batch.draw(shader)
+        if len(pts) >= 2:
+            line = gpu.shader.from_builtin("POLYLINE_UNIFORM_COLOR")
+            batch = batch_for_shader(line, "LINE_STRIP", {"pos": pts})
+            line.bind()
+            line.uniform_float("viewportSize", gpu.state.viewport_get()[2:])
+            line.uniform_float("lineWidth", 3.0)
+            line.uniform_float("color", COLOR_STROKE)
+            batch.draw(line)
+        # koncový bod: odtiaľ sa pokračuje po otočení pohľadu
         gpu.state.depth_test_set("NONE")
+        dot = gpu.shader.from_builtin("POINT_UNIFORM_COLOR")
+        gpu.state.point_size_set(11.0)
+        batch = batch_for_shader(dot, "POINTS", {"pos": [pts[-1]]})
+        dot.bind()
+        dot.uniform_float("color", (1.0, 1.0, 1.0, 1.0))
+        batch.draw(dot)
         gpu.state.blend_set("NONE")
 
 
@@ -295,7 +373,8 @@ class VIEW3D_PT_smart_cut(bpy.types.Panel):
     def draw(self, context):
         col = self.layout.column(align=True)
         col.label(text="1. Select the model, draw the line")
-        col.operator("smartcut.draw", icon="GREASEPENCIL")
+        col.operator("smartcut.draw", icon="GREASEPENCIL").extend = False
+        col.operator("smartcut.draw", text="Continue Line", icon="PLUS").extend = True
         col.separator()
         col.label(text="2. Close it into a loop")
         col.operator("smartcut.complete", icon="MESH_CIRCLE")

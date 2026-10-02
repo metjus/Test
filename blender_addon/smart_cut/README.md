@@ -9,9 +9,11 @@ Blender: **Edit > Preferences > Get Extensions > (šípka vpravo hore) Install f
 V 3D okne stlač `N`, záložka **Smart Cut**.
 
 ## Postup
-1. **Draw Cut Line**: vyber model, klikni na tlačidlo a ťahaj myšou po povrchu. Pustením tlačidla sa čiara dokončí.
-   Stredným tlačidlom môžeš počas kreslenia otáčať pohľad, `Esc` zruší.
-   V paneli „Adjust Last Operation" (vľavo dole) nastavíš **Smoothing** (sila vyhladenia) a **Control points**
+1. **Draw Cut Line**: vyber model, klikni na tlačidlo a ťahaj myšou po povrchu (oranžová čiara, biely bod = koniec).
+   Čiara sa **nekončí pustením tlačidla**: stredným tlačidlom otoč pohľad a ťahaj ďalej, medzera medzi ťahmi sa
+   premostí po povrchu. `Enter` čiaru dokončí, `Backspace` (alebo `Ctrl+Z`) zruší posledný ťah, `Esc` všetko zruší.
+   **Continue Line** pokračuje v už hotovej otvorenej čiare od jej konca.
+   V paneli „Adjust Last Operation" (vľavo dole) nastavíš **Smoothing** a **Control points**
    (menej bodov = plynulejšia, ľahšie upraviteľná krivka). Krivka je obyčajná Bezierova krivka.
 2. **Complete Loop**: z nakresleného oblúka urobí uzavretú slučku okolo modelu, po povrchu cez druhú stranu.
    Ak zvolí zlú stranu, zapni **Other way round**.
