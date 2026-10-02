@@ -1,0 +1,12 @@
+schema_version = "1.0.0"
+
+id = "smart_cut"
+version = "0.1.0"
+name = "Smart Cut"
+tagline = "Cut a model along a smooth hand-drawn loop into printable parts"
+maintainer = "metjus"
+type = "add-on"
+
+blender_version_min = "4.2.0"
+license = ["SPDX:GPL-3.0-or-later"]
+tags = ["Mesh"]
