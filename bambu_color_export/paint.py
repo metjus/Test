@@ -12,7 +12,7 @@ import traceback
 import blf
 import bpy
 import gpu
-from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, IntProperty, PointerProperty, StringProperty
 from bpy_extras import view3d_utils
 from gpu_extras.batch import batch_for_shader
 from mathutils import Vector
@@ -755,6 +755,23 @@ def _draw_brush_impl(op):
 # UI
 # ---------------------------------------------------------------------------
 
+class BAMBU_OT_control_hint(bpy.types.Operator):
+    """Shows one painting control; hover for the full text"""
+    bl_idname = "bambu.control_hint"
+    bl_label = "Control"
+    bl_options = {"INTERNAL"}
+
+    hint: StringProperty(options={"SKIP_SAVE"})
+
+    @classmethod
+    def description(cls, context, properties):
+        # Tooltip with the whole text, for entries cut off in a narrow sidebar.
+        return properties.hint
+
+    def execute(self, context):
+        return {"CANCELLED"}
+
+
 class BAMBU_OT_copy_error(bpy.types.Operator):
     """Copy the last Bambu Paint error to the clipboard, to paste it in a message"""
     bl_idname = "bambu.copy_error"
@@ -896,8 +913,12 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
             box = layout.box().column(align=True)
             for keys, action in CONTROLS:
                 split = box.split(factor=0.42)
-                split.label(text=keys)
-                split.label(text=action)
+                hint = "%s: %s" % (keys, action)
+                # Borderless buttons instead of labels, because only buttons have tooltips.
+                for cell_text in (keys, action):
+                    cell = split.row()
+                    cell.alignment = "LEFT"
+                    cell.operator(BAMBU_OT_control_hint.bl_idname, text=cell_text, emboss=False).hint = hint
             box.separator()
             box.prop(s, "show_overlay")
 
@@ -915,6 +936,7 @@ classes = (
     BAMBU_OT_paint_remove_color,
     BAMBU_OT_paint,
     BAMBU_OT_paint_stop,
+    BAMBU_OT_control_hint,
     BAMBU_OT_copy_error,
     BAMBU_OT_clear_error,
     VIEW3D_PT_bambu_paint,
