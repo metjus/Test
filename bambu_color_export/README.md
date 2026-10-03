@@ -46,7 +46,7 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    | Shift + LMB | paint with the base colour (erase) |
    | 1 – 9 | pick colour |
    | `[` / `]` | brush radius |
-   | F | switch Brush / Fill |
+   | F | switch Brush / Fill / Smooth |
    | S | Fill: stop at sharp edges on/off |
    | X / Y / Z | toggle symmetry |
    | Ctrl+Z | undo last stroke |
@@ -55,6 +55,13 @@ For one whole mesh that needs several colours, use the **Bambu Paint** panel (Ba
    | Esc / Enter / RMB | finish |
    The controls are listed in the viewport while painting (H hides them) and in the
    panel's collapsible **Controls** section.
+   **Smooth** evens out jagged colour edges: drag it along a ragged border and each face
+   under the brush takes the colour that covers most of its surroundings (*Strength* =
+   passes per dab). Only faces under the brush change, never the rest of the model.
+
+   **Delete a colour** with the **X** next to it: its areas get the base colour (colour 1),
+   which can't be deleted.
+
    **Fill options**: *Stop at Colour Change* fills only the clicked colour's area;
    *Stop at Sharp Edges* stops at creases bending more than *Sharp Angle* (default 30°)
    and at edges marked Sharp. Click a raised detail with it on to colour just that detail.

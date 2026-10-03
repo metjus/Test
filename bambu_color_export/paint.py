@@ -33,7 +33,7 @@ CONTROLS = [
     ("Shift + LMB", "Paint base colour (erase)"),
     ("1 - 9", "Pick colour"),
     ("[  ]", "Brush radius"),
-    ("F", "Brush / Fill"),
+    ("F", "Brush / Fill / Smooth"),
     ("S", "Fill: stop at sharp edges"),
     ("X  Y  Z", "Toggle symmetry"),
     ("Ctrl+Z", "Undo stroke"),
@@ -69,6 +69,8 @@ _last_error = None  # kept in memory too: text blocks can't be created while dra
 
 
 def tool_label(s):
+    if s.tool == "SMOOTH":
+        return "Smooth (strength %d)" % s.smooth_strength
     if s.tool != "FILL":
         return "Brush"
     if s.fill_sharp:
@@ -108,6 +110,18 @@ class PaintSession:
                 self.neighbors[a].extend((b, key) for b in faces if b != a)
         self.marked_sharp = {e.key for e in mesh.edges if getattr(e, "use_edge_sharp", False)}
 
+        # Faces sharing at least one vertex, and face areas, for edge smoothing.
+        vert_faces = [[] for _ in mesh.vertices]
+        for p in polys:
+            for v in p.vertices:
+                vert_faces[v].append(p.index)
+        self.vneighbors = []
+        for p in polys:
+            near = {f for v in p.vertices for f in vert_faces[v]}
+            near.discard(p.index)
+            self.vneighbors.append(tuple(near))
+        self.areas = [p.area for p in polys]
+
         self.undo_stack = []
         self.stroke = None
         self.dirty = False
@@ -138,6 +152,15 @@ class PaintSession:
             self.obj.data.update()
             self.dirty = False
 
+    def remove_colour(self, index):
+        """Keep undo history valid after material slot `index` was removed:
+        that colour becomes the base colour, higher slots move down by one."""
+        def remap(old):
+            return 0 if old == index else old - 1 if old > index else old
+        for stroke in self.undo_stack + ([self.stroke] if self.stroke else []):
+            for face, old in stroke.items():
+                stroke[face] = remap(old)
+
     def _apply(self, faces, mat_index):
         polys = self.obj.data.polygons
         for face in faces:
@@ -166,13 +189,42 @@ class PaintSession:
 
     def brush(self, point, normal, face, radius, mat_index, signs):
         """Paint faces whose centre is within radius and that face the brush."""
+        self._apply(self._brush_faces(point, normal, face, radius, signs), mat_index)
+
+    def _brush_faces(self, point, normal, face, radius, signs):
         faces = set()
         for p, n, f in self._mirrored(point, normal, face, signs):
             faces.add(f)
             for _co, idx, _dist in self.kd.find_range(p, radius):
                 if self.normals[idx].dot(n) > 0.0:
                     faces.add(idx)
-        self._apply(faces, mat_index)
+        return faces
+
+    def smooth(self, point, normal, face, radius, signs, iterations=3):
+        """Even out jagged colour borders under the brush.
+
+        Each face takes the colour that covers most area among itself and the
+        faces touching it, repeated `iterations` times. Only faces under the
+        brush change, so the rest of the model is left alone.
+        """
+        region = self._brush_faces(point, normal, face, radius, signs)
+        polys = self.obj.data.polygons
+        for _ in range(iterations):
+            changes = {}
+            for f in region:
+                current = polys[f].material_index
+                votes = {current: self.areas[f]}
+                for g in self.vneighbors[f]:
+                    c = polys[g].material_index
+                    votes[c] = votes.get(c, 0.0) + self.areas[g]
+                # ties keep the current colour
+                best = max(votes, key=lambda c: (votes[c], c == current))
+                if best != current:
+                    changes.setdefault(best, []).append(f)
+            if not changes:
+                break
+            for colour, faces in changes.items():
+                self._apply(faces, colour)
 
     def fill(self, point, normal, face, mat_index, signs, same_colour=True, max_angle=None):
         """Paint the connected area around the clicked face.
@@ -314,10 +366,13 @@ class BambuPaintSettings(bpy.types.PropertyGroup):
     tool: EnumProperty(
         name="Tool",
         items=[("BRUSH", "Brush", "Paint the faces under the brush circle"),
-               ("FILL", "Fill", "Fill the connected area that has the same colour")],
+               ("FILL", "Fill", "Fill the connected area that has the same colour"),
+               ("SMOOTH", "Smooth", "Even out jagged colour edges under the brush")],
         default="BRUSH")
     radius: IntProperty(name="Radius", subtype="PIXEL", default=30, min=2, max=500,
                         description="Brush radius in screen pixels ([ and ] while painting)")
+    smooth_strength: IntProperty(name="Strength", default=3, min=1, max=10,
+                                 description="How many smoothing passes each brush dab makes")
     sym_x: BoolProperty(name="X", description="Mirror painting across the object's X axis")
     sym_y: BoolProperty(name="Y", description="Mirror painting across the object's Y axis")
     sym_z: BoolProperty(name="Z", description="Mirror painting across the object's Z axis")
@@ -373,9 +428,56 @@ class BAMBU_OT_paint_set_color(bpy.types.Operator):
         return {"FINISHED"}
 
 
+def remove_color(obj, index):
+    """Delete colour slot `index` (not the base colour); its faces get the base colour."""
+    mesh = obj.data
+    count = len(mesh.polygons)
+    indices = [0] * count
+    mesh.polygons.foreach_get("material_index", indices)
+    mesh.polygons.foreach_set("material_index", [0 if i == index else i for i in indices])
+    # pop() itself moves the faces of higher slots down by one.
+    mesh.materials.pop(index=index)
+    if obj.active_material_index >= len(obj.material_slots):
+        obj.active_material_index = len(obj.material_slots) - 1
+    mesh.update()
+    op = _running
+    if op is not None and op.session.obj == obj:
+        op.session.remove_colour(index)
+
+
+class BAMBU_OT_paint_remove_color(bpy.types.Operator):
+    """Delete this colour; its painted areas get the base colour (colour 1)"""
+    bl_idname = "bambu.paint_remove_color"
+    bl_label = "Delete Colour"
+    bl_options = {"REGISTER", "UNDO", "INTERNAL"}
+
+    index: IntProperty()
+
+    @classmethod
+    def poll(cls, context):
+        obj = context.active_object
+        return obj is not None and obj.type == "MESH"
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_confirm(self, event)
+
+    def execute(self, context):
+        obj = context.active_object
+        if not 0 < self.index < len(obj.material_slots):
+            self.report({"WARNING"}, "The base colour (colour 1) can't be deleted")
+            return {"CANCELLED"}
+        try:
+            remove_color(obj, self.index)
+        except Exception:
+            record_error("delete colour")
+            self.report({"ERROR"}, "Could not delete the colour. Use 'Copy Error' in the Bambu Paint panel")
+            return {"CANCELLED"}
+        return {"FINISHED"}
+
+
 class BAMBU_OT_paint(bpy.types.Operator):
     """Paint colours onto the active mesh. LMB paint, Shift+LMB paint base colour,
-    1-9 pick colour, [ ] radius, F brush/fill, X/Y/Z symmetry, Ctrl+Z undo, Esc finish"""
+    1-9 pick colour, [ ] radius, F brush/fill/smooth, X/Y/Z symmetry, Ctrl+Z undo, Esc finish"""
     bl_idname = "bambu.paint"
     bl_label = "Paint Colours"
     bl_options = {"REGISTER", "UNDO"}
@@ -468,6 +570,9 @@ class BAMBU_OT_paint(bpy.types.Operator):
         if s.tool == "FILL":
             self.session.fill(point, normal, face, mat_index, signs, s.fill_same_colour,
                               s.sharp_angle if s.fill_sharp else None)
+        elif s.tool == "SMOOTH":
+            self.session.smooth(point, normal, face, self._local_radius(coord, point), signs,
+                                s.smooth_strength)
         else:
             self.session.brush(point, normal, face, self._local_radius(coord, point), mat_index, signs)
 
@@ -489,7 +594,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         sym = "".join(a for a, on in zip("XYZ", (s.sym_x, s.sym_y, s.sym_z)) if on) or "off"
         context.workspace.status_text_set(
             "Bambu Paint [%s, symmetry %s]  LMB paint · Shift+LMB base colour · 1-9 colour · "
-            "[ ] radius · F brush/fill · S sharp edges · X/Y/Z symmetry · Ctrl+Z undo · H controls · Esc/Enter finish"
+            "[ ] radius · F brush/fill/smooth · S sharp edges · X/Y/Z symmetry · Ctrl+Z undo · H controls · Esc/Enter finish"
             % (tool_label(s), sym))
 
     def _finish(self, context):
@@ -518,7 +623,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         coord = self._region_mouse(event)
         if event.type in {"MOUSEMOVE", "INBETWEEN_MOUSEMOVE"}:
             self.mouse = coord
-            if self.painting and coord and self.settings.tool == "BRUSH":
+            if self.painting and coord and self.settings.tool != "FILL":
                 self._stroke_to(coord, event.shift)
                 return {"RUNNING_MODAL"}
             return {"PASS_THROUGH"}
@@ -559,7 +664,7 @@ class BAMBU_OT_paint(bpy.types.Operator):
         elif event.type == "S":
             s.fill_sharp = not s.fill_sharp
         elif event.type == "F":
-            s.tool = "FILL" if s.tool == "BRUSH" else "BRUSH"
+            s.tool = {"BRUSH": "FILL", "FILL": "SMOOTH"}.get(s.tool, "BRUSH")
         elif event.type in {"X", "Y", "Z"}:
             attr = "sym_" + event.type.lower()
             setattr(s, attr, not getattr(s, attr))
@@ -624,9 +729,9 @@ def _draw_brush_impl(op):
     s = op.settings
     obj = op.session.obj
     mat = obj.active_material
-    rgb = material_linear_color(mat) if mat else (1.0, 1.0, 1.0)
+    rgb = material_linear_color(mat) if mat and s.tool != "SMOOTH" else (1.0, 1.0, 1.0)
 
-    radius = s.radius if s.tool == "BRUSH" else 8
+    radius = 8 if s.tool == "FILL" else s.radius
     segments = 48
     circle = [(x + radius * math.cos(2 * math.pi * i / segments),
                y + radius * math.sin(2 * math.pi * i / segments)) for i in range(segments + 1)]
@@ -751,11 +856,20 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
                               text="%d  %s" % (i + 1, name) if i < 9 else name,
                               depress=(i == obj.active_material_index))
             op.index = i
+            if i == 0:
+                row.label(text="", icon="BLANK1")  # base colour can't be deleted
+            else:
+                row.operator(BAMBU_OT_paint_remove_color.bl_idname, text="", icon="X").index = i
         col.operator(BAMBU_OT_paint_add_color.bl_idname, icon="ADD")
 
         layout.row().prop(s, "tool", expand=True)
         if s.tool == "BRUSH":
             layout.prop(s, "radius")
+        elif s.tool == "SMOOTH":
+            col = layout.column(align=True)
+            col.prop(s, "radius")
+            col.prop(s, "smooth_strength")
+            layout.label(text="Drag along a jagged edge to even it out", icon="INFO")
         else:
             col = layout.column(align=True)
             col.prop(s, "fill_same_colour")
@@ -796,6 +910,7 @@ classes = (
     BambuPaintSettings,
     BAMBU_OT_paint_add_color,
     BAMBU_OT_paint_set_color,
+    BAMBU_OT_paint_remove_color,
     BAMBU_OT_paint,
     BAMBU_OT_paint_stop,
     BAMBU_OT_copy_error,

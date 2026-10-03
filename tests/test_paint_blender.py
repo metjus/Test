@@ -87,6 +87,31 @@ class PaintTest(unittest.TestCase):
         session.fill(top.center, top.normal, top.index, 1, none, False, None)
         self.assertTrue(all(p.material_index == 1 for p in polys))
 
+    def test_smooth_evens_border_only_under_brush(self):
+        import random
+        random.seed(1)
+        for p in self.polys:  # jagged border between colours around x = 0
+            p.material_index = 1 if p.center.x + random.uniform(-0.3, 0.3) < 0 else 0
+        before = [p.material_index for p in self.polys]
+        hit = min(self.polys, key=lambda p: p.center.x ** 2 + (p.center.z - 0.3) ** 2 - p.center.y)
+        none = self.paint.symmetry_signs(False, False, False)
+        region = self.session._brush_faces(hit.center, hit.normal, hit.index, 0.6, none)
+        self.session.begin_stroke()
+        self.session.smooth(hit.center, hit.normal, hit.index, 0.6, none, 3)
+        self.session.end_stroke()
+        after = [p.material_index for p in self.polys]
+        self.assertTrue(all(before[i] == after[i] for i in range(len(after)) if i not in region))
+        self.assertTrue(self.session.undo())
+        self.assertEqual([p.material_index for p in self.polys], before)
+
+    def test_remove_color(self):
+        for i, p in enumerate(self.polys):  # colours 1-3
+            p.material_index = i % 3
+        self.paint.remove_color(self.obj, 1)  # delete colour 2
+        self.assertEqual(len(self.obj.material_slots), 2)
+        expected = [{0: 0, 1: 0, 2: 1}[i % 3] for i in range(len(self.polys))]
+        self.assertEqual([p.material_index for p in self.polys], expected)
+
     def test_symmetry_signs(self):
         self.assertEqual(len(self.paint.symmetry_signs(False, False, False)), 1)
         self.assertEqual(len(self.paint.symmetry_signs(True, True, True)), 8)
