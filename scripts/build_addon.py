@@ -1,7 +1,7 @@
 """Zabalí addon do ZIP súboru, ktorý sa dá nainštalovať v Blenderi
 (Edit > Preferences > Get Extensions > šípka vpravo hore > Install from Disk).
 
-Použitie: python scripts/build_addon.py [split_by_color|smart_cut]   (predvolene split_by_color)
+Použitie: python scripts/build_addon.py [smart_cut]
 """
 import re
 import sys
@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
-name = sys.argv[1] if len(sys.argv) > 1 else "split_by_color"
+name = sys.argv[1] if len(sys.argv) > 1 else "smart_cut"
 src = root / "blender_addon" / name
 version = re.search(r'^version = "([^"]+)"', (src / "blender_manifest.toml").read_text(), re.M).group(1)
 out = root / "dist-addon" / f"{name}-{version}.zip"
