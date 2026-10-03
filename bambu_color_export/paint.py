@@ -829,7 +829,9 @@ class VIEW3D_PT_bambu_paint(bpy.types.Panel):
         except Exception:
             record_error("paint panel")
             layout.label(text="Panel error, see Copy Error above", icon="ERROR")
-        layout.label(text="Version %s" % VERSION)
+        footer = layout.row()
+        footer.label(text="Version %s" % VERSION)
+        footer.label(text="Made by phyXoo")
 
     def _draw(self, context, layout):
         from . import material_color_source
