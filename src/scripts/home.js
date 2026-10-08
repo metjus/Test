@@ -150,3 +150,15 @@ if (circ) {
 
   render();
 }
+
+// Logo hore vráti na úvod a stránku načíta nanovo (bez dlhého plynulého posunu cez celý web).
+const brand = document.querySelector('a.brand');
+if (brand) {
+  brand.addEventListener('click', (e) => {
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.location.assign('/');
+  });
+}
