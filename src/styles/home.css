@@ -941,3 +941,16 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 @media (max-width:720px){
   .ha-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* ===== Časté otázky: skupiny a kontakt vľavo ===== */
+.faq-side{position:sticky;top:120px}
+.gf .faq-note{margin-top:clamp(20px,2.4vw,32px);max-width:18em;font-size:17px;line-height:1.55;color:var(--ink-soft)}
+.faq-tel{display:inline-flex;align-items:center;gap:10px;margin-top:14px;font:400 clamp(17px,1.5vw,21px)/1.2 var(--mich);color:var(--navy);border-bottom:1px solid var(--cyan);padding-bottom:4px;white-space:nowrap;transition:color .3s}
+.faq-tel .ico{--s:18px;--sw:3.6;--ic1:var(--cyan);--ic2:var(--cyan)}
+.faq-tel:hover{color:var(--cyan)}
+.faq-tel:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.gf .faq-grp+.faq-grp{margin-top:clamp(40px,5vw,64px)}
+.gf .faq-t{margin:0 0 10px;font:400 13px/1.3 var(--sora);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+@media (max-width:960px){
+  .faq-side{position:static}
+}
