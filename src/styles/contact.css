@@ -1,6 +1,6 @@
 html{scroll-behavior:smooth;scroll-padding-top:84px}
 body{margin:0;scroll-behavior:smooth}
-.gf{--navy:#022253;--deep:#011638;--cyan:#02ACC1;--cyan-soft:#7fd6e2;--ice:#eef3f8;--line:#d6e0ec;--muted-d:#9db3d4;--ink-soft:#3e5379;--ease:cubic-bezier(.16,1,.3,1);--sora:"Sora","Segoe UI",system-ui,sans-serif;--mich:"Michroma","Sora",system-ui,sans-serif;
+.gf{--navy:#022253;--deep:#011638;--cyan:#02ACC1;--cyan-soft:#7fd6e2;--ice:#eef3f8;--line:#d6e0ec;--muted-d:#bccce4;--ink-soft:#3e5379;--ease:cubic-bezier(.16,1,.3,1);--sora:"Sora","Segoe UI",system-ui,sans-serif;--mich:"Michroma","Sora",system-ui,sans-serif;
   font:300 17px/1.65 var(--sora);color:var(--navy);background:#fff;overflow-x:clip;-webkit-font-smoothing:antialiased;position:relative;scroll-behavior:smooth}
 .gf *,.gf *::before,.gf *::after{box-sizing:border-box}
 .gf h1,.gf h2,.gf h3,.gf p,.gf dl,.gf dd,.gf ol,.gf ul{margin:0;padding:0}
@@ -459,3 +459,9 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 .gf .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .gf .ferr{margin-top:12px;font-size:14px;line-height:1.5;color:#b3261e}
 .gf .demo{margin-top:10px;font-size:13px;color:#4a5f80}
+
+/* e-mail ako alternatíva k telefónu */
+.gf .fld-mail{display:block;margin-top:14px}
+.fld-mail small{color:var(--ink-soft);font-weight:300}
+.kmail{display:inline-block;font-size:18px;color:#fff;border-bottom:1px solid var(--cyan);padding-bottom:2px}
+.kmail:hover{color:var(--cyan-soft)}

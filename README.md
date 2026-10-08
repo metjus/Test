@@ -49,6 +49,7 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 {
   "name": "Ján Novák",
   "phone": "0910 000 000",
+  "email": "",
   "services": ["Revízia elektroinštalácie"],
   "purposes": ["Kolaudácia"],
   "town": "Nitra",
@@ -65,6 +66,10 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 ## Nasadenie
 
 `npm run build`, výstup je `dist/`. Funguje Cloudflare Pages, Netlify aj bežný hosting s HTTPS. `public/_headers` obsahuje bezpečnostné hlavičky (CSP, `X-Content-Type-Options`, `Referrer-Policy`…) a cache pre súbory v `_astro/`; Cloudflare Pages a Netlify ho čítajú samy, pri inom hostingu ich nastavte na serveri. Pred ostrým nasadením nastavte `SITE_URL` na skutočnú doménu.
+
+## Prenos výberu na Kontakt
+
+Výber služieb na domovskej stránke (len id volieb, bez osobných údajov) sa ukladá do `sessionStorage` pod kľúčom `gf-vyber` a formulár na `/kontakt/` ho po načítaní predvyplní. Tlačidlo „Potrebujem poradiť“ otvára `/kontakt/?vyber=poradit`. Formulár sa dá odoslať s menom a telefónom alebo e-mailom.
 
 ## Logá partnerov
 

@@ -6,9 +6,9 @@ import '../styles/home.css';
 // Bez PUBLIC_FORM_ENDPOINT beží dopyt v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
 const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
 
-const title = 'Elektroinštalácia, fotovoltika a smart domácnosť od projektu po revíziu | GridFlow';
+const title = 'Elektroinštalácie, fotovoltika a revízie | GridFlow';
 const description =
-  'Navrhneme, namontujeme aj zrevidujeme: NN prípojky, fotovoltika, elektroinštalácia, vonkajšia ochrana pred bleskom (LPS), nabíjacie body EVSE a smart domácnosť. Po častiach alebo na kľúč, celé Slovensko.';
+  'Elektroinštalácie, fotovoltika a revízie. Od samostatnej revízie po kompletnú realizáciu: elektrické prípojky, fotovoltika pre domy a firmy, bleskozvody, nabíjačky pre elektromobily a inteligentná domácnosť. Pôsobíme na celom Slovensku.';
 
 const stageDefs = [
   { id: 'proj', title: 'Navrhnúť', sub: 'Projektová dokumentácia', href: '#i-blueprint', node: 'Projekt' },
@@ -17,12 +17,13 @@ const stageDefs = [
   { id: 'kluc', title: 'Všetko na kľúč', sub: 'Od projektu po revíziu', href: '#i-key', node: '' },
 ];
 const subjectDefs = [
-  { id: 'nn', label: 'NN elektrická prípojka', href: '#i-pole' },
-  { id: 'fve', label: 'Fotovoltika (malý zdroj / lokálny zdroj)', href: '#i-solar' },
+  { id: 'nn', label: 'Elektrická prípojka', href: '#i-pole' },
+  { id: 'fve', label: 'Fotovoltika pre domy a firmy', href: '#i-solar' },
   { id: 'dom', label: 'Elektroinštalácia', href: '#i-house' },
-  { id: 'blesk', label: 'Vonkajšia ochrana pred bleskom – LPS', href: '#i-rod' },
-  { id: 'ev', label: 'EVSE – AC nabíjací bod pre EV', href: '#i-ev' },
-  { id: 'smart', label: 'Smart domácnosť', href: '#i-smart' },
+  { id: 'blesk', label: 'Bleskozvod', href: '#i-rod' },
+  { id: 'ev', label: 'Nabíjačka pre elektromobil', href: '#i-ev' },
+  { id: 'smart', label: 'Inteligentná domácnosť a riadenie energií', href: '#i-smart' },
+  { id: 'poradit', label: 'Nie som si istý – potrebujem poradiť', href: '#i-person' },
 ];
 
 const business = {
@@ -41,7 +42,7 @@ const business = {
     addressCountry: 'SK',
   },
   areaServed: { '@type': 'Country', name: 'Slovensko' },
-  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Smart domácnosť', 'Revízie OPaOS'],
+  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Inteligentná domácnosť', 'Revízie OPaOS'],
 };
 
 // Do FAQPage idú len odpovede, ktoré sú aj na stránke a nie sú zástupným údajom.
@@ -57,7 +58,7 @@ const faqPage = {
 <div class="gf">
 <a class="skip" href="#obsah">Preskočiť na obsah</a>
 <div class="curtain" aria-hidden="true"><i></i><i></i></div>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-house" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20M20 40V31h8v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="21" r="3.2"/></g></g></symbol><symbol id="i-flat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="11" y="6" width="26" height="36" rx="3.5"/><path d="M18 14h4M26 14h4M20 42v-8h8v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 23h4M26 23h4"/></g></g></symbol><symbol id="i-socket" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="11"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19.5 21v4M28.5 21v4M24 30.5v.5"/></g></g></symbol><symbol id="i-board" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="6" width="34" height="36" rx="4.5"/><path d="M14 14h8M14 24h8M14 34h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="31" cy="14" r="2.4"/><circle cx="31" cy="24" r="2.4"/><circle cx="31" cy="34" r="2.4"/></g></g></symbol><symbol id="i-rod" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M5 42h38M10 42V29l14-8 14 8v13M24 21V9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M34 3l-6 9h6l-6 9"/></g></g></symbol><symbol id="i-solar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 41 14 23h28l-6 18zM11 32h28M23.3 23l-6 18M32.7 23l-6 18"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="37" cy="11" r="4.5"/><path d="M37 2.5V4M45.5 11H44M28.5 11H30"/></g></g></symbol><symbol id="i-pole" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M17 6v38M7 13h20M17 20l-7 8M17 20l7 8M12 44h10"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M27 13c9 0 13 5 13 12"/><circle cx="40" cy="30" r="4"/></g></g></symbol><symbol id="i-ev" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="8" y="6" width="22" height="35" rx="4.5"/><path d="M5 43h28"/><rect x="13" y="11" width="12" height="9" rx="2"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 25l-4 6h5l-3 6M30 26h3a5 5 0 0 1 5 5v5"/><circle cx="38" cy="39" r="3"/></g></g></symbol><symbol id="i-blueprint" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M17 19h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 31h4l3-7 4 10 3-4h2"/></g></g></symbol><symbol id="i-hardhat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M9 33a15 15 0 0 1 30 0zM5 38h38"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M24 18v9"/></g></g></symbol><symbol id="i-wrench" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" transform="rotate(38 24 24)"><g style="stroke:var(--ic1,#022253)"><path d="M16 22V7h6v7h4V7h6v15a8 8 0 0 1-16 0zM21 29.5V41a3 3 0 0 0 6 0V29.5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="36" r="1.6"/></g></g></symbol><symbol id="i-shield-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 24l5 5 9-10"/></g></g></symbol><symbol id="i-shield-bolt" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M26 14l-7 11h6l-3 10"/></g></g></symbol><symbol id="i-permit" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M7 23 24 8l17 15M12 20v21h24V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 31l5 5 8-9"/></g></g></symbol><symbol id="i-phone" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="13" y="4" width="22" height="40" rx="6"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 38h8"/><circle cx="24" cy="17" r="3"/></g></g></symbol><symbol id="i-calendar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="10" width="34" height="32" rx="7"/><path d="M7 21h34M16 5v9M32 5v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="29" cy="31" r="3.5"/></g></g></symbol><symbol id="i-report" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M18 20h9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 34l4 4 9-9"/></g></g></symbol><symbol id="i-badge" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="19" r="12.5"/><path d="M17 30l-3 14 10-5 10 5-3-14"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19 19l4 4 7-8"/></g></g></symbol><symbol id="i-pin" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 44S9 30 9 19a15 15 0 0 1 30 0c0 11-15 25-15 25z"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="19" r="5"/></g></g></symbol><symbol id="i-person" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 43c0-9 7-15 16-15s16 6 16 15"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="15" r="8"/></g></g></symbol><symbol id="i-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 25l9 9 19-20"/></g></g></symbol><symbol id="i-arrow" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M14 34 34 14M17 14h17v17"/></g><g style="stroke:var(--ic2,#02ACC1)"></g></g></symbol><symbol id="i-stars" viewBox="0 0 120 24"><g style="fill:var(--ic2,#02ACC1);stroke:none"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(0 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(24 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(48 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(72 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(96 0)"/></g></symbol><symbol id="i-key" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="15" cy="24" r="8"/><path d="M23 24h19M35 24v7M42 24v5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="15" cy="24" r="2.6"/></g></g></symbol><symbol id="i-smart" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 29a8.5 8.5 0 0 1 12 0M21.2 33.2a4 4 0 0 1 5.6 0"/><circle cx="24" cy="37" r="1.2"/></g></g></symbol><symbol id="i-chip" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="12" y="12" width="24" height="24" rx="4"/><path d="M18 6v6M24 6v6M30 6v6M18 36v6M24 36v6M30 36v6M6 18h6M6 24h6M6 30h6M36 18h6M36 24h6M36 30h6"/></g><g style="stroke:var(--ic2,#02ACC1)"><rect x="19" y="19" width="10" height="10" rx="2"/></g></g></symbol><symbol id="i-leaf" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M10 38C10 20 22 10 40 8c0 18-10 30-26 30"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 38c4-10 10-16 18-20"/></g></g></symbol><symbol id="i-relay" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="14" y="14" width="20" height="26" rx="6"/><path d="M19 6v8M29 6v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 27h8M24 23v8"/></g></g></symbol><symbol id="i-hub" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="24" r="7"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="9" cy="12" r="3"/><circle cx="39" cy="12" r="3"/><circle cx="9" cy="37" r="3"/><circle cx="39" cy="37" r="3"/><path d="M12 14l6 6M36 14l-6 6M12 35l6-6M36 35l-6-6"/></g></g></symbol></defs></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-house" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20M20 40V31h8v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="21" r="3.2"/></g></g></symbol><symbol id="i-flat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="11" y="6" width="26" height="36" rx="3.5"/><path d="M18 14h4M26 14h4M20 42v-8h8v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 23h4M26 23h4"/></g></g></symbol><symbol id="i-socket" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="7" width="34" height="34" rx="10"/><circle cx="24" cy="24" r="11"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19.5 21v4M28.5 21v4M24 30.5v.5"/></g></g></symbol><symbol id="i-board" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="6" width="34" height="36" rx="4.5"/><path d="M14 14h8M14 24h8M14 34h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="31" cy="14" r="2.4"/><circle cx="31" cy="24" r="2.4"/><circle cx="31" cy="34" r="2.4"/></g></g></symbol><symbol id="i-rod" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M5 42h38M10 42V29l14-8 14 8v13M24 21V9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M34 3l-6 9h6l-6 9"/></g></g></symbol><symbol id="i-solar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 41 14 23h28l-6 18zM11 32h28M23.3 23l-6 18M32.7 23l-6 18"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="37" cy="11" r="4.5"/><path d="M37 2.5V4M45.5 11H44M28.5 11H30"/></g></g></symbol><symbol id="i-pole" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M17 6v38M7 13h20M17 20l-7 8M17 20l7 8M12 44h10"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M27 13c9 0 13 5 13 12"/><circle cx="40" cy="30" r="4"/></g></g></symbol><symbol id="i-ev" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="8" y="6" width="22" height="35" rx="4.5"/><path d="M5 43h28"/><rect x="13" y="11" width="12" height="9" rx="2"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 25l-4 6h5l-3 6M30 26h3a5 5 0 0 1 5 5v5"/><circle cx="38" cy="39" r="3"/></g></g></symbol><symbol id="i-blueprint" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M17 19h8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 31h4l3-7 4 10 3-4h2"/></g></g></symbol><symbol id="i-hardhat" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M9 33a15 15 0 0 1 30 0zM5 38h38"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M24 18v9"/></g></g></symbol><symbol id="i-wrench" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" transform="rotate(38 24 24)"><g style="stroke:var(--ic1,#022253)"><path d="M16 22V7h6v7h4V7h6v15a8 8 0 0 1-16 0zM21 29.5V41a3 3 0 0 0 6 0V29.5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="36" r="1.6"/></g></g></symbol><symbol id="i-shield-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M17 24l5 5 9-10"/></g></g></symbol><symbol id="i-shield-bolt" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5l15 6v11c0 10-6 17-15 21C15 39 9 32 9 22V11z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M26 14l-7 11h6l-3 10"/></g></g></symbol><symbol id="i-permit" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M7 23 24 8l17 15M12 20v21h24V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 31l5 5 8-9"/></g></g></symbol><symbol id="i-phone" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="13" y="4" width="22" height="40" rx="6"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 38h8"/><circle cx="24" cy="17" r="3"/></g></g></symbol><symbol id="i-calendar" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="7" y="10" width="34" height="32" rx="7"/><path d="M7 21h34M16 5v9M32 5v9"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="29" cy="31" r="3.5"/></g></g></symbol><symbol id="i-report" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M12 5h17l8 8v30H12zM29 5v8h8M18 20h9"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 34l4 4 9-9"/></g></g></symbol><symbol id="i-badge" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="19" r="12.5"/><path d="M17 30l-3 14 10-5 10 5-3-14"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M19 19l4 4 7-8"/></g></g></symbol><symbol id="i-pin" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 44S9 30 9 19a15 15 0 0 1 30 0c0 11-15 25-15 25z"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="19" r="5"/></g></g></symbol><symbol id="i-person" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M8 43c0-9 7-15 16-15s16 6 16 15"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="24" cy="15" r="8"/></g></g></symbol><symbol id="i-check" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 25l9 9 19-20"/></g></g></symbol><symbol id="i-arrow" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M14 34 34 14M17 14h17v17"/></g><g style="stroke:var(--ic2,#02ACC1)"></g></g></symbol><symbol id="i-stars" viewBox="0 0 120 24"><g style="fill:var(--ic2,#02ACC1);stroke:none"><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(0 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(24 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(48 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(72 0)"/><polygon points="12 2 14.9 8.6 22 9.3 16.6 14 18.2 21 12 17.3 5.8 21 7.4 14 2 9.3 9.1 8.6" transform="translate(96 0)"/></g></symbol><symbol id="i-key" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="15" cy="24" r="8"/><path d="M23 24h19M35 24v7M42 24v5"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="15" cy="24" r="2.6"/></g></g></symbol><symbol id="i-smart" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M6 23 24 8l18 15M11 20v20h26V20"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 29a8.5 8.5 0 0 1 12 0M21.2 33.2a4 4 0 0 1 5.6 0"/><circle cx="24" cy="37" r="1.2"/></g></g></symbol><symbol id="i-chip" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="12" y="12" width="24" height="24" rx="4"/><path d="M18 6v6M24 6v6M30 6v6M18 36v6M24 36v6M30 36v6M6 18h6M6 24h6M6 30h6M36 18h6M36 24h6M36 30h6"/></g><g style="stroke:var(--ic2,#02ACC1)"><rect x="19" y="19" width="10" height="10" rx="2"/></g></g></symbol><symbol id="i-leaf" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M10 38C10 20 22 10 40 8c0 18-10 30-26 30"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M10 38c4-10 10-16 18-20"/></g></g></symbol><symbol id="i-relay" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><rect x="14" y="14" width="20" height="26" rx="6"/><path d="M19 6v8M29 6v8"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M20 27h8M24 23v8"/></g></g></symbol><symbol id="i-hub" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><circle cx="24" cy="24" r="7"/></g><g style="stroke:var(--ic2,#02ACC1)"><circle cx="9" cy="12" r="3"/><circle cx="39" cy="12" r="3"/><circle cx="9" cy="37" r="3"/><circle cx="39" cy="37" r="3"/><path d="M12 14l6 6M36 14l-6 6M12 35l6-6M36 35l-6-6"/></g></g></symbol><symbol id="i-drop" viewBox="0 0 48 48"><g fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke-width:var(--sw,2.4)" ><g style="stroke:var(--ic1,#022253)"><path d="M24 5C17 15 11 22 11 30a13 13 0 0 0 26 0c0-8-6-15-13-25z"/></g><g style="stroke:var(--ic2,#02ACC1)"><path d="M18 31a6 6 0 0 0 6 6"/></g></g></symbol></defs></svg>
 <div class="progress"><i></i></div>
 <header class="nav" id="top">
 <div class="wrap navbar">
@@ -65,12 +66,11 @@ const faqPage = {
 <nav class="links" aria-label="Hlavná navigácia">
 <a href="#vyber">Čo potrebujete</a>
 <a href="#postup">Postup</a>
-<a href="#smart">Smart domácnosť</a>
+<a href="#smart">Inteligentná domácnosť</a>
 <a href="#o-nas">O nás</a>
 <a href="#faq">Časté otázky</a>
 </nav>
 <div class="navcta">
-<a class="call" href="tel:+421910635595">0910 635 595</a>
 <a class="kbtn" href="/kontakt/">Kontakt</a>
 </div>
 </div>
@@ -84,12 +84,13 @@ const faqPage = {
 </svg>
 <div class="hero-main wrap">
 <div class="hero-copy">
-<h1><span class="w"><span class="wi" style="--i:0">Elektroinštalácia,</span></span> <span class="w"><span class="wi" style="--i:1">fotovoltika</span></span> <span class="w"><span class="wi" style="--i:2">alebo smart</span></span> <span class="w"><span class="wi" style="--i:3">domácnosť.</span></span> <span class="w"><span class="wi" style="--i:4">Od projektu</span></span> <span class="w"><span class="wi" style="--i:5">až po revíziu.</span></span></h1>
-<p class="lead hf" style="--d:700ms">Vieme to navrhnúť, namontovať aj zrevidovať. Po častiach, alebo celé na kľúč, od A po Z. A vieme z toho spraviť domácnosť, ktorá šetrí.</p>
+<p class="hero-eyebrow hf" style="--d:100ms"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg>Ivanka pri Nitre · zákazky po celom Slovensku</p>
+<h1><span class="w"><span class="wi" style="--i:0">Elektroinštalácie,</span></span> <span class="w"><span class="wi" style="--i:1">fotovoltika</span></span> <span class="w"><span class="wi" style="--i:2">a revízie.</span></span></h1>
+<p class="lead hf" style="--d:700ms">Od samostatnej revízie po kompletnú realizáciu. Navrhneme, namontujeme a prepojíme technológie tak, aby váš dom alebo prevádzka fungovali bezpečne a efektívne.</p>
 <div class="hero-actions hf" style="--d:900ms">
-<a class="btn btn-cyan" href="#vyber">Vybrať riešenie<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+<a class="btn btn-cyan" href="#vyber">Vybrať službu<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
+<a class="btn btn-line" href="/kontakt/?vyber=poradit">Potrebujem poradiť</a>
 </div>
-<p class="hero-note hf" style="--d:1050ms">Neviete, čo presne potrebujete? Kontaktujte nás, poradíme vám.</p>
 </div>
 </div>
 </section>
@@ -104,7 +105,7 @@ const faqPage = {
 <p class="stl rv"><b>1</b>Čo chcete, aby sme spravili? <small>(môžete vybrať viac)</small></p>
 <div class="opts" role="group" aria-label="Čo chcete, aby sme spravili">
 {stageDefs.map((o, n) => (
-<button type="button" class={`opt sa${o.id === 'kluc' ? ' on kl' : ''}`} style={`--n:${n}`} aria-pressed={o.id === 'kluc' ? 'true' : 'false'} data-stage={o.id}>
+<button type="button" class={`opt sa${o.id === 'kluc' ? ' kl' : ''}`} style={`--n:${n}`} aria-pressed="false" data-stage={o.id}>
 <span class="chk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-check"></use></svg></span>
 <span class="tile"><svg class="ico" aria-hidden="true" focusable="false"><use href={o.href}></use></svg></span>
 <span><strong>{o.title}</strong><small>{o.sub}</small></span>
@@ -115,21 +116,21 @@ const faqPage = {
 <p class="stl rv"><b>2</b>Čoho sa to týka? <small>(môžete vybrať viac)</small></p>
 <div class="chips sub2" role="group" aria-label="Čoho sa to týka">
 {subjectDefs.map((s, n) => (
-<button type="button" class={`chip ci sa${s.id === 'fve' ? ' on' : ''}`} style={`--n:${n}`} aria-pressed={s.id === 'fve' ? 'true' : 'false'} data-subject={s.id} data-label={s.label} data-href={s.href}><svg class="ico" aria-hidden="true" focusable="false"><use href={s.href}></use></svg>{s.label}</button>
+<button type="button" class="chip ci sa" style={`--n:${n}`} aria-pressed="false" data-subject={s.id} data-label={s.label} data-href={s.href}><svg class="ico" aria-hidden="true" focusable="false"><use href={s.href}></use></svg>{s.label}</button>
 ))}
 </div>
 
 <div class="circ" data-circ aria-live="polite">
 <div class="circ-top">
 <p class="k">Schéma vašej zákazky</p>
-<h3 data-circ-title>Celý obvod ide cez nás. Vy už len zapnete svetlo.</h3>
+<h3 data-circ-title>Zatiaľ nič nie je zapojené. Vyberte, čo potrebujete, alebo nám nechajte číslo a poradíme.</h3>
 </div>
 <div class="wire-row" aria-label="Schéma zapojenia">
 <div class="cn src" style="--n:0"><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-house"></use></svg></span><b>Vy</b><small>zdroj nápadu</small></div>
 {stageDefs.filter((d) => d.id !== 'kluc').map((d, i) => (
 <>
 <span class="w-seg" style={`--n:${i + 1}`}></span>
-<div class="cn on" style={`--n:${i + 1}`} data-node={d.id}><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href={d.href}></use></svg></span><b>{d.node}</b><small>zapojené</small></div>
+<div class="cn off" style={`--n:${i + 1}`} data-node={d.id}><span class="cn-i"><svg class="ico" aria-hidden="true" focusable="false"><use href={d.href}></use></svg></span><b>{d.node}</b><small>čaká na výber</small></div>
 </>
 ))}
 <span class="w-seg" style="--n:4"></span>
@@ -137,7 +138,7 @@ const faqPage = {
 </div>
 <div class="loads">
 <span class="lk">Na obvode visí:</span>
-<span class="loads-list" data-loads><span class="load"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika (malý zdroj / lokálny zdroj)</span></span>
+<span class="loads-list" data-loads><span class="load empty">zatiaľ nič, pridajte vyššie v kroku 2</span></span>
 </div>
 <div class="circ-bot">
 <div class="plate">
@@ -150,9 +151,10 @@ const faqPage = {
 <p class="fine2">Nezáväzne. Číslo použijeme len na to, aby sme sa vám ozvali. <a class="plink2" href="/zasady-ochrany-osobnych-udajov/">Ochrana údajov</a></p>
 </div>
 <div class="brk-wrap" data-brk-wrap data-endpoint={endpoint}>
-<button type="button" class="breaker" disabled aria-pressed="false" data-brk aria-label="Zapnúť vypínač a odoslať dopyt"><span class="brk-on">ZAP</span><span class="brk-lever"></span><span class="brk-off">VYP</span></button>
+<button type="button" class="breaker" disabled data-brk aria-hidden="true" tabindex="-1"><span class="brk-on">ZAP</span><span class="brk-lever"></span><span class="brk-off">VYP</span></button>
 <div class="brk-side">
-<p class="brk-txt" data-brk-txt aria-live="polite">Doplňte meno a číslo. Potom zapnite vypínač a my sa vám ozveme.</p>
+<button type="button" class="btn btn-cyan brk-send" disabled data-send>Odoslať nezáväzný dopyt</button>
+<p class="brk-txt" data-brk-txt aria-live="polite">Doplňte meno a číslo a odošlite nezáväzný dopyt.</p>
 </div>
 </div>
 </div>
@@ -163,12 +165,11 @@ const faqPage = {
 <section class="az" id="postup">
 <div class="wrap">
 <h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Po častiach,</span></span> <span class="w"><span class="wi" style="--i:1">alebo</span></span> <span class="w"><span class="wi" style="--i:2">celé</span></span> <span class="w"><span class="wi" style="--i:3">na kľúč</span></span></h2>
-<p class="sub rv">Vieme poskytnúť aj čiastkové riešenie, ak potrebujete len jednu časť. Vieme vám to ale aj zastrešiť od A po Z, aby ste sa o nič nemuseli starať.</p>
-<div class="azbar rv"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-key"></use></svg>Na kľúč, od A po Z</div>
+<p class="sub rv">Vieme spraviť len tú časť, ktorú práve potrebujete, alebo celú zákazku od návrhu po odovzdanie.</p>
 <ol class="az-list">
-<li class="rv" style="--c:#022253;--n:0"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><h3>Projekt</h3><p>Projektová dokumentácia pre NN elektrickú prípojku, fotovoltiku (malý zdroj / lokálny zdroj), elektroinštaláciu, vonkajšiu ochranu pred bleskom (LPS) a AC nabíjací bod pre EV (EVSE).</p></li>
-<li class="rv" style="--c:#0a5a85;--n:1"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></b><h3>Montáž</h3><p>Montáž všetkých týchto riešení, vrátane smart prvkov a automatizácií.</p></li>
-<li class="rv" style="--c:#0482a3;--n:2"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><h3>Revízia</h3><p>Odborná prehliadka a odborná skúška (OPaOS) a revízna správa.</p></li>
+<li class="rv" style="--c:#022253;--n:0"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><h3>Projekt</h3><p>Projektová dokumentácia pre elektrickú prípojku, fotovoltiku (malý zdroj / lokálny zdroj), elektroinštaláciu, bleskozvod (vonkajšia ochrana pred bleskom, LPS) a nabíjačku pre elektromobil (EVSE, AC nabíjací bod).</p></li>
+<li class="rv" style="--c:#0a5a85;--n:1"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></b><h3>Montáž</h3><p>Montáž všetkých týchto riešení, vrátane inteligentných prvkov a automatizácií.</p></li>
+<li class="rv" style="--c:#0482a3;--n:2"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><h3>Revízia</h3><p>Odborná prehliadka a odborná skúška (OPaOS) a revízna správa. Aj samostatne, keď montáž robil niekto iný.</p></li>
 </ol>
 </div>
 </section>
@@ -177,31 +178,26 @@ const faqPage = {
 <div class="wrap">
 <div class="smart-top">
 <div>
-<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Smart</span></span> <span class="w"><span class="wi" style="--i:1">domácnosť,</span></span> <span class="w"><span class="wi" style="--i:2">ktorá</span></span> <span class="w"><span class="wi" style="--i:3">šetrí.</span></span></h2>
-<p class="sub rv">Dnes sa počíta každé euro. Vieme prepojiť elektroinštaláciu, fotovoltiku, nabíjačku aj spotrebiče tak, aby sa zbytočne neplytvalo, a aby ste mali dom pod kontrolou.</p>
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Inteligentná</span></span> <span class="w"><span class="wi" style="--i:1">domácnosť,</span></span> <span class="w"><span class="wi" style="--i:2">ktorá</span></span> <span class="w"><span class="wi" style="--i:3">šetrí.</span></span></h2>
 </div>
 <div>
-<p class="rules-t rv">Príklady automatizácií</p>
-<ul class="rules">
-<li class="sa-r" style="--n:0"><span>Ak fotovoltika vyrába viac, než dom spotrebuje</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">ohrejeme vodu a nabijeme auto</span></li>
-<li class="sa-r" style="--n:1"><span>Ak nikto nie je doma</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">zníži sa kúrenie a zhasnú svetlá</span></li>
-<li class="sa-r" style="--n:2"><span>Ak chcete vedieť, kde sa míňa energia</span><span class="arr"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></span><span class="th">uvidíte spotrebu v jednej aplikácii</span></li>
-</ul>
+<p class="sub rv">Dnes sa počíta každé euro. Vieme prepojiť elektroinštaláciu, fotovoltiku, nabíjačku aj spotrebiče tak, aby sa zbytočne neplytvalo a aby ste mali dom pod kontrolou.</p>
 </div>
 </div>
-<ul class="chain" aria-label="Ako spolu funguje smart domácnosť">
-<li class="sa" style="--n:0"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-relay"></use></svg></span><b>Smart prvky Shelly</b><small>spínače, relé a meranie spotreby v dome</small></li>
-<li class="sa" style="--n:1"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chip"></use></svg></span><b>HomeMaster MiniPLC</b><small>riadiaca jednotka v rozvádzači</small></li>
-<li class="sa" style="--n:2"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><b>Home Assistant</b><small>jeden systém pre celý dom</small></li>
-<li class="sa" style="--n:3"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-leaf"></use></svg></span><b>Úspora</b><small>menšia spotreba, viac z vlastnej fotovoltiky</small></li>
+<ul class="sm4">
+<li class="sa" style="--n:0"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg></span><h3>Ohrev vody z prebytkov fotovoltiky</h3><p>Keď panely vyrábajú viac, než dom práve spotrebuje, prebytok ohreje vodu v bojleri.</p></li>
+<li class="sa" style="--n:1"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ev"></use></svg></span><h3>Nabíjanie auta podľa dostupného výkonu</h3><p>Nabíjačka sa prispôsobí tomu, koľko výkonu je práve k dispozícii, napríklad z vlastnej výroby.</p></li>
+<li class="sa" style="--n:2"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-drop"></use></svg></span><h3>Upozornenie na únik vody</h3><p>Snímač pri práčke, kotle alebo bojleri zachytí vodu a hneď vám pošle upozornenie do mobilu.</p></li>
+<li class="sa" style="--n:3"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><h3>Spotreba a stav domu v jednej aplikácii</h3><p>Výroba, spotreba aj to, čo je v dome zapnuté, prehľadne na jednom mieste v Home Assistant.</p></li>
 </ul>
-<div class="hmx rv">
+<details class="hmx-d rv">
+<summary><img src="/partners/homemaster.png" alt="" width="205" height="205" loading="lazy" decoding="async"><span>Na čom to staviame: riadiaca jednotka HomeMaster ESP32 MiniPLC</span></summary>
+<div class="hmx">
 <div class="hmx-img"><img src="/partners/homemaster-miniplc.webp" alt="Riadiaca jednotka HomeMaster ESP32 MiniPLC" width="900" height="900" loading="lazy" decoding="async"></div>
 <div class="hmx-body">
-<img class="hmx-logo" src="/partners/homemaster.png" alt="HomeMaster" width="205" height="205" loading="lazy" decoding="async">
 <p class="rules-t">Srdce automatizácie v rozvádzači</p>
 <h3>HomeMaster ESP32 MiniPLC</h3>
-<p>Riadiaca jednotka na DIN lištu, ktorú zapojíme priamo do rozvádzača. Spína spotrebiče, číta snímače a do Home Assistant sa integruje cez ESPHome. Všetko sa dá pekne zintegrovať do jedného systému.</p>
+<p>Riadiaca jednotka na DIN lištu, ktorú zapojíme priamo do rozvádzača. Spína spotrebiče, číta snímače a do Home Assistant sa integruje cez ESPHome. Parametre podľa technického listu výrobcu (MiniPLC-R1):</p>
 <ul class="hmx-spec">
 <li>6 reléových výstupov</li>
 <li>4 digitálne vstupy 24 V</li>
@@ -211,6 +207,7 @@ const faqPage = {
 </ul>
 </div>
 </div>
+</details>
 </div>
 </section>
 
@@ -218,12 +215,12 @@ const faqPage = {
 <div class="wrap">
 <div class="p-head">
 <h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Oficiálny</span></span> <span class="w"><span class="wi" style="--i:1">inštalatér</span></span> <span class="w"><span class="wi" style="--i:2">a partner</span></span></h2>
-<p class="sub rv">Fotovoltiku montujeme so značkami SolaX a Deye. Smart domácnosť staviame na riadiacich jednotkách HomeMaster, ktoré prepojíme s Home Assistant a prvkami Shelly.</p>
+<p class="sub rv">Fotovoltiku montujeme so značkami SolaX a Deye. Inteligentnú domácnosť staviame na riadiacich jednotkách HomeMaster, ktoré prepojíme s Home Assistant a prvkami Shelly.</p>
 </div>
 <ul class="pgrid plogos">
 <li class="sa" style="--n:0"><span class="wm"><img class="lg lg-solax" src="/partners/solax.png" alt="SolaX Power" width="600" height="253" loading="lazy" decoding="async"></span><span class="lb"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika</span></li>
 <li class="sa" style="--n:1"><span class="wm"><img class="lg lg-deye" src="/partners/deye.png" alt="Deye" width="652" height="261" loading="lazy" decoding="async"></span><span class="lb"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika</span></li>
-<li class="sa" style="--n:2"><span class="wm"><img class="lg lg-hm" src="/partners/homemaster.png" alt="HomeMaster" width="205" height="205" loading="lazy" decoding="async"></span><span class="lb"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-smart"></use></svg>Smart domácnosť, pre Slovensko</span></li>
+<li class="sa" style="--n:2"><span class="wm"><img class="lg lg-hm" src="/partners/homemaster.png" alt="HomeMaster" width="205" height="205" loading="lazy" decoding="async"></span><span class="lb"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-smart"></use></svg>Inteligentná domácnosť, pre Slovensko</span></li>
 </ul>
 <div class="integ rv"><span>Integrujeme</span><b>Home Assistant</b><b>Shelly</b></div>
 </div>
@@ -233,15 +230,15 @@ const faqPage = {
 <div class="wrap about-grid">
 <div class="about-head">
 <p class="rules-t rv">O nás</p>
-<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Jedna</span></span> <span class="w"><span class="wi" style="--i:1">linka</span></span> <span class="w"><span class="wi" style="--i:2">od projektu</span></span> <span class="w"><span class="wi" style="--i:3">až po</span></span> <span class="w"><span class="wi" style="--i:4">revíziu</span></span></h2>
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Za</span></span> <span class="w"><span class="wi" style="--i:1">menom</span></span> <span class="w"><span class="wi" style="--i:2">je</span></span> <span class="w"><span class="wi" style="--i:3">jednoduchá</span></span> <span class="w"><span class="wi" style="--i:4">myšlienka</span></span></h2>
 </div>
 <div class="about-body">
-<p class="about-lead rv">GridFlow je slovenská elektrofirma z Ivanky pri Nitre. Naše meno nie je náhoda.</p>
+<p class="about-lead rv">GridFlow je slovenská elektrofirma z Ivanky pri Nitre.</p>
 <dl class="gfdef">
 <div class="sa" style="--n:0"><dt>Grid</dt><dd>je sieť. Prípojka, rozvádzač a každý kábel v stene.</dd></div>
 <div class="sa" style="--n:1"><dt>Flow</dt><dd>je tok. Energia zo strechy do domu, z domu do auta a dáta do vášho telefónu.</dd></div>
 </dl>
-<p class="rv">Pri revíziách vidíme, ako to dopadne, keď projekt robí jeden, montáž druhý a revíziu tretí. Každý odovzdá svoj kus a za celok nezodpovedá nikto. Preto to robíme inak: jeden tím, ktorý to navrhne, namontuje aj zreviduje a stojí si za výsledkom od prvej čiary v projekte po revíznu správu.</p>
+<p class="rv">Jednotlivé práce vieme koordinovať od návrhu po odovzdanie. Ak už máte projekt alebo montáž hotovú, nadviažeme službou, ktorú práve potrebujete.</p>
 <p class="rv">Linka v našom logu je presne to. Jedna súvislá cesta, na ktorej sa nič nestratí. Vy na jej konci len zapnete svetlo.</p>
 </div>
 </div>
@@ -252,10 +249,13 @@ const faqPage = {
 <div><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Časté</span></span> <span class="w"><span class="wi" style="--i:1">otázky</span></span></h2></div>
 <div>
 <details class="qa rv" style="--n:0"><summary>Viete urobiť všetko na kľúč?</summary><p class="ans">Áno. Navrhneme, namontujeme aj zrevidujeme. Ak potrebujete len jednu časť, spravíme len tú.</p></details>
-<details class="qa rv" style="--n:1"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details>
-<details class="qa rv" style="--n:2"><summary>Viete prepojiť smart prvky do jedného systému?</summary><p class="ans">Áno. Vieme integrovať smart prvky Shelly aj miniPLC do Home Assistant.</p></details>
-<details class="qa rv" style="--n:3"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobnosť je celé Slovensko.</p></details>
-<details class="qa rv" style="--n:4"><summary>Koľko to stojí?</summary><p class="ans">Cena závisí od rozsahu. <span class="ph">DOPLNIŤ: cenový rámec alebo spôsob výpočtu</span></p></details>
+<details class="qa rv" style="--n:1"><summary>Robíte revízie aj po inej firme?</summary><p class="ans">Áno. Revíziu spravíme aj na zariadení, ktoré montoval niekto iný, napríklad pri kolaudácii, poistnej udalosti, pripojení fotovoltiky do siete alebo pri kontrole bezpečnosti.</p></details>
+<details class="qa rv" style="--n:2"><summary>Ako vznikne cena?</summary><p class="ans">Cena závisí od rozsahu. Keď nám poviete, čo treba navrhnúť, namontovať alebo zrevidovať, pripravíme vám cenovú ponuku. <span class="ph">DOPLNIŤ: cenový rámec alebo spôsob výpočtu</span></p></details>
+<details class="qa rv" style="--n:3"><summary>Čo si mám pripraviť?</summary><p class="ans">Stačí vedieť, čo potrebujete a kde sa objekt nachádza. Ak máte projektovú dokumentáciu alebo staršiu revíznu správu, pripravte si ju.</p></details>
+<details class="qa rv" style="--n:4"><summary>Čo dostanem pri odovzdaní?</summary><p class="ans">Pri revízii revíznu správu, pri projekte projektovú dokumentáciu. Pri montáži vám zariadenie odovzdáme zapojené a odskúšané.</p></details>
+<details class="qa rv" style="--n:5"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details>
+<details class="qa rv" style="--n:6"><summary>Viete prepojiť inteligentné prvky do jedného systému?</summary><p class="ans">Áno. Vieme integrovať inteligentné prvky Shelly aj miniPLC do Home Assistant.</p></details>
+<details class="qa rv" style="--n:7"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobíme na celom Slovensku.</p></details>
 </div>
 </div>
 </section>
@@ -284,7 +284,7 @@ const faqPage = {
 
 <div class="mbar">
 <a href="tel:+421910635595">Zavolať</a>
-<a class="mcta" href="#vyber">Vybrať riešenie</a>
+<a class="mcta" href="#vyber">Vybrať službu</a>
 </div>
 </div>
 <script>

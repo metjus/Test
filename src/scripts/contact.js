@@ -1,5 +1,5 @@
 // Formulár „Nezáväzný dopyt“ na stránke Kontakt.
-import { validName, validPhone, sendInquiry } from './send.js';
+import { validName, validPhone, validEmail, sendInquiry } from './send.js';
 
 const form = document.querySelector('[data-k-form]');
 
@@ -8,6 +8,7 @@ if (form) {
   const $ = (s) => form.querySelector(s);
   const nameIn = $('[data-f-name]');
   const phoneIn = $('[data-f-phone]');
+  const emailIn = $('[data-f-email]');
   const townIn = $('[data-f-town]');
   const noteIn = $('[data-f-note]');
   const hp = $('[data-f-hp]');
@@ -41,10 +42,31 @@ if (form) {
     );
   }
 
-  const refresh = () => {
-    sendBtn.disabled = !(validName(nameIn.value) && validPhone(phoneIn.value));
+  // Predvýber z domovskej stránky: ?vyber=id,id alebo výber uložený v prehliadači.
+  const preselect = () => {
+    let ids = [];
+    const q = new URLSearchParams(location.search).get('vyber');
+    if (q) ids = q.split(',');
+    else {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('gf-vyber') || 'null');
+        if (saved) ids = [...(saved.stages || []), ...(saved.subjects || [])];
+      } catch {}
+    }
+    for (const name of ['services', 'purposes']) {
+      const g = form.querySelector(`[data-group="${name}"]`);
+      chipsOf(g).forEach((c) => {
+        if (ids.includes(c.dataset.id)) setBtn(c, true);
+      });
+    }
   };
-  [nameIn, phoneIn].forEach((i) => i.addEventListener('input', refresh));
+  preselect();
+
+  const contactOk = () => validPhone(phoneIn.value) || validEmail(emailIn.value);
+  const refresh = () => {
+    sendBtn.disabled = !(validName(nameIn.value) && contactOk());
+  };
+  [nameIn, phoneIn, emailIn].forEach((i) => i.addEventListener('input', refresh));
 
   sendBtn.addEventListener('click', async () => {
     if (sendBtn.disabled) return;
@@ -54,6 +76,7 @@ if (form) {
     const payload = {
       name: nameIn.value.trim(),
       phone: phoneIn.value.trim(),
+      email: emailIn.value.trim(),
       services: services.length ? services : ['Zatiaľ neviem, poraďte nám'],
       purposes: picked('purposes'),
       town: townIn.value.trim(),
@@ -69,7 +92,8 @@ if (form) {
       return;
     }
     const set = (k, v) => (ok.querySelector(`[data-sum="${k}"]`).textContent = v);
-    set('phone', payload.phone);
+    const kam = [validPhone(payload.phone) ? `na číslo ${payload.phone}` : '', validEmail(payload.email) ? `na e-mail ${payload.email}` : ''].filter(Boolean).join(' alebo ');
+    set('kam', kam);
     set('services', payload.services.join(', '));
     set('purposes', payload.purposes.length ? payload.purposes.join(', ') : '—');
     set('pref', `${payload.contactMethod}, ${payload.contactTime.toLowerCase()}`);
@@ -81,7 +105,7 @@ if (form) {
 
   ok.querySelector('[data-again]').addEventListener('click', () => {
     for (const g of groups) chipsOf(g).forEach((c, i) => setBtn(c, defaults.get(g)[i]));
-    [nameIn, phoneIn, townIn, noteIn].forEach((i) => (i.value = ''));
+    [nameIn, phoneIn, emailIn, townIn, noteIn].forEach((i) => (i.value = ''));
     refresh();
     ok.hidden = true;
     form.hidden = false;
