@@ -70,8 +70,8 @@ if (circ) {
     const ok = validName(nameIn.value) && validPhone(phoneIn.value);
     circ.classList.toggle('live', st.sent);
     wrap.classList.toggle('on', st.sent);
-    wrap.classList.toggle('ready', !st.sent && ok);
-    brk.disabled = st.sent || st.busy || !ok;
+    // vypínač je len vizuálny motív: po odoslaní sa prepne na ZAP
+    brk.disabled = !st.sent && !ok;
     sendBtn.disabled = st.sent || st.busy || !ok;
     sendBtn.textContent = st.sent ? 'Dopyt odoslaný' : st.busy ? 'Odosielam…' : 'Odoslať nezáväzný dopyt';
     txt.textContent = st.sent
@@ -147,7 +147,6 @@ if (circ) {
     render();
   };
   sendBtn.addEventListener('click', send);
-  brk.addEventListener('click', send);
 
   render();
 }
