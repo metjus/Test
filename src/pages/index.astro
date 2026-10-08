@@ -6,9 +6,9 @@ import '../styles/home.css';
 // Bez PUBLIC_FORM_ENDPOINT beží dopyt v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
 const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
 
-const title = 'Elektro, fotovoltika a smart domácnosť od projektu po revíziu | GridFlow';
+const title = 'Elektroinštalácia, fotovoltika a smart domácnosť od projektu po revíziu | GridFlow';
 const description =
-  'Navrhneme, namontujeme aj zrevidujeme: NN prípojky, fotovoltika, elektroinštalácia rodinného domu, bleskozvody, nabíjačky pre elektromobily a smart domácnosť. Po častiach alebo na kľúč, celé Slovensko.';
+  'Navrhneme, namontujeme aj zrevidujeme: NN prípojky, fotovoltika, elektroinštalácia, vonkajšia ochrana pred bleskom (LPS), nabíjacie body EVSE a smart domácnosť. Po častiach alebo na kľúč, celé Slovensko.';
 
 const stageDefs = [
   { id: 'proj', title: 'Navrhnúť', sub: 'Projektová dokumentácia', href: '#i-blueprint', node: 'Projekt' },
@@ -18,11 +18,11 @@ const stageDefs = [
 ];
 const subjectDefs = [
   { id: 'nn', label: 'NN elektrická prípojka', href: '#i-pole' },
-  { id: 'fve', label: 'Fotovoltika (malý / lokálny zdroj)', href: '#i-solar' },
-  { id: 'dom', label: 'Elektroinštalácia rodinného domu', href: '#i-house' },
-  { id: 'blesk', label: 'Bleskozvod', href: '#i-rod' },
-  { id: 'ev', label: 'Nabíjačka pre elektromobil (wallbox, AC)', href: '#i-ev' },
-  { id: 'smart', label: 'Smart domácnosť a automatizácie', href: '#i-smart' },
+  { id: 'fve', label: 'Fotovoltika (malý zdroj / lokálny zdroj)', href: '#i-solar' },
+  { id: 'dom', label: 'Elektroinštalácia', href: '#i-house' },
+  { id: 'blesk', label: 'Vonkajšia ochrana pred bleskom – LPS', href: '#i-rod' },
+  { id: 'ev', label: 'EVSE – AC nabíjací bod pre EV', href: '#i-ev' },
+  { id: 'smart', label: 'Smart domácnosť', href: '#i-smart' },
 ];
 
 const business = {
@@ -31,6 +31,7 @@ const business = {
   name: 'GridFlow s.r.o.',
   url: new URL('/', Astro.site).href,
   telephone: '+421910635595',
+  taxID: '2123216007',
   description,
   address: {
     '@type': 'PostalAddress',
@@ -40,7 +41,7 @@ const business = {
     addressCountry: 'SK',
   },
   areaServed: { '@type': 'Country', name: 'Slovensko' },
-  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Smart domácnosť', 'Revízie OPaOS E1A, E1B'],
+  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Smart domácnosť', 'Revízie OPaOS'],
 };
 
 // Do FAQPage idú len odpovede, ktoré sú aj na stránke a nie sú zástupným údajom.
@@ -65,6 +66,7 @@ const faqPage = {
 <a href="#vyber">Čo potrebujete</a>
 <a href="#postup">Postup</a>
 <a href="#smart">Smart domácnosť</a>
+<a href="#o-nas">O nás</a>
 <a href="#faq">Časté otázky</a>
 </nav>
 <div class="navcta">
@@ -82,47 +84,13 @@ const faqPage = {
 </svg>
 <div class="hero-main wrap">
 <div class="hero-copy">
-<h1><span class="w"><span class="wi" style="--i:0">Elektro,</span></span> <span class="w"><span class="wi" style="--i:1">solár</span></span> <span class="w"><span class="wi" style="--i:2">a smart</span></span> <span class="w"><span class="wi" style="--i:3">domácnosť.</span></span> <span class="w"><span class="wi" style="--i:4">Od projektu</span></span> <span class="w"><span class="wi" style="--i:5">po revíziu.</span></span></h1>
+<h1><span class="w"><span class="wi" style="--i:0">Elektroinštalácia,</span></span> <span class="w"><span class="wi" style="--i:1">fotovoltika</span></span> <span class="w"><span class="wi" style="--i:2">alebo smart</span></span> <span class="w"><span class="wi" style="--i:3">domácnosť.</span></span> <span class="w"><span class="wi" style="--i:4">Od projektu</span></span> <span class="w"><span class="wi" style="--i:5">až po revíziu.</span></span></h1>
 <p class="lead hf" style="--d:700ms">Vieme to navrhnúť, namontovať aj zrevidovať. Po častiach, alebo celé na kľúč, od A po Z. A vieme z toho spraviť domácnosť, ktorá šetrí.</p>
 <div class="hero-actions hf" style="--d:900ms">
 <a class="btn btn-cyan" href="#vyber">Vybrať riešenie<svg class="ico" aria-hidden="true" focusable="false"><use href="#i-arrow"></use></svg></a>
-<a class="btn btn-line" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>Zavolať 0910 635 595</a>
 </div>
 <p class="hero-note hf" style="--d:1050ms">Neviete, čo presne potrebujete? Zavolajte, poradíme vám.</p>
 </div>
-<aside class="hero-card" aria-hidden="true">
-<div class="hc-main ef hf" style="--d:900ms">
-<div class="hc-head"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-smart"></use></svg></span><div><b>Dom, ktorý šetrí</b><small>Ilustračná ukážka</small></div></div>
-<svg class="ef-map" viewBox="0 0 360 290" aria-hidden="true" focusable="false">
-<path class="ef-link sun" d="M84 76 L156 128"></path>
-<path class="ef-link" d="M82 226 L156 172"></path>
-<path class="ef-link" d="M204 172 L276 226"></path>
-<path class="ef-link ctl" d="M276 76 L204 128"></path>
-<g class="ef-sun"><circle class="ef-node sun" cx="62" cy="58" r="28"></circle><use href="#i-solar" x="46" y="42" width="32" height="32"></use></g>
-<g><circle class="ef-node" cx="298" cy="58" r="28"></circle><use href="#i-smart" x="282" y="42" width="32" height="32"></use></g>
-<g><circle class="ef-node home" cx="180" cy="150" r="36"></circle><use href="#i-house" x="162" y="132" width="36" height="36"></use></g>
-<g><circle class="ef-node" cx="62" cy="244" r="28"></circle><use href="#i-pole" x="46" y="228" width="32" height="32"></use></g>
-<g><circle class="ef-node" cx="298" cy="244" r="28"></circle><use href="#i-ev" x="282" y="228" width="32" height="32"></use></g>
-<text class="ef-lab" x="62" y="104">Fotovoltika</text>
-<text class="ef-lab" x="298" y="104">Smart riadenie</text>
-<text class="ef-lab" x="180" y="204">Dom</text>
-<text class="ef-lab" x="62" y="290">Sieť</text>
-<text class="ef-lab" x="298" y="290">Nabíjačka EV</text>
-</svg>
-<ul class="auto">
-<li>Ohrev vody z prebytku fotovoltiky<span class="tg"></span></li>
-<li>Nabíjanie auta podľa výroby<span class="tg"></span></li>
-</ul>
-</div>
-<div class="hc-chip c2"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg>Home Assistant · Shelly</div>
-</aside>
-</div>
-<div class="wrap">
-<dl class="facts hf" style="--d:1250ms">
-<div class="fact"><dt>Od projektu po revíziu</dt><dd>na kľúč</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-key"></use></svg></span></dd></div>
-<div class="fact"><dt>Elektro, solár aj smart pod jednou strechou</dt><dd>jeden dodávateľ</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span></dd></div>
-<div class="fact"><dt>Pôsobnosť</dt><dd>celé Slovensko</dd><dd class="ft" aria-hidden="true"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-pin"></use></svg></span></dd></div>
-</dl>
 </div>
 </section>
 
@@ -169,7 +137,7 @@ const faqPage = {
 </div>
 <div class="loads">
 <span class="lk">Na obvode visí:</span>
-<span class="loads-list" data-loads><span class="load"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika (malý / lokálny zdroj)</span></span>
+<span class="loads-list" data-loads><span class="load"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika (malý zdroj / lokálny zdroj)</span></span>
 </div>
 <div class="circ-bot">
 <div class="plate">
@@ -182,9 +150,9 @@ const faqPage = {
 <p class="fine2">Nezáväzne. Číslo použijeme len na to, aby sme sa vám ozvali. <a class="plink2" href="/zasady-ochrany-osobnych-udajov/">Ochrana údajov</a></p>
 </div>
 <div class="brk-wrap" data-brk-wrap data-endpoint={endpoint}>
-<button type="button" class="breaker" disabled aria-pressed="false" data-brk aria-label="Zapnúť istič a odoslať dopyt"><span class="brk-on">ZAP</span><span class="brk-lever"></span><span class="brk-off">VYP</span></button>
+<button type="button" class="breaker" disabled aria-pressed="false" data-brk aria-label="Zapnúť vypínač a odoslať dopyt"><span class="brk-on">ZAP</span><span class="brk-lever"></span><span class="brk-off">VYP</span></button>
 <div class="brk-side">
-<p class="brk-txt" data-brk-txt aria-live="polite">Doplňte meno a číslo. Potom zapnete istič a dopyt je na ceste.</p>
+<p class="brk-txt" data-brk-txt aria-live="polite">Doplňte meno a číslo. Potom zapnite vypínač a my sa vám ozveme.</p>
 </div>
 </div>
 </div>
@@ -198,9 +166,9 @@ const faqPage = {
 <p class="sub rv">Vieme poskytnúť aj čiastkové riešenie, ak potrebujete len jednu časť. Vieme vám to ale aj zastrešiť od A po Z, aby ste sa o nič nemuseli starať.</p>
 <div class="azbar rv"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-key"></use></svg>Na kľúč, od A po Z</div>
 <ol class="az-list">
-<li class="rv" style="--c:#022253;--n:0"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><h3>Projekt</h3><p>Projektová dokumentácia pre NN elektrickú prípojku, fotovoltiku (malý zdroj / lokálny zdroj), elektroinštaláciu rodinného domu, bleskozvod a nabíjačku pre elektromobil.</p></li>
+<li class="rv" style="--c:#022253;--n:0"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-blueprint"></use></svg></b><h3>Projekt</h3><p>Projektová dokumentácia pre NN elektrickú prípojku, fotovoltiku (malý zdroj / lokálny zdroj), elektroinštaláciu, vonkajšiu ochranu pred bleskom (LPS) a AC nabíjací bod pre EV (EVSE).</p></li>
 <li class="rv" style="--c:#0a5a85;--n:1"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hardhat"></use></svg></b><h3>Montáž</h3><p>Montáž všetkých týchto riešení, vrátane smart prvkov a automatizácií.</p></li>
-<li class="rv" style="--c:#0482a3;--n:2"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><h3>Revízia</h3><p>Odborná prehliadka a odborná skúška (OPaOS) v rozsahu E1A, E1B a revízna správa.</p></li>
+<li class="rv" style="--c:#0482a3;--n:2"><b class="dot"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-shield-check"></use></svg></b><h3>Revízia</h3><p>Odborná prehliadka a odborná skúška (OPaOS) a revízna správa.</p></li>
 </ol>
 </div>
 </section>
@@ -221,24 +189,58 @@ const faqPage = {
 </ul>
 </div>
 </div>
-<ul class="sm4">
-<li class="sa" style="--n:0"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><h3>Home Assistant</h3><p>Celý dom riadený z jedného miesta. Vieme do neho integrovať rôzne smart prvky.</p></li>
-<li class="sa" style="--n:1"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-relay"></use></svg></span><h3>Shelly</h3><p>Smart prvky, ktoré vieme nainštalovať a prepojiť s Home Assistant.</p></li>
-<li class="sa" style="--n:2"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chip"></use></svg></span><h3>miniPLC</h3><p>Riadiaca jednotka od home-master. Všetko sa dá pekne zintegrovať do Home Assistant.</p></li>
-<li class="sa" style="--n:3"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-leaf"></use></svg></span><h3>Úspora v domácnosti</h3><p>Automatizácie, ktoré znižujú spotrebu a lepšie využijú vlastnú výrobu z fotovoltiky.</p></li>
+<ul class="chain" aria-label="Ako spolu funguje smart domácnosť">
+<li class="sa" style="--n:0"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-relay"></use></svg></span><b>Smart prvky Shelly</b><small>spínače, relé a meranie spotreby v dome</small></li>
+<li class="sa" style="--n:1"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-chip"></use></svg></span><b>HomeMaster MiniPLC</b><small>riadiaca jednotka v rozvádzači</small></li>
+<li class="sa" style="--n:2"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><b>Home Assistant</b><small>jeden systém pre celý dom</small></li>
+<li class="sa" style="--n:3"><span class="ch-i"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-leaf"></use></svg></span><b>Úspora</b><small>menšia spotreba, viac z vlastnej fotovoltiky</small></li>
 </ul>
+<div class="hmx rv">
+<div class="hmx-img"><img src="/partners/homemaster-miniplc.webp" alt="Riadiaca jednotka HomeMaster ESP32 MiniPLC" width="900" height="900" loading="lazy" decoding="async"></div>
+<div class="hmx-body">
+<img class="hmx-logo" src="/partners/homemaster.png" alt="HomeMaster" width="205" height="205" loading="lazy" decoding="async">
+<p class="rules-t">Srdce automatizácie v rozvádzači</p>
+<h3>HomeMaster ESP32 MiniPLC</h3>
+<p>Riadiaca jednotka na DIN lištu, ktorú zapojíme priamo do rozvádzača. Spína spotrebiče, číta snímače a do Home Assistant sa integruje cez ESPHome. Všetko sa dá pekne zintegrovať do jedného systému.</p>
+<ul class="hmx-spec">
+<li>6 reléových výstupov</li>
+<li>4 digitálne vstupy 24 V</li>
+<li>4 analógové vstupy 0–10 V</li>
+<li>Wi-Fi, voliteľne Ethernet</li>
+<li>RS-485 Modbus</li>
+</ul>
+</div>
+</div>
 </div>
 </section>
 
 <section class="partners" id="partneri">
 <div class="wrap">
 <h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Oficiálny</span></span> <span class="w"><span class="wi" style="--i:1">inštalatér</span></span> <span class="w"><span class="wi" style="--i:2">a partner</span></span></h2>
-<ul class="pgrid">
-<li class="sa" style="--n:0"><span class="lb">Fotovoltika</span><span class="wm">SolaX</span></li>
-<li class="sa" style="--n:1"><span class="lb">Fotovoltika</span><span class="wm">Deye</span></li>
-<li class="sa" style="--n:2"><span class="lb">Smart domácnosť, pre Slovensko</span><span class="wm">miniPLC</span></li>
+<ul class="pgrid plogos">
+<li class="sa" style="--n:0"><span class="lb">Fotovoltika</span><span class="wm"><img src="/partners/solax.png" alt="SolaX Power" width="600" height="253" loading="lazy" decoding="async"></span></li>
+<li class="sa" style="--n:1"><span class="lb">Fotovoltika</span><span class="wm wm-t">Deye</span></li>
+<li class="sa" style="--n:2"><span class="lb">Smart domácnosť, pre Slovensko</span><span class="wm"><img src="/partners/homemaster.png" alt="HomeMaster" width="205" height="205" loading="lazy" decoding="async"></span></li>
 </ul>
 <div class="integ rv"><span>Integrujeme</span><b>Home Assistant</b><b>Shelly</b></div>
+</div>
+</section>
+
+<section class="about" id="o-nas">
+<div class="wrap about-grid">
+<div class="about-head">
+<p class="rules-t rv">O nás</p>
+<h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Jedna</span></span> <span class="w"><span class="wi" style="--i:1">linka</span></span> <span class="w"><span class="wi" style="--i:2">od projektu</span></span> <span class="w"><span class="wi" style="--i:3">až po</span></span> <span class="w"><span class="wi" style="--i:4">revíziu</span></span></h2>
+</div>
+<div class="about-body">
+<p class="about-lead rv">GridFlow je slovenská elektrofirma z Ivanky pri Nitre. Naše meno nie je náhoda.</p>
+<dl class="gfdef">
+<div class="sa" style="--n:0"><dt>Grid</dt><dd>je sieť. Prípojka, rozvádzač a každý kábel v stene.</dd></div>
+<div class="sa" style="--n:1"><dt>Flow</dt><dd>je tok. Energia zo strechy do domu, z domu do auta a dáta do vášho telefónu.</dd></div>
+</dl>
+<p class="rv">Pri revíziách vidíme, ako to dopadne, keď projekt robí jeden, montáž druhý a revíziu tretí. Každý odovzdá svoj kus a za celok nezodpovedá nikto. Preto to robíme inak: jeden tím, ktorý to navrhne, namontuje aj zreviduje a stojí si za výsledkom od prvej čiary v projekte po revíznu správu.</p>
+<p class="rv">Linka v našom logu je presne to. Jedna súvislá cesta, na ktorej sa nič nestratí. Vy na jej konci len zapnete svetlo.</p>
+</div>
 </div>
 </section>
 
@@ -272,7 +274,7 @@ const faqPage = {
 <footer class="foot-wrap">
 <div class="wrap foot">
 <img src="/logo/gridflow-horizontal-reversed.svg" alt="GridFlow" width="170" height="33">
-<p class="legal">GridFlow s.r.o.<br>IČO: 57813329<br>Buková ulica 1309/23, 951 12 Ivanka pri Nitre</p>
+<p class="legal">GridFlow s.r.o.<br>IČO: 57813329 · DIČ: 2123216007<br>Buková ulica 1309/23, 951 12 Ivanka pri Nitre</p>
 <p class="legal r">© 2026 GridFlow s.r.o.<br><a class="flink" href="/zasady-ochrany-osobnych-udajov/">Zásady ochrany osobných údajov</a></p>
 </div>
 </footer>

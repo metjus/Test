@@ -1,4 +1,4 @@
-// Výber riešenia a „schéma zákazky“ s ističom na domovskej stránke.
+// Výber riešenia a „schéma zákazky“ s vypínačom na domovskej stránke.
 import { validName, validPhone, sendInquiry } from './send.js';
 
 const circ = document.querySelector('[data-circ]');
@@ -68,8 +68,8 @@ if (circ) {
       : st.error
         ? 'Dopyt sa nepodarilo odoslať. Skúste to znova alebo zavolajte na 0910 635 595.'
         : ok
-          ? 'Všetko zapojené. Zapnite istič.'
-          : 'Doplňte meno a číslo. Potom zapnete istič a dopyt je na ceste.';
+          ? 'Všetko zapojené. Zapnite vypínač.'
+          : 'Doplňte meno a číslo. Potom zapnite vypínač a my sa vám ozveme.';
   }
 
   stageBtns.forEach((b) =>

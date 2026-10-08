@@ -17,7 +17,7 @@ Premenné prostredia (pozri `.env.example`): `SITE_URL` (kanonické odkazy, site
 
 | Adresa | Súbor |
 | --- | --- |
-| `/` | `src/pages/index.astro` (výber riešenia a istič: `src/scripts/home.js`) |
+| `/` | `src/pages/index.astro` (výber riešenia a vypínač: `src/scripts/home.js`) |
 | `/kontakt/` | `src/pages/kontakt.astro` (formulár: `src/scripts/contact.js`) |
 | `/zasady-ochrany-osobnych-udajov/` | `src/pages/zasady-ochrany-osobnych-udajov.astro` |
 | 404 | `src/pages/404.astro` |
@@ -65,6 +65,14 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 ## Nasadenie
 
 `npm run build`, výstup je `dist/`. Funguje Cloudflare Pages, Netlify aj bežný hosting s HTTPS. `public/_headers` obsahuje bezpečnostné hlavičky (CSP, `X-Content-Type-Options`, `Referrer-Policy`…) a cache pre súbory v `_astro/`; Cloudflare Pages a Netlify ho čítajú samy, pri inom hostingu ich nastavte na serveri. Pred ostrým nasadením nastavte `SITE_URL` na skutočnú doménu.
+
+## Logá partnerov
+
+Logá a fotka v sekciách Smart domácnosť a Partneri sú v `public/partners/`:
+
+- `solax.png`: logo SolaX Power z repozitára značiek Home Assistant (home-assistant/brands). Pred ostrým nasadením overte s klientom, či ide o aktuálnu verziu loga.
+- `homemaster.png` a `homemaster-miniplc.webp`: logo a fotka produktu z oficiálnych podkladov výrobcu HomeMaster (datasheet a partner kit pre predajcov). Podľa pravidiel výrobcu sa nesmie používať spojenie „Works with Home Assistant“ (povolené je „integruje sa s Home Assistant cez ESPHome“) a fotky sa nesmú prefarbovať.
+- Logo Deye zatiaľ chýba (zobrazuje sa názov). Stačí dodať súbor do `public/partners/` a v `src/pages/index.astro` nahradiť text obrázkom.
 
 ## Čo ešte treba doplniť
 

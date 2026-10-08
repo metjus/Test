@@ -831,3 +831,58 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 .gf .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .gf .ferr{margin-top:12px;font-size:14px;line-height:1.5;color:#b3261e}
 .gf .demo{margin-top:10px;font-size:13px;color:#4a5f80}
+
+/* ===== pripomienky 2026-10: Smart domácnosť, partneri (logá), O nás ===== */
+/* Smart domácnosť: reťaz systému (linka ako v logu) */
+.chain{list-style:none;position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;--ic1:#fff;--ic2:var(--cyan)}
+.gf .chain{margin-top:clamp(56px,7vw,96px)}
+.chain::before{content:"";position:absolute;left:12.5%;right:12.5%;top:34px;height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(2,172,193,.25),var(--cyan) 30%,var(--cyan) 70%,rgba(2,172,193,.25))}
+.chain li{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:0 10px}
+.ch-i{display:grid;place-items:center;width:72px;height:72px;margin-bottom:14px;border-radius:50%;background:var(--deep);border:4px solid var(--cyan)}
+.ch-i .ico{--s:30px}
+.chain b{font:400 clamp(17px,1.5vw,20px)/1.25 var(--sora);color:#fff}
+.chain small{font-size:14px;line-height:1.5;color:var(--muted-d);max-width:16em}
+/* Smart domácnosť: HomeMaster MiniPLC */
+.hmx{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(18px,2.6vw,32px);border-radius:34px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.gf .hmx{margin-top:clamp(56px,7vw,96px)}
+.hmx-img{aspect-ratio:4/3;border-radius:24px;background:#fff;overflow:hidden}
+.hmx-img img{display:block;width:100%;height:100%;object-fit:cover}
+.hmx-logo{display:block;width:84px;height:84px;border-radius:18px;background:#fff;padding:6px}
+.gf .hmx-body .rules-t{margin:24px 0 0}
+.hmx h3{font:300 clamp(26px,2.8vw,40px)/1.1 var(--sora);letter-spacing:-.03em;color:#e9f0fb}
+.gf .hmx h3{margin:10px 0 0}
+.gf .hmx-body>p:not(.rules-t){margin-top:16px;max-width:34em;font-size:16px;line-height:1.65;color:#c6d6ee}
+.hmx-spec{list-style:none;display:flex;flex-wrap:wrap;gap:8px}
+.gf .hmx-spec{margin-top:22px}
+.hmx-spec li{padding:9px 14px;border-radius:999px;font-size:13px;line-height:1.2;color:#d7e3f6;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
+/* Partneri: oficiálne logá */
+.plogos li{background:#fff;box-shadow:inset 0 0 0 1px var(--line);min-height:230px}
+.gf .pgrid.plogos .wm{display:flex;align-items:center;height:104px}
+.plogos .wm img{display:block;width:auto;height:auto;max-width:min(250px,100%);max-height:104px;object-fit:contain}
+/* O nás */
+.about{position:relative;background:var(--deep);color:#fff;padding:clamp(80px,10vw,140px) 0;overflow:hidden;isolation:isolate}
+.about::before{content:"";position:absolute;z-index:-1;inset:0;background:radial-gradient(45% 60% at 10% 90%,rgba(2,172,193,.16),transparent 70%)}
+.about-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(32px,6vw,96px);align-items:start}
+.about h2.h{color:#e9f0fb;font-size:clamp(30px,4vw,60px)}
+.gf .about-head .rules-t{margin:0 0 18px}
+.gf .about-body p{margin-top:22px;max-width:36em;font-size:clamp(16px,1.25vw,18px);line-height:1.7;color:#c6d6ee}
+.gf .about-body .about-lead{margin-top:0;font-size:clamp(19px,1.7vw,24px);line-height:1.45;color:#fff}
+.gfdef{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.gf .gfdef{margin-top:28px}
+.gfdef div{padding:22px 24px 24px;border-radius:26px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.gfdef dt{font:400 clamp(26px,2.6vw,36px)/1 var(--mich);color:#fff}
+.gfdef div+div dt{color:var(--cyan)}
+.gfdef dd{margin:12px 0 0;font-size:15px;line-height:1.55;color:#c6d6ee}
+@media (max-width:960px){
+  .hmx,.about-grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:720px){
+  .chain{grid-template-columns:minmax(0,1fr);gap:22px}
+  .chain::before{left:34px;right:auto;top:24px;bottom:24px;width:3px;height:auto;background:linear-gradient(180deg,rgba(2,172,193,.25),var(--cyan) 20%,var(--cyan) 80%,rgba(2,172,193,.25))}
+  .chain li{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:16px;align-items:center;text-align:left;padding:0}
+  .ch-i{grid-row:span 2;margin:0}
+  .chain b{align-self:end}
+  .chain small{align-self:start}
+  .gfdef{grid-template-columns:minmax(0,1fr)}
+  .plogos li{min-height:0}
+}
