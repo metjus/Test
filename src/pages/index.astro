@@ -188,7 +188,7 @@ const faqPage = {
 <ul class="sm4">
 <li class="sa" style="--n:0"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg></span><h3>Ohrev vody z prebytkov fotovoltiky</h3><p>Keď panely vyrábajú viac, než dom práve spotrebuje, prebytok ohreje vodu v bojleri.</p></li>
 <li class="sa" style="--n:1"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-ev"></use></svg></span><h3>Nabíjanie auta podľa dostupného výkonu</h3><p>Nabíjačka sa prispôsobí tomu, koľko výkonu je práve k dispozícii, napríklad z vlastnej výroby.</p></li>
-<li class="sa" style="--n:2"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-drop"></use></svg></span><h3>Upozornenie na únik vody</h3><p>Snímač pri práčke, kotle alebo bojleri zachytí vodu a hneď vám pošle upozornenie do mobilu.</p></li>
+<li class="sa" style="--n:2"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-drop"></use></svg></span><h3>Upozornenie na únik vody</h3><p>Snímač pri práčke, kotle alebo bojleri zachytí vodu, hneď vám pošle upozornenie do mobilu a vie aj uzavrieť hlavný prívod vody.</p></li>
 <li class="sa" style="--n:3"><span class="tile dk"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-hub"></use></svg></span><h3>Spotreba a stav domu v jednej aplikácii</h3><p>Výroba, spotreba aj to, čo je v dome zapnuté, prehľadne na jednom mieste v Home Assistant.</p></li>
 </ul>
 <div class="ha rv">
@@ -228,7 +228,7 @@ const faqPage = {
 <div class="wrap">
 <div class="p-head">
 <h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Oficiálny</span></span> <span class="w"><span class="wi" style="--i:1">inštalatér</span></span> <span class="w"><span class="wi" style="--i:2">a partner</span></span></h2>
-<p class="sub rv">Fotovoltiku montujeme so značkami SolaX a Deye. Inteligentnú domácnosť staviame na riadiacich jednotkách HomeMaster, ktoré prepojíme s Home Assistant a prvkami Shelly.</p>
+<p class="sub rv">Fotovoltiku staviame na značkách SolaX a Deye. Inteligentnú domácnosť staviame na riadiacich jednotkách HomeMaster, ktoré prepojíme s Home Assistant a prvkami Shelly, SMLIGHT, Sonoff, WaterGate, Somfy a mnohými ďalšími.</p>
 </div>
 <ul class="pgrid plogos">
 <li class="sa" style="--n:0"><span class="wm"><img class="lg lg-solax" src="/partners/solax.png" alt="SolaX Power" width="600" height="253" loading="lazy" decoding="async"></span><span class="lb"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-solar"></use></svg>Fotovoltika</span></li>
@@ -252,23 +252,30 @@ const faqPage = {
 <div class="sa" style="--n:1"><dt>Flow</dt><dd>je tok. Energia zo strechy do domu, z domu do auta a dáta do vášho telefónu.</dd></div>
 </dl>
 <p class="rv">Jednotlivé práce vieme koordinovať od návrhu po odovzdanie. Ak už máte projekt alebo montáž hotovú, nadviažeme službou, ktorú práve potrebujete.</p>
-<p class="rv">Linka v našom logu je presne to. Jedna súvislá cesta, na ktorej sa nič nestratí. Vy na jej konci len zapnete svetlo.</p>
+<p class="rv">Je to jedna súvislá cesta, na ktorej sa nič nestratí. Vy na jej konci len zapnete svetlo.</p>
 </div>
 </div>
 </section>
 
 <section class="faq" id="faq">
 <div class="wrap faq-grid">
-<div><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Časté</span></span> <span class="w"><span class="wi" style="--i:1">otázky</span></span></h2></div>
-<div>
+<div class="faq-side"><h2 class="h sw"><span class="w"><span class="wi" style="--i:0">Časté</span></span> <span class="w"><span class="wi" style="--i:1">otázky</span></span></h2>
+<p class="faq-note rv">Nenašli ste odpoveď? Zavolajte a poradíme vám.</p>
+<a class="faq-tel rv" href="tel:+421910635595"><svg class="ico" aria-hidden="true" focusable="false"><use href="#i-phone"></use></svg>0910 635 595</a></div>
+<div class="faq-list">
+<div class="faq-grp">
+<p class="faq-t rv">Služby</p>
 <details class="qa rv" style="--n:0"><summary>Viete urobiť všetko na kľúč?</summary><p class="ans">Áno. Navrhneme, namontujeme aj zrevidujeme. Ak potrebujete len jednu časť, spravíme len tú.</p></details>
 <details class="qa rv" style="--n:1"><summary>Robíte revízie aj po inej firme?</summary><p class="ans">Áno. Revíziu spravíme aj na zariadení, ktoré montoval niekto iný, napríklad pri kolaudácii, poistnej udalosti, pripojení fotovoltiky do siete alebo pri kontrole bezpečnosti.</p></details>
-<details class="qa rv" style="--n:2"><summary>Ako vznikne cena?</summary><p class="ans">Cena závisí od rozsahu. Keď nám poviete, čo treba navrhnúť, namontovať alebo zrevidovať, pripravíme vám cenovú ponuku.</p></details>
-<details class="qa rv" style="--n:3"><summary>Čo si mám pripraviť?</summary><p class="ans">Stačí vedieť, čo potrebujete a kde sa objekt nachádza. Ak máte projektovú dokumentáciu alebo staršiu revíznu správu, pripravte si ju.</p></details>
-<details class="qa rv" style="--n:4"><summary>Čo dostanem pri odovzdaní?</summary><p class="ans">Pri revízii revíznu správu, pri projekte projektovú dokumentáciu. Pri montáži vám zariadenie odovzdáme zapojené a odskúšané.</p></details>
-<details class="qa rv" style="--n:5"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details>
-<details class="qa rv" style="--n:6"><summary>Viete prepojiť inteligentné prvky do jedného systému?</summary><p class="ans">Áno. Vieme integrovať inteligentné prvky Shelly aj miniPLC do Home Assistant.</p></details>
-<details class="qa rv" style="--n:7"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobíme na celom Slovensku.</p></details>
+<details class="qa rv" style="--n:2"><summary>Čo je OPaOS?</summary><p class="ans">Odborná prehliadka a odborná skúška elektrického zariadenia. Jej výsledkom je revízna správa.</p></details>
+<details class="qa rv" style="--n:3"><summary>Viete prepojiť inteligentné prvky do jedného systému?</summary><p class="ans">Áno. Vieme integrovať inteligentné prvky Shelly aj miniPLC do Home Assistant.</p></details>
+</div>
+<div class="faq-grp">
+<p class="faq-t rv">Ako to prebieha</p>
+<details class="qa rv" style="--n:0"><summary>Pôsobíte aj v mojej lokalite?</summary><p class="ans">Pôsobíme na celom Slovensku.</p></details>
+<details class="qa rv" style="--n:1"><summary>Čo si mám pripraviť?</summary><p class="ans">Stačí vedieť, čo potrebujete a kde sa objekt nachádza. Ak máte projektovú dokumentáciu alebo staršiu revíznu správu, pripravte si ju.</p></details>
+<details class="qa rv" style="--n:2"><summary>Čo dostanem pri odovzdaní?</summary><p class="ans">Pri revízii revíznu správu, pri projekte projektovú dokumentáciu. Pri montáži vám zariadenie odovzdáme zapojené a odskúšané.</p></details>
+</div>
 </div>
 </div>
 </section>
