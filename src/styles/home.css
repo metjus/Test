@@ -901,8 +901,7 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 .brk-side{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:19em}
 .brk-send{min-height:52px;padding:0 26px;font-size:15px}
 .brk-send[disabled]{opacity:.45;cursor:not-allowed;transform:none}
-.breaker{cursor:default}
-.ready .breaker{cursor:pointer}
+.gf .breaker{pointer-events:none;cursor:default}
 .smart-top{align-items:end}
 .gf .smart .smart-top .sub{max-width:32em}
 .hmx-d{border-radius:30px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}

@@ -2,8 +2,9 @@
 import Site from '../layouts/Site.astro';
 import '../styles/contact.css';
 
-// Bez PUBLIC_FORM_ENDPOINT beží formulár v ukážkovom režime: všetko funguje, ale nič sa neodosiela.
-const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '';
+// Dopyt sa odošle na dopyt.php (PHP na hostingu pošle e-mail na info@gridflow.sk).
+// Iný cieľ sa dá nastaviť premennou PUBLIC_FORM_ENDPOINT.
+const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '/dopyt.php';
 
 const services = [
   { id: 'proj', label: 'Navrhnúť (projekt)' },
@@ -107,7 +108,7 @@ const whens = [{ id: 'any', label: 'Kedykoľvek', on: true }, { id: 'am', label:
 <div class="ok" data-k-ok hidden tabindex="-1">
 <div class="tick"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true" focusable="false"><path d="M6 15.5l6 6L24 9" stroke="#02ACC1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path></svg></div>
 <h3 style="margin-bottom:6px" data-ok-title>Ďakujeme, dopyt je odoslaný.</h3>
-<p>Ozveme sa vám <span data-sum="kam"></span>. <span class="ph">DOPLNIŤ: do koľkých hodín sa ozvete</span></p>
+<p>Ozveme sa vám <span data-sum="kam"></span>.</p>
 <ul class="sum">
 <li><span>Čo chcete spraviť</span><span data-sum="services"></span></li>
 <li><span>Čoho sa to týka</span><span data-sum="purposes"></span></li>
@@ -126,7 +127,7 @@ const whens = [{ id: 'any', label: 'Kedykoľvek', on: true }, { id: 'am', label:
 <ol class="s3">
 <li class="rv"><span class="no">1</span><h3>Ozveme sa vám</h3><p>Telefonicky, SMS alebo e-mailom, podľa vašej voľby.</p></li>
 <li class="rv"><span class="no">2</span><h3>Dohodneme rozsah a termín</h3><p>Prejdeme, čo treba navrhnúť, namontovať alebo zrevidovať.</p></li>
-<li class="rv"><span class="no">3</span><h3>Zrealizujeme to</h3><p><span class="ph">DOPLNIŤ: lehoty a spôsob odovzdania</span></p></li>
+<li class="rv"><span class="no">3</span><h3>Zrealizujeme to</h3><p>V dohodnutom termíne a s jasným výsledkom: projektom, hotovou montážou alebo revíznou správou.</p></li>
 </ol>
 </div>
 </section>

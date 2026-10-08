@@ -40,10 +40,11 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 
 ## Formulár
 
-`/kontakt/` obsahuje formulár podľa `docs/05-FORMULAR-A-ZASADY.md`: povinné je len meno a telefón, najčastejšie voľby sú predvolené, chyby sú po slovensky, je tam honeypot a krátka ochrana proti opakovanému odoslaniu (30 s). Do konzoly sa nič neloguje.
+Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosielajú dopyt na `/dopyt.php`. Povinné je meno a telefón alebo e-mail, nič nie je predvolené, je tam honeypot a ochrana proti opakovanému odoslaniu. Do konzoly sa nič neloguje.
 
-- **Kým nie je nastavené `PUBLIC_FORM_ENDPOINT`**, formulár beží v ukážkovom režime: validácia, voľby aj poďakovanie fungujú, ale nič sa neodosiela (poďakovanie to uvedie). Pred ostrým nasadením endpoint nastavte, inak dopyty zaniknú.
-- **Po nastavení** formulár odošle `POST` s `Content-Type: application/json`:
+- **`public/dopyt.php`** prijme dopyt a funkciou `mail()` ho pošle na **info@gridflow.sk** (odosielateľ `web@gridflow.sk`, pri zadanom e-maile je Reply-To na zákazníka). Adresy sú konštanty na začiatku súboru. Vyžaduje hosting s PHP: obsah priečinka `dist/` sa nahrá na hosting tak, ako je (aj `.htaccess` pre Apache).
+- **Na Cloudflare PHP nebeží**: `public/.assetsignore` zabráni nahratiu `dopyt.php` a `.htaccess`, takže na testovacej adrese na workers.dev formulár zobrazí chybu s telefónnym číslom. Iný cieľ (napríklad formulárovú službu) sa dá nastaviť premennou `PUBLIC_FORM_ENDPOINT` pri builde.
+- Formulár odošle `POST` s `Content-Type: application/json`:
 
 ```json
 {
