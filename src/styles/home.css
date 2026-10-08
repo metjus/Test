@@ -920,3 +920,24 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
   .hero{min-height:0}
   .hero-main{padding-bottom:64px}
 }
+
+/* ===== Ukážka z Home Assistant ===== */
+.gf .ha{margin-top:clamp(48px,6vw,80px)}
+.ha-head{max-width:46em}
+.gf .ha-head .rules-t{margin:0}
+.ha-head h3{font:300 clamp(24px,2.6vw,36px)/1.15 var(--sora);letter-spacing:-.02em;color:#e9f0fb}
+.gf .ha-head h3{margin-top:10px}
+.gf .ha-head p:not(.rules-t){margin-top:14px;font-size:16px;line-height:1.6;color:#c6d6ee}
+.ha-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(12px,1.6vw,20px);align-items:start}
+.gf .ha-grid{margin-top:clamp(24px,3vw,36px)}
+.ha-fig{margin:0}
+.ha-wide{grid-column:1/-1}
+.ha-fig a{display:block;border-radius:20px;overflow:hidden;background:#fafafa;box-shadow:0 0 0 1px rgba(255,255,255,.14),0 30px 60px -36px rgba(0,0,0,.8);transition:transform .6s var(--ease),box-shadow .4s}
+.ha-fig a:hover{transform:translateY(-3px);box-shadow:0 0 0 1px rgba(2,172,193,.6),0 30px 60px -36px rgba(0,0,0,.8)}
+.ha-fig a:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.ha-fig img{display:block;width:100%;height:auto}
+.ha-fig figcaption{margin-top:10px;font-size:14px;line-height:1.5;color:var(--muted-d)}
+.integ .integ-more{margin:0 0 0 4px;font-size:15px;color:var(--ink-soft)}
+@media (max-width:720px){
+  .ha-grid{grid-template-columns:minmax(0,1fr)}
+}
