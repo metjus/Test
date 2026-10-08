@@ -5,6 +5,7 @@ let lastSent = 0;
 
 export const validName = (v) => v.trim().length >= 2;
 export const validPhone = (v) => /^\+?[\d\s\-()/]+$/.test(v.trim()) && v.replace(/\D/g, '').length >= 9;
+export const validEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
 
 export async function sendInquiry(endpoint, payload, honeypot) {
   if (honeypot) return; // robot: tvárime sa, že sa odoslalo

@@ -1,6 +1,6 @@
 html{scroll-behavior:smooth;scroll-padding-top:84px}
 body{margin:0;scroll-behavior:smooth}
-.gf{--navy:#022253;--deep:#011638;--cyan:#02ACC1;--cyan-soft:#7fd6e2;--ice:#eef3f8;--line:#d6e0ec;--muted-d:#9db3d4;--ink-soft:#3e5379;--ease:cubic-bezier(.16,1,.3,1);--sora:"Sora","Segoe UI",system-ui,sans-serif;--mich:"Michroma","Sora",system-ui,sans-serif;
+.gf{--navy:#022253;--deep:#011638;--cyan:#02ACC1;--cyan-soft:#7fd6e2;--ice:#eef3f8;--line:#d6e0ec;--muted-d:#bccce4;--ink-soft:#3e5379;--ease:cubic-bezier(.16,1,.3,1);--sora:"Sora","Segoe UI",system-ui,sans-serif;--mich:"Michroma","Sora",system-ui,sans-serif;
   font:300 17px/1.65 var(--sora);color:var(--navy);background:#fff;overflow-x:clip;-webkit-font-smoothing:antialiased;position:relative;scroll-behavior:smooth}
 .gf *,.gf *::before,.gf *::after{box-sizing:border-box}
 .gf h1,.gf h2,.gf h3,.gf p,.gf dl,.gf dd,.gf ol,.gf ul{margin:0;padding:0}
@@ -834,14 +834,6 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 
 /* ===== pripomienky 2026-10: Smart domácnosť, partneri (logá), O nás ===== */
 /* Smart domácnosť: reťaz systému (linka ako v logu) */
-.chain{list-style:none;position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;--ic1:#fff;--ic2:var(--cyan)}
-.gf .chain{margin-top:clamp(56px,7vw,96px)}
-.chain::before{content:"";position:absolute;left:12.5%;right:12.5%;top:34px;height:3px;border-radius:2px;background:linear-gradient(90deg,rgba(2,172,193,.25),var(--cyan) 30%,var(--cyan) 70%,rgba(2,172,193,.25))}
-.chain li{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:0 10px}
-.ch-i{display:grid;place-items:center;width:72px;height:72px;margin-bottom:14px;border-radius:50%;background:var(--deep);border:4px solid var(--cyan)}
-.ch-i .ico{--s:30px}
-.chain b{font:400 clamp(17px,1.5vw,20px)/1.25 var(--sora);color:#fff}
-.chain small{font-size:14px;line-height:1.5;color:var(--muted-d);max-width:16em}
 /* Smart domácnosť: HomeMaster MiniPLC */
 .hmx{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,4vw,56px);align-items:center;padding:clamp(18px,2.6vw,32px);border-radius:34px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
 .gf .hmx{margin-top:clamp(56px,7vw,96px)}
@@ -873,12 +865,6 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
   .hmx,.about-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media (max-width:720px){
-  .chain{grid-template-columns:minmax(0,1fr);gap:22px}
-  .chain::before{left:34px;right:auto;top:24px;bottom:24px;width:3px;height:auto;background:linear-gradient(180deg,rgba(2,172,193,.25),var(--cyan) 20%,var(--cyan) 80%,rgba(2,172,193,.25))}
-  .chain li{display:grid;grid-template-columns:72px minmax(0,1fr);column-gap:16px;align-items:center;text-align:left;padding:0}
-  .ch-i{grid-row:span 2;margin:0}
-  .chain b{align-self:end}
-  .chain small{align-self:start}
   .gfdef{grid-template-columns:minmax(0,1fr)}
   .plogos li{min-height:0}
 }
@@ -905,4 +891,33 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 }
 @media (max-width:720px){
   .gf .pgrid.plogos .wm{height:170px}
+}
+
+/* ===== pripomienky 2026-10 (2): úvod, odoslanie, detail MiniPLC ===== */
+.hero{min-height:min(84vh,780px)}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:14px;line-height:1.4;color:var(--cyan-soft);--ic1:#fff;--ic2:var(--cyan)}
+.gf .hero-eyebrow{margin-bottom:20px}
+.hero-eyebrow .ico{--s:18px}
+.brk-side{display:flex;flex-direction:column;align-items:flex-start;gap:14px;max-width:19em}
+.brk-send{min-height:52px;padding:0 26px;font-size:15px}
+.brk-send[disabled]{opacity:.45;cursor:not-allowed;transform:none}
+.breaker{cursor:default}
+.ready .breaker{cursor:pointer}
+.smart-top{align-items:end}
+.gf .smart .smart-top .sub{max-width:32em}
+.hmx-d{border-radius:30px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.gf .hmx-d{margin-top:clamp(40px,5vw,64px)}
+.hmx-d summary{display:flex;align-items:center;gap:16px;padding:16px 22px;cursor:pointer;list-style:none;font:400 clamp(15px,1.3vw,17px)/1.4 var(--sora);color:#e1ebf8}
+.hmx-d summary::-webkit-details-marker{display:none}
+.hmx-d summary img{flex:none;width:44px;height:44px;border-radius:10px;background:#fff;padding:3px}
+.hmx-d summary span{flex:1}
+.hmx-d summary::after{content:"+";flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.3);font-size:20px;line-height:1;color:#fff;transition:transform .4s var(--ease)}
+.hmx-d[open] summary::after{transform:rotate(45deg)}
+.hmx-d summary:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:30px}
+.hmx-d .hmx{background:none;box-shadow:none;border-top:1px solid rgba(255,255,255,.12);border-radius:0}
+.gf .hmx-d .hmx{margin-top:0}
+.gf .hmx-d .hmx-body .rules-t{margin-top:0}
+@media (max-width:720px){
+  .hero{min-height:0}
+  .hero-main{padding-bottom:64px}
 }
