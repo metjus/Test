@@ -72,7 +72,7 @@ Logá a fotka v sekciách Smart domácnosť a Partneri sú v `public/partners/`:
 
 - `solax.png`: logo SolaX Power z repozitára značiek Home Assistant (home-assistant/brands). Pred ostrým nasadením overte s klientom, či ide o aktuálnu verziu loga.
 - `homemaster.png` a `homemaster-miniplc.webp`: logo a fotka produktu z oficiálnych podkladov výrobcu HomeMaster (datasheet a partner kit pre predajcov). Podľa pravidiel výrobcu sa nesmie používať spojenie „Works with Home Assistant“ (povolené je „integruje sa s Home Assistant cez ESPHome“) a fotky sa nesmú prefarbovať.
-- Logo Deye zatiaľ chýba (zobrazuje sa názov). Stačí dodať súbor do `public/partners/` a v `src/pages/index.astro` nahradiť text obrázkom.
+- `deye.png`: logo Deye (latinská časť firemného loga Ningbo Deye) z repozitára značiek Home Assistant. Ak klient dodá oficiálny súbor loga pre meniče, stačí ho nahradiť pod rovnakým názvom.
 
 ## Čo ešte treba doplniť
 
