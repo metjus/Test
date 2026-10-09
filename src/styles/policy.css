@@ -298,8 +298,6 @@ textarea.inp{min-height:84px;padding:14px 16px;line-height:1.5;resize:vertical}
 .kinfo::after{content:"";position:absolute;right:-110px;bottom:-110px;width:340px;height:340px;border:1px solid rgba(2,172,193,.4);border-radius:50%}
 .kinfo .k{color:var(--muted-d);font-size:14px}
 .kinfo .v{font-size:17px;color:#e9f0fb}
-.kphone{font:400 clamp(24px,2.8vw,38px)/1.15 var(--mich);color:#fff;letter-spacing:-.01em;white-space:nowrap}
-.kphone:hover{color:var(--cyan-soft)}
 .kcard{background:#fff;border-radius:26px;padding:clamp(26px,3.4vw,48px);box-shadow:0 30px 90px rgba(2,34,83,.14);color:var(--navy)}
 .kcard .stepno{font-size:14px;color:var(--ink-soft);margin-bottom:10px}
 .kcard h3{font:300 clamp(24px,2.4vw,32px)/1.15 var(--sora);letter-spacing:-.03em;margin:0 0 8px}
