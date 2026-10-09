@@ -67,7 +67,7 @@ Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosiel
 
 ## SEO
 
-- Hlavička dokumentu (`src/layouts/Site.astro`): `title`, `description` do ~155 znakov, `robots`, kanonická adresa, Open Graph a Twitter karta s obrázkom `public/og-image.png` (1200 × 630), favicony a `site.webmanifest`. Stránka 404 má `noindex` a nemá kanonickú adresu.
+- Hlavička dokumentu (`src/layouts/Site.astro`): `title`, `description` do ~155 znakov, `robots`, kanonická adresa, Open Graph a Twitter karta s obrázkom `public/og-image.png` (1200 × 630), favicony (`favicon.ico` 16/32/48 px, `favicon.svg`, `favicon-96.png`, `favicon-192.png` a `apple-touch-icon.png`: logo „reversed“ na Grid Navy štvorci, aby bolo vidno vo výsledkoch Googlu na svetlom aj tmavom pozadí) a `site.webmanifest`. Stránka 404 má `noindex` a nemá kanonickú adresu.
 - Štruktúrované údaje (JSON-LD): na domovskej stránke `Electrician` (firma, adresa, telefón, e-mail, IČO, DIČ, oblasť pôsobenia, služby), `WebSite` a `FAQPage`; na Kontakte a v zásadách `BreadcrumbList`. Hodnotenia ani recenzie sa nepridávajú, kým neexistujú skutočné.
 - `sitemap.xml` (dátum poslednej zmeny = dátum buildu), `robots.txt` (odkaz na sitemap, `dopyt.php` vylúčený) a `llms.txt` (stručný opis firmy, služieb, kontaktu a častých otázok pre AI vyhľadávače, len fakty z webu).
 - Po nasadení: overiť doménu v Google Search Console, odoslať `https://gridflow.sk/sitemap.xml` a založiť Google Business Profile.

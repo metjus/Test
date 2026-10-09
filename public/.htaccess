@@ -6,6 +6,7 @@ AddCharset UTF-8 .txt .xml .webmanifest
 AddType application/manifest+json .webmanifest
 AddType image/webp .webp
 AddType font/woff2 .woff2
+AddType image/x-icon .ico
 
 ErrorDocument 404 /404.html
 Options -Indexes
@@ -54,6 +55,7 @@ DirectoryIndex index.html
   ExpiresByType image/png "access plus 1 week"
   ExpiresByType image/webp "access plus 1 week"
   ExpiresByType image/svg+xml "access plus 1 week"
+  ExpiresByType image/x-icon "access plus 1 week"
   ExpiresByType text/plain "access plus 1 day"
   ExpiresByType application/xml "access plus 1 day"
 </IfModule>
