@@ -43,7 +43,9 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 
 Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosielajú dopyt na `/dopyt.php`. Povinné je meno a telefón alebo e-mail, nič nie je predvolené, je tam honeypot a ochrana proti opakovanému odoslaniu. Do konzoly sa nič neloguje.
 
-- **`public/dopyt.php`** prijme dopyt a funkciou `mail()` ho pošle na **info@gridflow.sk** (odosielateľ je tiež `info@gridflow.sk`, pri zadanom e-maile je Reply-To na zákazníka). Adresy sú konštanty na začiatku súboru. Vyžaduje hosting s PHP: obsah priečinka `dist/` sa nahrá na hosting tak, ako je (aj `.htaccess` pre Apache).
+- **`public/dopyt.php`** prijme dopyt a pošle ho na **info@gridflow.sk** (pri zadanom e-maile je Reply-To na zákazníka). Vyžaduje hosting s PHP: obsah priečinka `dist/` sa nahrá na hosting tak, ako je (aj `.htaccess` pre Apache).
+- **E-mail beží u iného poskytovateľa ako web**, preto sa má posielať cez **SMTP schránky info@gridflow.sk**: na hostingu sa vedľa `dopyt.php` vytvorí `dopyt-nastavenia.php` podľa vzoru `dopyt-nastavenia.example.php` (server, port, meno, heslo od poskytovateľa e-mailu). Správa potom prejde kontrolami SPF/DKIM/DMARC. Súbor s heslom nie je v gite (`.gitignore`) a `.htaccess` ho na webe nezobrazí.
+- Bez `dopyt-nastavenia.php` (alebo keď SMTP zlyhá) sa použije `mail()` hostingu s odosielateľom `info@gridflow.sk`. Pri e-maile mimo hostingu to spoľahlivo funguje len vtedy, keď záznam SPF domény povoľuje aj servery hostingu; inak môžu správy skončiť v spame alebo sa nedoručiť. Chyby SMTP sa zapisujú do chybového logu PHP na hostingu (bez osobných údajov).
 - **Na Cloudflare PHP nebeží**: `public/.assetsignore` zabráni nahratiu `dopyt.php` a `.htaccess`, takže na testovacej adrese na workers.dev formulár zobrazí chybu s telefónnym číslom. Iný cieľ (napríklad formulárovú službu) sa dá nastaviť premennou `PUBLIC_FORM_ENDPOINT` pri builde.
 - Formulár odošle `POST` s `Content-Type: application/json`:
 
