@@ -66,7 +66,7 @@ Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosiel
 
 ## Nasadenie
 
-`npm run build`, výstup je `dist/`. Funguje Cloudflare Pages, Netlify aj bežný hosting s HTTPS. `public/_headers` obsahuje bezpečnostné hlavičky (CSP, `X-Content-Type-Options`, `Referrer-Policy`…) a cache pre súbory v `_astro/`; Cloudflare Pages a Netlify ho čítajú samy, pri inom hostingu ich nastavte na serveri. Pred ostrým nasadením nastavte `SITE_URL` na skutočnú doménu.
+`npm run build`, výstup je `dist/`. Funguje Cloudflare Pages, Netlify aj bežný hosting s HTTPS. `public/_headers` obsahuje bezpečnostné hlavičky (CSP, `X-Content-Type-Options`, `Referrer-Policy`…) a cache pre súbory v `_astro/`; Cloudflare Pages a Netlify ho čítajú samy, pri inom hostingu ich nastavte na serveri. Doména je nastavená na `https://gridflow.sk` (bez www); inú sa dá zadať premennou `SITE_URL` pri builde.
 
 ## Prenos výberu na Kontakt
 
