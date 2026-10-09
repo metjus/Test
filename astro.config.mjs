@@ -44,8 +44,8 @@ const nonBreakingSpaces = {
   },
 };
 
-// Adresu domény nastaví klient (premenná SITE_URL pri builde). Dovtedy ide o zástupnú hodnotu.
-const site = process.env.SITE_URL || 'https://www.gridflow.example';
+// Doména webu (bez www). Pri builde sa dá zmeniť premennou SITE_URL.
+const site = process.env.SITE_URL || 'https://gridflow.sk';
 
 export default defineConfig({
   site,
