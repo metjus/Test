@@ -21,6 +21,7 @@ Premenné prostredia (pozri `.env.example`): `SITE_URL` (kanonické odkazy, site
 | `/kontakt/` | `src/pages/kontakt.astro` (formulár: `src/scripts/contact.js`) |
 | `/zasady-ochrany-osobnych-udajov/` | `src/pages/zasady-ochrany-osobnych-udajov.astro` |
 | 404 | `src/pages/404.astro` |
+| `/sitemap.xml`, `/robots.txt`, `/llms.txt` | `src/pages/sitemap.xml.ts`, `robots.txt.ts`, `llms.txt.ts` (generujú sa pri builde) |
 
 Stránky vychádzajú z odsúhlaseného mockupu (Claude Design). Hlavička dokumentu (SEO údaje, písma, ikony) je v `src/layouts/Site.astro`, hlavička webu, päta a obsah sú priamo v stránkach. Odoslanie dopytu (domovská stránka aj Kontakt) rieši `src/scripts/send.js`. Časté otázky sú v `src/data/faq.js`, odtiaľ ide aj JSON-LD `FAQPage`.
 
@@ -42,7 +43,7 @@ Jednopísmenové predložky (k, s, v, z, o, u, a, i), „§ 24“ a telefónne �
 
 Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosielajú dopyt na `/dopyt.php`. Povinné je meno a telefón alebo e-mail, nič nie je predvolené, je tam honeypot a ochrana proti opakovanému odoslaniu. Do konzoly sa nič neloguje.
 
-- **`public/dopyt.php`** prijme dopyt a funkciou `mail()` ho pošle na **info@gridflow.sk** (odosielateľ `web@gridflow.sk`, pri zadanom e-maile je Reply-To na zákazníka). Adresy sú konštanty na začiatku súboru. Vyžaduje hosting s PHP: obsah priečinka `dist/` sa nahrá na hosting tak, ako je (aj `.htaccess` pre Apache).
+- **`public/dopyt.php`** prijme dopyt a funkciou `mail()` ho pošle na **info@gridflow.sk** (odosielateľ je tiež `info@gridflow.sk`, pri zadanom e-maile je Reply-To na zákazníka). Adresy sú konštanty na začiatku súboru. Vyžaduje hosting s PHP: obsah priečinka `dist/` sa nahrá na hosting tak, ako je (aj `.htaccess` pre Apache).
 - **Na Cloudflare PHP nebeží**: `public/.assetsignore` zabráni nahratiu `dopyt.php` a `.htaccess`, takže na testovacej adrese na workers.dev formulár zobrazí chybu s telefónnym číslom. Iný cieľ (napríklad formulárovú službu) sa dá nastaviť premennou `PUBLIC_FORM_ENDPOINT` pri builde.
 - Formulár odošle `POST` s `Content-Type: application/json`:
 
@@ -64,9 +65,21 @@ Formulár na `/kontakt/` aj „schéma zákazky“ na domovskej stránke odosiel
 
   Odpoveď 2xx znamená úspech. Funguje to napríklad s formulárovou službou (Formspree a podobne) alebo s vlastnou serverless funkciou, ktorá pošle e-mail s predmetom „Nový dopyt: {služby} ({obec})“. Obmedzenie počtu žiadostí a prípadnú CAPTCHA treba doplniť na strane servera. Ak sa CAPTCHA alebo služba tretej strany pridá, doplňte ju do zásad ochrany údajov a do CSP v `public/_headers`.
 
-## Nasadenie
+## SEO
 
-`npm run build`, výstup je `dist/`. Funguje Cloudflare Pages, Netlify aj bežný hosting s HTTPS. `public/_headers` obsahuje bezpečnostné hlavičky (CSP, `X-Content-Type-Options`, `Referrer-Policy`…) a cache pre súbory v `_astro/`; Cloudflare Pages a Netlify ho čítajú samy, pri inom hostingu ich nastavte na serveri. Doména je nastavená na `https://gridflow.sk` (bez www); inú sa dá zadať premennou `SITE_URL` pri builde.
+- Hlavička dokumentu (`src/layouts/Site.astro`): `title`, `description` do ~155 znakov, `robots`, kanonická adresa, Open Graph a Twitter karta s obrázkom `public/og-image.png` (1200 × 630), favicony a `site.webmanifest`. Stránka 404 má `noindex` a nemá kanonickú adresu.
+- Štruktúrované údaje (JSON-LD): na domovskej stránke `Electrician` (firma, adresa, telefón, e-mail, IČO, DIČ, oblasť pôsobenia, služby), `WebSite` a `FAQPage`; na Kontakte a v zásadách `BreadcrumbList`. Hodnotenia ani recenzie sa nepridávajú, kým neexistujú skutočné.
+- `sitemap.xml` (dátum poslednej zmeny = dátum buildu), `robots.txt` (odkaz na sitemap, `dopyt.php` vylúčený) a `llms.txt` (stručný opis firmy, služieb, kontaktu a častých otázok pre AI vyhľadávače, len fakty z webu).
+- Po nasadení: overiť doménu v Google Search Console, odoslať `https://gridflow.sk/sitemap.xml` a založiť Google Business Profile.
+
+## Nasadenie (Websupport)
+
+1. `npm run build`. Doména je nastavená na `https://gridflow.sk` (bez www); inú sa dá zadať premennou `SITE_URL` pri builde.
+2. Celý obsah priečinka `dist/` (aj skryté súbory `.htaccess` a `.assetsignore`) nahrať cez FTP do koreňového priečinka webu domény gridflow.sk.
+3. Vo Webadmine skontrolovať, že je pri doméne aktívny SSL certifikát (Websupport ho zapína automaticky). `.htaccess` sám presmeruje `www` na `gridflow.sk`, `http` na `https` (pozná aj hlavičku `X-Forwarded-Proto` z proxy Websupportu) a `/kontakt` na `/kontakt/`; zapína kompresiu, cache a bezpečnostné hlavičky a pri neexistujúcej adrese zobrazí `404.html`.
+4. Odoslať skúšobný dopyt z webu a skontrolovať doručenú poštu aj spam na info@gridflow.sk.
+
+`.htaccess` bol overený na Apache 2.4 (presmerovania, 404, hlavičky). `public/_headers` a `.assetsignore` sú len pre Cloudflare (testovacia adresa na workers.dev); na Apache ich `.htaccess` nezobrazí.
 
 ## Prenos výberu na Kontakt
 
@@ -82,12 +95,10 @@ Logá a fotka v sekciách Smart domácnosť a Partneri sú v `public/partners/`:
 
 ## Čo ešte treba doplniť
 
-Zoznam údajov od klienta je v `docs/07-DOPLNIT-OD-KLIENTA.md`. Do tej doby zostávajú na stránkach viditeľné čiarkované polia „DOPLNIŤ: …“. Ďalej:
+Pôvodný zoznam údajov od klienta je v `docs/07-DOPLNIT-OD-KLIENTA.md`. Ďalej:
 
 - schválenie loga (v `public/logo/` je kópia bez neviditeľných metadát, originály sú v `assets/logo/`),
-- obrázok pre sociálne siete 1200 × 630 (dočasne `icon-512.png`),
-- právna kontrola a doplnenie zásad ochrany osobných údajov,
-- doména, e-mail a rozhodnutie o formulárovej službe,
+- právna kontrola zásad ochrany osobných údajov,
 - po nasadení Google Search Console a Google Business Profile.
 
 ## Kontrola kvality

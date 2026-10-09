@@ -8,7 +8,9 @@ import michroma from '../../assets/fonts/michroma-latin-400.woff2?url';
 const { title, description, path = '/', noindex = false, ld = [] } = Astro.props;
 
 const canonical = new URL(path, Astro.site).href;
-const ogImage = new URL('/logo/icon-512.png', Astro.site).href; // dočasne, kým klient nedodá obrázok 1200 × 630
+// Náhľad pri zdieľaní (Facebook, WhatsApp, LinkedIn…), 1200 × 630.
+const ogImage = new URL('/og-image.png', Astro.site).href;
+const ogAlt = 'GridFlow – elektroinštalácie, fotovoltika a revízie';
 ---
 <!doctype html>
 <html lang="sk">
@@ -17,22 +19,32 @@ const ogImage = new URL('/logo/icon-512.png', Astro.site).href; // dočasne, ký
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <meta name="description" content={description}>
-{noindex ? <meta name="robots" content="noindex"> : <link rel="canonical" href={canonical}>}
+{noindex
+  ? <meta name="robots" content="noindex, follow">
+  : <><meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"><link rel="canonical" href={canonical}></>}
+<meta name="author" content="GridFlow s.r.o.">
 <meta name="theme-color" content="#022253">
+<meta name="format-detection" content="telephone=no">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="sk_SK">
 <meta property="og:site_name" content="GridFlow">
 <meta property="og:title" content={title}>
 <meta property="og:description" content={description}>
-<meta property="og:url" content={canonical}>
+{!noindex && <meta property="og:url" content={canonical}>}
 <meta property="og:image" content={ogImage}>
-<meta name="twitter:card" content="summary">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content={ogAlt}>
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content={title}>
 <meta name="twitter:description" content={description}>
 <meta name="twitter:image" content={ogImage}>
+<meta name="twitter:image:alt" content={ogAlt}>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
 <link rel="preload" href={soraLight} as="font" type="font/woff2" crossorigin>
 <link rel="preload" href={soraRegular} as="font" type="font/woff2" crossorigin>
 <link rel="preload" href={michroma} as="font" type="font/woff2" crossorigin>

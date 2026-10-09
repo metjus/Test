@@ -23,11 +23,20 @@ const purposes = [
 ];
 const prefs = [{ id: 'call', label: 'Zavolať mi', on: true }, { id: 'sms', label: 'Napísať SMS' }, { id: 'mail', label: 'Napísať e-mail' }];
 const whens = [{ id: 'any', label: 'Kedykoľvek', on: true }, { id: 'am', label: 'Dopoludnia' }, { id: 'pm', label: 'Popoludní' }];
+const crumbs = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'GridFlow', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Kontakt', item: new URL('/kontakt/', Astro.site).href },
+  ],
+};
 ---
 <Site
   title="Kontakt a nezáväzný dopyt | GridFlow"
-  description="Zavolajte alebo pošlite krátky dopyt: projekt, montáž aj revízia. Elektroinštalácie, fotovoltika, revízie aj inteligentná domácnosť. Pôsobíme na celom Slovensku."
+  description="Zavolajte alebo pošlite nezáväzný dopyt na projekt, montáž či revíziu. Elektroinštalácie, fotovoltika aj inteligentná domácnosť. Pôsobíme na celom Slovensku."
   path="/kontakt/"
+  ld={[crumbs]}
 >
 <div class="gf">
 <a class="skip" href="#obsah">Preskočiť na obsah</a>

@@ -1,11 +1,21 @@
 ---
 import Site from '../layouts/Site.astro';
 import '../styles/policy.css';
+
+const crumbs = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'GridFlow', item: new URL('/', Astro.site).href },
+    { '@type': 'ListItem', position: 2, name: 'Zásady ochrany osobných údajov', item: new URL('/zasady-ochrany-osobnych-udajov/', Astro.site).href },
+  ],
+};
 ---
 <Site
   title="Zásady ochrany osobných údajov | GridFlow"
-  description="Informácie o spracúvaní osobných údajov GridFlow s.r.o."
+  description="Ako GridFlow s.r.o. spracúva osobné údaje z dopytu: aké údaje, na aký účel, ako dlho ich uchovávame a aké máte práva. Web nepoužíva cookies ani analytiku."
   path="/zasady-ochrany-osobnych-udajov/"
+  ld={[crumbs]}
 >
 <div class="gf">
 <a class="skip" href="#obsah">Preskočiť na obsah</a>

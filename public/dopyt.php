@@ -6,8 +6,8 @@
 declare(strict_types=1);
 
 const MAIL_TO = 'info@gridflow.sk';
-// Odosielateľ musí byť na doméne hostingu, inak môžu e-maily skončiť v spame.
-const MAIL_FROM = 'web@gridflow.sk';
+// Odosielateľ musí byť existujúca schránka na doméne hostingu (Websupport), inak môžu e-maily skončiť v spame.
+const MAIL_FROM = 'info@gridflow.sk';
 const MAX_BODY = 20000;   // bajtov
 const COOLDOWN = 15;      // sekúnd medzi dopytmi z jednej IP adresy
 
