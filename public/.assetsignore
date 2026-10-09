@@ -1,3 +1,5 @@
 # Na Cloudflare sa tieto súbory nenahrávajú (PHP tam nebeží).
 dopyt.php
+dopyt-nastavenia.example.php
+dopyt-nastavenia.php
 .htaccess

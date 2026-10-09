@@ -29,8 +29,8 @@ DirectoryIndex index.html
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^(.+[^/])$ https://%{HTTP_HOST}/$1/ [R=301,L]
 
-  # Súbory, ktoré na webe nemajú byť dostupné (nastavenia pre Cloudflare)
-  RewriteRule ^(_headers|\.assetsignore)$ - [R=404,L]
+  # Súbory, ktoré na webe nemajú byť dostupné (nastavenia pre Cloudflare a SMTP)
+  RewriteRule ^(_headers|\.assetsignore|dopyt-nastavenia.*\.php)$ - [R=404,L]
 </IfModule>
 
 <IfModule mod_headers.c>
