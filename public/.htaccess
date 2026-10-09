@@ -1,16 +1,63 @@
-# Apache (PHP hosting): chybová stránka a bezpečnostné hlavičky
+# Apache (Websupport): presmerovania, chybová stránka, bezpečnostné hlavičky, kompresia a cache.
+# Web beží na https://gridflow.sk (bez www). SSL certifikát musí byť vo Webadmine aktívny (Websupport ho zapína automaticky).
+
+AddDefaultCharset UTF-8
+AddCharset UTF-8 .txt .xml .webmanifest
+AddType application/manifest+json .webmanifest
+AddType image/webp .webp
+AddType font/woff2 .woff2
+
 ErrorDocument 404 /404.html
 Options -Indexes
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # www.gridflow.sk → gridflow.sk
+  RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+  RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+  # http → https. Websupport ukončuje HTTPS na proxy a posiela hlavičku X-Forwarded-Proto;
+  # kontrola %{HTTPS} pokrýva bežný Apache bez proxy.
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+  # /kontakt → /kontakt/ jedným presmerovaním rovno na https
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^(.+[^/])$ https://%{HTTP_HOST}/$1/ [R=301,L]
+
+  # Súbory, ktoré na webe nemajú byť dostupné (nastavenia pre Cloudflare)
+  RewriteRule ^(_headers|\.assetsignore)$ - [R=404,L]
+</IfModule>
+
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set X-Frame-Options "DENY"
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
   Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'"
+
+  # Súbory v _astro/ majú v názve odtlačok obsahu, môžu sa cachovať natrvalo.
+  <If "%{REQUEST_URI} =~ m#^/_astro/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  # HTML sa má vždy overiť, aby sa zmeny prejavili hneď po nahratí.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
 </IfModule>
+
 <IfModule mod_expires.c>
   ExpiresActive On
-  ExpiresByType font/woff2 "access plus 1 year"
-  ExpiresByType text/css "access plus 1 year"
-  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType image/png "access plus 1 week"
+  ExpiresByType image/webp "access plus 1 week"
+  ExpiresByType image/svg+xml "access plus 1 week"
+  ExpiresByType text/plain "access plus 1 day"
+  ExpiresByType application/xml "access plus 1 day"
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/xml application/javascript application/json application/manifest+json image/svg+xml
 </IfModule>

@@ -8,7 +8,10 @@ import '../styles/home.css';
 const endpoint = import.meta.env.PUBLIC_FORM_ENDPOINT || '/dopyt.php';
 
 const title = 'Elektroinštalácie, fotovoltika a revízie | GridFlow';
+// Popis pre vyhľadávače do ~155 znakov; dlhší popis ide do štruktúrovaných údajov.
 const description =
+  'Elektroinštalácie, fotovoltika a revízie. Prípojky, bleskozvody, nabíjačky pre elektromobily aj inteligentná domácnosť. Pôsobíme na celom Slovensku.';
+const longDescription =
   'Elektroinštalácie, fotovoltika a revízie. Od samostatnej revízie po kompletnú realizáciu: elektrické prípojky, fotovoltika pre domy a firmy, bleskozvody, nabíjačky pre elektromobily a inteligentná domácnosť. Pôsobíme na celom Slovensku.';
 
 const stageDefs = [
@@ -27,14 +30,21 @@ const subjectDefs = [
   { id: 'poradit', label: 'Nie som si istý – potrebujem poradiť', href: '#i-person' },
 ];
 
+const home = new URL('/', Astro.site).href;
 const business = {
   '@context': 'https://schema.org',
-  '@type': 'ProfessionalService',
-  name: 'GridFlow s.r.o.',
-  url: new URL('/', Astro.site).href,
+  '@type': 'Electrician',
+  '@id': home + '#firma',
+  name: 'GridFlow',
+  legalName: 'GridFlow s.r.o.',
+  url: home,
+  logo: new URL('/logo/icon-512.png', Astro.site).href,
+  image: new URL('/og-image.png', Astro.site).href,
   telephone: '+421910635595',
+  email: 'info@gridflow.sk',
   taxID: '2123216007',
-  description,
+  identifier: { '@type': 'PropertyValue', name: 'IČO', value: '57813329' },
+  description: longDescription,
   address: {
     '@type': 'PostalAddress',
     streetAddress: 'Buková ulica 1309/23',
@@ -43,7 +53,26 @@ const business = {
     addressCountry: 'SK',
   },
   areaServed: { '@type': 'Country', name: 'Slovensko' },
-  knowsAbout: ['Projektová dokumentácia elektro', 'Montáž elektroinštalácií', 'Fotovoltika', 'Inteligentná domácnosť', 'Revízie OPaOS'],
+  knowsAbout: [
+    'Elektroinštalácie',
+    'Elektrické prípojky',
+    'Fotovoltika pre domy a firmy',
+    'Bleskozvody',
+    'Nabíjačky pre elektromobily',
+    'Inteligentná domácnosť a riadenie energií',
+    'Projektová dokumentácia elektro',
+    'Revízie elektrických zariadení (OPaOS)',
+  ],
+};
+
+const website = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': home + '#web',
+  url: home,
+  name: 'GridFlow',
+  inLanguage: 'sk',
+  publisher: { '@id': home + '#firma' },
 };
 
 // Do FAQPage idú len odpovede, ktoré sú aj na stránke a nie sú zástupným údajom.
@@ -55,7 +84,7 @@ const faqPage = {
     .map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
 };
 ---
-<Site title={title} description={description} path="/" ld={[business, faqPage]}>
+<Site title={title} description={description} path="/" ld={[business, website, faqPage]}>
 <div class="gf">
 <a class="skip" href="#obsah">Preskočiť na obsah</a>
 <div class="curtain" aria-hidden="true"><i></i><i></i></div>
